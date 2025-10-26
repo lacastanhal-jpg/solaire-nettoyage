@@ -20,6 +20,12 @@ export default function SolaireNettoyageFlotte() {
     { id: 11, code: '764617', description: 'Chambre à air 20x108 STI', fournisseur: 'RURAL MASTER', prixUnitaire: 44.30, stock: 3, stockMin: 2, equipementsAffectes: [] },
     { id: 12, code: 'HIFSO 8055', description: 'Filtre à huile', fournisseur: 'V6 AUTOPRO', prixUnitaire: 40.80, stock: 2, stockMin: 1, equipementsAffectes: [1] },
     { id: 13, code: 'HIFSN 916020', description: 'Filtre à gasoil séparateur d\'eau', fournisseur: 'V6 AUTOPRO', prixUnitaire: 34.12, stock: 2, stockMin: 1, equipementsAffectes: [1] },
+    { id: 14, code: 'WY119802-55710', description: 'Séparateur d\'eau', fournisseur: 'CLAAS LAGARRIGUE', prixUnitaire: 15.05, stock: 1, stockMin: 1, equipementsAffectes: [6] },
+    { id: 15, code: 'WY123907-55810', description: 'Filtre combustible', fournisseur: 'CLAAS LAGARRIGUE', prixUnitaire: 36.88, stock: 1, stockMin: 1, equipementsAffectes: [6] },
+    { id: 16, code: 'WY129150-35170', description: 'Filtre à huile', fournisseur: 'CLAAS LAGARRIGUE', prixUnitaire: 14.17, stock: 1, stockMin: 1, equipementsAffectes: [6] },
+    { id: 17, code: '44524021', description: 'Filtre TRANS (TTR/TRH 9800) PONT AV', fournisseur: 'CLAAS LAGARRIGUE', prixUnitaire: 31.65, stock: 1, stockMin: 1, equipementsAffectes: [6] },
+    { id: 18, code: '44524020', description: 'Filtre HYDRAU PRESSION', fournisseur: 'CLAAS LAGARRIGUE', prixUnitaire: 62.71, stock: 1, stockMin: 1, equipementsAffectes: [6] },
+    { id: 19, code: 'BF16', description: 'Huile BF16 (20L)', fournisseur: 'SARL QUIERS', prixUnitaire: 5.07, stock: 40, stockMin: 10, equipementsAffectes: [6] },
   ]);
 
   // ===== MOUVEMENTS DE STOCK =====
@@ -65,15 +71,38 @@ export default function SolaireNettoyageFlotte() {
       typeFinancement: 'Achat', coutMensuel: 0, dateDebut: '2022-08-25', dateFin: '', assurance: 0, dateContracteTechnique: '2022-08-25',
       notes: 'TRACTEUR FARMTRAC - Immatriculation 25/08/2022'
     },
+    { 
+      id: 5, immat: 'GM-843-SW', type: 'Micro-tracteur', marque: 'FARMTRAC', modele: 'F26VHE14HMNDWL', annee: 2023, km: 0, heures: 0, carburant: 'Essence',
+      vin: 'M6SH09RLDNF610727', ptac: 1800, poids: 1057, proprietaire: 'SOLAIRE NETTOYAGE', valeurAchat: 12325.00, valeurActuelle: 12325.00,
+      typeFinancement: 'Achat', coutMensuel: 0, dateDebut: '2023-03-16', dateFin: '', assurance: 0, dateContracteTechnique: '2023-03-16',
+      notes: 'TRACTEUR FARMTRAC - Immatriculation 16/03/2023 - Facture RURAL MASTER F0614463062'
+    },
+    { 
+      id: 6, immat: 'DZ-609-JX', type: 'Tracteur', marque: 'ANTONIO CARRARO', modele: 'ERGIT-ST2088965A2', annee: 2016, km: 0, heures: 3170, carburant: 'Agricole',
+      vin: 'T20ACATA000P471', ptac: 4800, poids: 2650, proprietaire: 'SOLAIRE NETTOYAGE', valeurAchat: 42000.00, valeurActuelle: 42000.00,
+      typeFinancement: 'Achat', coutMensuel: 0, dateDebut: '2025-05-27', dateFin: '', assurance: 0, dateContracteTechnique: '2025-05-27',
+      notes: 'TRACTEUR ANTONIO CARRARO MACH 4 CHENILLES - Facture SAINT-MARTIN 00054696'
+    },
   ]);
 
   // ===== ACCESSOIRES PAR ÉQUIPEMENT =====
   const [accessoiresEquipement, setAccessoiresEquipement] = useState({
     1: [
-      { id: 1, nom: 'Carrosserie TEPEMATIC 26T', valeur: 51583, dateAjout: '2023-11-15', description: 'Plateau fixe porte matériel TP' },
-      { id: 2, nom: 'Feux latéraux LED 24V (x4)', valeur: 65.16, dateAjout: '2023-11-22', description: 'Feu latéral orange à LED 24V' },
-      { id: 3, nom: 'Marche pied 2 marches', valeur: 98.10, dateAjout: '2023-11-22', description: 'Marche pied 2 marches telescopique' },
-      { id: 4, nom: 'Klaxon 6 trompes Basuri', valeur: 232.50, dateAjout: '2023-12-07', description: 'Klaxon 6 trompes Basuri 20 mélodies' },
+      { id: 1, nom: 'Carrosserie TEPEMATIC 26T', valeur: 51583, dateAjout: '2023-11-15', description: 'Plateau fixe porte matériel TP', actif: false },
+      { id: 2, nom: 'Feux latéraux LED 24V (x4)', valeur: 65.16, dateAjout: '2023-11-22', description: 'Feu latéral orange à LED 24V', actif: false },
+      { id: 3, nom: 'Marche pied 2 marches', valeur: 98.10, dateAjout: '2023-11-22', description: 'Marche pied 2 marches telescopique', actif: false },
+      { id: 4, nom: 'Klaxon 6 trompes Basuri', valeur: 232.50, dateAjout: '2023-12-07', description: 'Klaxon 6 trompes Basuri 20 mélodies', actif: false },
+    ],
+    4: [
+      { id: 6, nom: 'Chargeur COCHET CX19', valeur: 3491.67, dateAjout: '2022-08-20', description: 'Chargeur COCHET CX19 FARMTRAC BENNIE STANDARD 1.20M', actif: false },
+      { id: 7, nom: 'Kit Flexible Complet Coupleur', valeur: 48.57, dateAjout: '2022-10-14', description: 'Kit flexible complet coupleur - HYDRODIS', actif: false },
+      { id: 8, nom: 'Verin 3PT 30x50 CSE210 EAF460', valeur: 217.54, dateAjout: '2022-10-14', description: 'Verin 3ème point hydraulique 30x50 - HYDRODIS', actif: false },
+    ],
+    5: [
+      { id: 5, nom: 'Chargeur COCHET CX19', valeur: 3491.67, dateAjout: '2023-03-16', description: 'Chargeur COCHET CX19 FARMTRAC BENNIE STANDARD 1.20M', actif: false },
+    ],
+    6: [
+      { id: 9, nom: 'SunBrush mobil TrackFlex 3.0', valeur: 64277.00, dateAjout: '2025-05-14', description: 'SunBrush mobil TrackFlex 3.0 5,5m brush trim 350mm - Cleaning device 5.5m brush - WashTronic control - CAN-Bus joystick - Installation training freight', actif: true },
     ]
   });
 
@@ -251,9 +280,42 @@ export default function SolaireNettoyageFlotte() {
 
   const getArticlesDisponibles = () => {
     if (afficherArticlesEquipement && nouvelleIntervention.equipementId) {
-      return articles.filter(a => a.equipementsAffectes.includes(parseInt(nouvelleIntervention.equipementId)));
+      const selectedId = parseInt(nouvelleIntervention.equipementId);
+      
+      // Si c'est le SunBrush (ID 999), afficher les articles du ANTONIO CARRARO (id 6)
+      if (selectedId === 999) {
+        return articles.filter(a => a.equipementsAffectes.includes(6) || a.equipementsAffectes.includes(999));
+      }
+      
+      // Sinon c'est un équipement normal
+      return articles.filter(a => a.equipementsAffectes.includes(selectedId));
     }
     return articles;
+  };
+
+  // ===== FONCTION POUR RÉCUPÉRER ÉQUIPEMENTS + ACCESSOIRES ACTIFS =====
+  const getEquipementsEtSunbrush = () => {
+    const liste = equipements.map(eq => ({
+      id: eq.id,
+      nom: `${eq.immat} - ${eq.marque} ${eq.modele}`,
+      type: 'equipement'
+    }));
+    
+    // Ajouter SEULEMENT les accessoires actifs (cochés)
+    Object.entries(accessoiresEquipement).forEach(([eqId, accs]) => {
+      accs.forEach(acc => {
+        if (acc.actif) {
+          const parentEq = equipements.find(e => e.id === parseInt(eqId));
+          liste.push({
+            id: 999,
+            nom: `${acc.nom} (sur ${parentEq?.immat})`,
+            type: 'accessoire'
+          });
+        }
+      });
+    });
+    
+    return liste;
   };
 
   const copierToutCommandes = () => {
@@ -348,7 +410,7 @@ ${articles.map(item => `${item.article.code} | ${item.article.description} | ${i
           {[
             { id: 'accueil', label: '📊 Accueil' },
             { id: 'fiche', label: `📋 Fiche matériel (${equipements.length})` },
-            { id: 'articles', label: '📦 Articles (13)' },
+            { id: 'articles', label: '📦 Articles (19)' },
             { id: 'inventaire', label: '📊 Inventaire' },
             { id: 'stock', label: '📥 Stock' },
             { id: 'equipements', label: `🚛 Équipements (${equipements.length})` },
@@ -457,21 +519,36 @@ ${articles.map(item => `${item.article.code} | ${item.article.description} | ${i
                   <input type="text" placeholder="Nom" value={nouvelAccessoire.nom} onChange={(e) => setNouvelAccessoire({...nouvelAccessoire, nom: e.target.value})} className="border-2 border-pink-300 rounded px-3 py-2 outline-none" />
                   <input type="number" step="0.01" placeholder="Valeur €" value={nouvelAccessoire.valeur} onChange={(e) => setNouvelAccessoire({...nouvelAccessoire, valeur: e.target.value})} className="border-2 border-pink-300 rounded px-3 py-2 outline-none" />
                   <input type="text" placeholder="Description" value={nouvelAccessoire.description} onChange={(e) => setNouvelAccessoire({...nouvelAccessoire, description: e.target.value})} className="border-2 border-pink-300 rounded px-3 py-2 col-span-2 outline-none" />
-                  <button onClick={() => ajouterAccessoire(equipementSelectionne.id)} className="bg-pink-500 text-white px-4 py-2 rounded font-bold hover:bg-pink-600">Ajouter</button>
+                  <button onClick={() => ajouterAccessoire(equipementSelectionne)} className="bg-pink-500 text-white px-4 py-2 rounded font-bold hover:bg-pink-600">Ajouter</button>
                 </div>
               </div>
-              {(accessoiresEquipement[equipementSelectionne.id] || []).length === 0 ? (
+              {(accessoiresEquipement[equipementSelectionne] || []).length === 0 ? (
                 <p className="text-gray-500 italic text-center py-4">Aucun accessoire</p>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {(accessoiresEquipement[equipementSelectionne.id] || []).map(acc => (
+                  {(accessoiresEquipement[equipementSelectionne] || []).map(acc => (
                     <div key={acc.id} className="bg-pink-50 p-4 rounded-lg border-2 border-pink-200">
                       <div className="flex justify-between items-start mb-2">
-                        <div className="font-bold text-pink-700">{acc.nom}</div>
+                        <div className="flex items-center gap-2 flex-1">
+                          <input 
+                            type="checkbox" 
+                            checked={acc.actif} 
+                            onChange={() => {
+                              setAccessoiresEquipement({
+                                ...accessoiresEquipement,
+                                [equipementSelectionne]: (accessoiresEquipement[equipementSelectionne] || []).map(a => 
+                                  a.id === acc.id ? { ...a, actif: !a.actif } : a
+                                )
+                              });
+                            }}
+                            className="w-4 h-4 cursor-pointer"
+                          />
+                          <div className="font-bold text-pink-700">{acc.nom}</div>
+                        </div>
                         <div className="text-xl font-black text-green-600">{acc.valeur.toFixed(2)}€</div>
                       </div>
                       <p className="text-sm text-gray-700 mb-2">{acc.description}</p>
-                      <button onClick={() => supprimerAccessoire(equipementSelectionne.id, acc.id)} className="text-red-600 hover:text-red-900 font-bold text-sm">Supprimer</button>
+                      <button onClick={() => supprimerAccessoire(equipementSelectionne, acc.id)} className="text-red-600 hover:text-red-900 font-bold text-sm">Supprimer</button>
                     </div>
                   ))}
                 </div>
@@ -648,12 +725,16 @@ ${articles.map(item => `${item.article.code} | ${item.article.description} | ${i
               <div className="space-y-2">
                 {articles.map(a => {
                   const equipAffectes = equipements.filter(e => a.equipementsAffectes.includes(e.id));
+                  const accessoiresActifsAffectes = Object.entries(accessoiresEquipement).flatMap(([eqId, accs]) => 
+                    accs.filter(acc => acc.actif && a.equipementsAffectes.includes(999)).map(acc => acc.nom)
+                  );
                   const isAffecte = a.equipementsAffectes.length > 0;
+                  
                   return (
                     <div key={a.id} className={`flex justify-between items-center p-3 rounded border-2 ${isAffecte ? 'bg-blue-100 border-blue-400' : 'bg-gray-50 border-gray-200'}`}>
                       <div className="flex-1">
                         <div className="font-semibold">{a.code} - {a.description}</div>
-                        <div className="text-xs text-gray-600">Stock: {a.stock} × {isAffecte ? `✓ Affecté à: ${equipAffectes.map(e => e.immat).join(', ')}` : 'Non affecté'}</div>
+                        <div className="text-xs text-gray-600">Stock: {a.stock} × {isAffecte ? `✓ Affecté à: ${[...equipAffectes.map(e => e.immat), ...accessoiresActifsAffectes].join(', ')}` : 'Non affecté'}</div>
                       </div>
                       <div className="flex gap-1 ml-2 flex-wrap">
                         {equipements.map(e => (
@@ -662,6 +743,14 @@ ${articles.map(item => `${item.article.code} | ${item.article.description} | ${i
                             {e.immat}
                           </button>
                         ))}
+                        {Object.entries(accessoiresEquipement).map(([eqId, accs]) => 
+                          accs.filter(acc => acc.actif).map(acc => (
+                            <button key={`acc_${acc.id}`} onClick={() => affecterArticleEquipement(a.id, 999)} 
+                              className={`px-3 py-1 rounded text-xs font-bold whitespace-nowrap transition ${a.equipementsAffectes.includes(999) ? 'bg-purple-600 text-white shadow-md' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}>
+                              {acc.nom.substring(0, 15)}
+                            </button>
+                          ))
+                        )}
                       </div>
                     </div>
                   );
@@ -689,8 +778,8 @@ ${articles.map(item => `${item.article.code} | ${item.article.description} | ${i
               <h3 className="font-bold text-lg mb-3">🔧 Créer intervention</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-2">
                 <select value={nouvelleIntervention.equipementId} onChange={(e) => setNouvelleIntervention({...nouvelleIntervention, equipementId: e.target.value})} className="border-2 rounded px-2 py-2">
-                  <option value="">Équipement *</option>
-                  {equipements.map(e => <option key={e.id} value={e.id}>{e.immat}</option>)}
+                  <option value="">Équipement ou Accessoire *</option>
+                  {getEquipementsEtSunbrush().map(item => <option key={item.id} value={item.id}>{item.nom}</option>)}
                 </select>
                 <select value={nouvelleIntervention.type} onChange={(e) => setNouvelleIntervention({...nouvelleIntervention, type: e.target.value})} className="border-2 rounded px-2 py-2">
                   <option value="">Type *</option>
