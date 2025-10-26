@@ -96,6 +96,7 @@ export default function SolaireNettoyageFlotte() {
   const [articleEnEdition, setArticleEnEdition] = useState(null);
   const [articlePourCommande, setArticlePourCommande] = useState(null);
   const [panierCommande, setPanierCommande] = useState([]);
+  const [afficherArticlesEquipement, setAfficherArticlesEquipement] = useState(false);
   
   const typesIntervention = ['Vidange moteur', 'Révision complète', 'Changement pneus', 'Nettoyage', 'Maintenance', 'Contrôle hydraulique', 'Réparation', 'Autre'];
 
@@ -246,6 +247,13 @@ export default function SolaireNettoyageFlotte() {
       groupes[fournisseur].push(item);
     });
     return groupes;
+  };
+
+  const getArticlesDisponibles = () => {
+    if (afficherArticlesEquipement && nouvelleIntervention.equipementId) {
+      return articles.filter(a => a.equipementsAffectes.includes(parseInt(nouvelleIntervention.equipementId)));
+    }
+    return articles;
   };
 
   const copierToutCommandes = () => {
@@ -697,10 +705,15 @@ ${articles.map(item => `${item.article.code} | ${item.article.description} | ${i
               </div>
               <div className="bg-blue-50 border-2 border-blue-300 p-3 rounded mb-3">
                 <h4 className="font-semibold text-sm mb-2">📦 Articles</h4>
+                <div className="mb-2">
+                  <button onClick={() => setAfficherArticlesEquipement(!afficherArticlesEquipement)} className={`px-3 py-1 rounded text-xs font-bold mb-2 ${afficherArticlesEquipement ? 'bg-blue-600 text-white' : 'bg-gray-300 text-gray-700'}`}>
+                    {afficherArticlesEquipement ? '🎯 Articles de l\'équipement' : '📋 Tous les articles'}
+                  </button>
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-2 mb-2">
                   <select value={nouvelArticleIntervention.articleId} onChange={(e) => setNouvelArticleIntervention({...nouvelArticleIntervention, articleId: e.target.value})} className="border-2 rounded px-2 py-2 text-sm">
                     <option value="">Sélectionner article</option>
-                    {articles.map(a => <option key={a.id} value={a.id}>{a.code} (Stock: {a.stock})</option>)}
+                    {getArticlesDisponibles().map(a => <option key={a.id} value={a.id}>{a.code} - {a.description} (Stock: {a.stock})</option>)}
                   </select>
                   <input type="number" min="1" placeholder="Quantité" value={nouvelArticleIntervention.quantite} onChange={(e) => setNouvelArticleIntervention({...nouvelArticleIntervention, quantite: e.target.value})} className="border-2 rounded px-2 py-2 text-sm" />
                   <button onClick={ajouterArticlePrevu} className="bg-blue-600 text-white px-3 py-2 rounded text-sm font-bold col-span-2">+ Ajouter article</button>
