@@ -1,4 +1,53 @@
-import React, { useState } from 'react';
+const cloturerIntervention = (interventionId) => {
+    setInterventions(interventions.map(i => i.id === interventionId ? { ...i, statut: 'effectue' } : i));
+  };
+
+  // ===== FONCTIONS ÉDITION INTERVENTIONS =====
+  const ouvrirEditionIntervention = (intervention) => {
+    console.log('Ouverture intervention:', intervention);
+    setInterventionEnEdition({ ...intervention });
+  };
+
+  const sauvegarderIntervention = () => {
+    if (interventionEnEdition) {
+      const coutTotal = interventionEnEdition.articles.reduce((sum, art) => sum + (art.quantite * art.prixUnitaire), 0);
+      const interventionModifiee = { ...interventionEnEdition, coutTotal };
+      setInterventions(interventions.map(i => 
+        i.id === interventionEnEdition.id ? interventionModifiee : i
+      ));
+      setInterventionEnEdition(null);
+      setNouvelArticleIntervention({ articleId: '', quantite: '' });
+    }
+  };
+
+  const ajouterArticleIntervention = () => {
+    if (interventionEnEdition && nouvelArticleIntervention.articleId && nouvelArticleIntervention.quantite) {
+      const article = articles.find(a => a.id === parseInt(nouvelArticleIntervention.articleId));
+      const quantite = parseInt(nouvelArticleIntervention.quantite);
+      if (!article) return;
+      const nouvelArticleObj = { articleId: parseInt(nouvelArticleIntervention.articleId), quantite, prixUnitaire: article.prixUnitaire, description: article.description, code: article.code };
+      const nouveauxArticles = [...interventionEnEdition.articles, nouvelArticleObj];
+      setInterventionEnEdition({
+        ...interventionEnEdition, 
+        articles: nouveauxArticles
+      });
+      setNouvelArticleIntervention({ articleId: '', quantite: '' });
+    }
+  };
+
+  const supprimerArticleIntervention = (indexArticle) => {
+    if (interventionEnEdition) {
+      setInterventionEnEdition({
+        ...interventionEnEdition,
+        articles: interventionEnEdition.articles.filter((_, i) => i !== indexArticle)
+      });
+    }
+  };
+
+  const annulerEditionIntervention = () => {
+    setNouvelArticleIntervention({ articleId: '', quantite: '' });
+    setInterventionEnEdition(null);
+  };import React, { useState } from 'react';
 import { ChevronDown, Plus, Trash2, Edit2, AlertCircle } from 'lucide-react';
 
 export default function SolaireNettoyageFlotte() {
@@ -7,25 +56,25 @@ export default function SolaireNettoyageFlotte() {
   
   // ===== ARTICLES =====
   const [articles, setArticles] = useState([
-    { id: 1, code: 'BAC5X5', description: 'Barre pour clavette en acier 5x5', fournisseur: 'LE BON ROULEMENT', prixUnitaire: 5.05, stock: 3, stockMin: 2, equipementsAffectes: [] },
-    { id: 2, code: 'BAC8X7', description: 'Barre pour clavette en acier 8x7', fournisseur: 'LE BON ROULEMENT', prixUnitaire: 9.07, stock: 3, stockMin: 2, equipementsAffectes: [] },
-    { id: 3, code: '388518', description: 'Bague support pont avant', fournisseur: 'RURAL MASTER', prixUnitaire: 12.41, stock: 1, stockMin: 1, equipementsAffectes: [] },
-    { id: 4, code: '605670', description: 'Washer 48.0x4.0 thrust', fournisseur: 'RURAL MASTER', prixUnitaire: 5.68, stock: 1, stockMin: 1, equipementsAffectes: [] },
-    { id: 5, code: '606540', description: 'Nut M10x1.508 hex', fournisseur: 'RURAL MASTER', prixUnitaire: 2.06, stock: 1, stockMin: 1, equipementsAffectes: [] },
-    { id: 6, code: '605669', description: 'Seal O ring 2.62x55.0', fournisseur: 'RURAL MASTER', prixUnitaire: 2.76, stock: 1, stockMin: 1, equipementsAffectes: [] },
-    { id: 7, code: '606858', description: 'Grease nipple B M6', fournisseur: 'RURAL MASTER', prixUnitaire: 2.20, stock: 1, stockMin: 1, equipementsAffectes: [] },
-    { id: 8, code: '605668', description: 'Dowel bush pillow block', fournisseur: 'RURAL MASTER', prixUnitaire: 3.59, stock: 2, stockMin: 1, equipementsAffectes: [] },
-    { id: 9, code: '606739', description: 'Bolt M10x1.50x356.6P hex head', fournisseur: 'RURAL MASTER', prixUnitaire: 2.62, stock: 1, stockMin: 1, equipementsAffectes: [] },
-    { id: 10, code: '388497', description: 'Support pont avant', fournisseur: 'RURAL MASTER', prixUnitaire: 53.02, stock: 1, stockMin: 1, equipementsAffectes: [] },
-    { id: 11, code: '764617', description: 'Chambre à air 20x108 STI', fournisseur: 'RURAL MASTER', prixUnitaire: 44.30, stock: 3, stockMin: 2, equipementsAffectes: [] },
-    { id: 12, code: 'HIFSO 8055', description: 'Filtre à huile', fournisseur: 'V6 AUTOPRO', prixUnitaire: 40.80, stock: 2, stockMin: 1, equipementsAffectes: [1] },
-    { id: 13, code: 'HIFSN 916020', description: 'Filtre à gasoil séparateur d\'eau', fournisseur: 'V6 AUTOPRO', prixUnitaire: 34.12, stock: 2, stockMin: 1, equipementsAffectes: [1] },
-    { id: 14, code: 'WY119802-55710', description: 'Séparateur d\'eau', fournisseur: 'CLAAS LAGARRIGUE', prixUnitaire: 15.05, stock: 1, stockMin: 1, equipementsAffectes: [6] },
-    { id: 15, code: 'WY123907-55810', description: 'Filtre combustible', fournisseur: 'CLAAS LAGARRIGUE', prixUnitaire: 36.88, stock: 1, stockMin: 1, equipementsAffectes: [6] },
-    { id: 16, code: 'WY129150-35170', description: 'Filtre à huile', fournisseur: 'CLAAS LAGARRIGUE', prixUnitaire: 14.17, stock: 1, stockMin: 1, equipementsAffectes: [6] },
-    { id: 17, code: '44524021', description: 'Filtre TRANS (TTR/TRH 9800) PONT AV', fournisseur: 'CLAAS LAGARRIGUE', prixUnitaire: 31.65, stock: 1, stockMin: 1, equipementsAffectes: [6] },
-    { id: 18, code: '44524020', description: 'Filtre HYDRAU PRESSION', fournisseur: 'CLAAS LAGARRIGUE', prixUnitaire: 62.71, stock: 1, stockMin: 1, equipementsAffectes: [6] },
-    { id: 19, code: 'BF16', description: 'Huile BF16 (20L)', fournisseur: 'SARL QUIERS', prixUnitaire: 5.07, stock: 40, stockMin: 10, equipementsAffectes: [6] },
+    { id: 1, code: 'BAC5X5', description: 'Barre pour clavette en acier 5x5', fournisseur: 'LE BON ROULEMENT', prixUnitaire: 5.05, stockAtelier: 1, stockVehicule1: 1, stockVehicule2: 1, stockVehicule3: 0, stockMin: 2, equipementsAffectes: [] },
+    { id: 2, code: 'BAC8X7', description: 'Barre pour clavette en acier 8x7', fournisseur: 'LE BON ROULEMENT', prixUnitaire: 9.07, stockAtelier: 1, stockVehicule1: 1, stockVehicule2: 1, stockVehicule3: 0, stockMin: 2, equipementsAffectes: [] },
+    { id: 3, code: '388518', description: 'Bague support pont avant', fournisseur: 'RURAL MASTER', prixUnitaire: 12.41, stockAtelier: 1, stockVehicule1: 0, stockVehicule2: 0, stockVehicule3: 0, stockMin: 1, equipementsAffectes: [] },
+    { id: 4, code: '605670', description: 'Washer 48.0x4.0 thrust', fournisseur: 'RURAL MASTER', prixUnitaire: 5.68, stockAtelier: 1, stockVehicule1: 0, stockVehicule2: 0, stockVehicule3: 0, stockMin: 1, equipementsAffectes: [] },
+    { id: 5, code: '606540', description: 'Nut M10x1.508 hex', fournisseur: 'RURAL MASTER', prixUnitaire: 2.06, stockAtelier: 1, stockVehicule1: 0, stockVehicule2: 0, stockVehicule3: 0, stockMin: 1, equipementsAffectes: [] },
+    { id: 6, code: '605669', description: 'Seal O ring 2.62x55.0', fournisseur: 'RURAL MASTER', prixUnitaire: 2.76, stockAtelier: 1, stockVehicule1: 0, stockVehicule2: 0, stockVehicule3: 0, stockMin: 1, equipementsAffectes: [] },
+    { id: 7, code: '606858', description: 'Grease nipple B M6', fournisseur: 'RURAL MASTER', prixUnitaire: 2.20, stockAtelier: 1, stockVehicule1: 0, stockVehicule2: 0, stockVehicule3: 0, stockMin: 1, equipementsAffectes: [] },
+    { id: 8, code: '605668', description: 'Dowel bush pillow block', fournisseur: 'RURAL MASTER', prixUnitaire: 3.59, stockAtelier: 2, stockVehicule1: 0, stockVehicule2: 0, stockVehicule3: 0, stockMin: 1, equipementsAffectes: [] },
+    { id: 9, code: '606739', description: 'Bolt M10x1.50x356.6P hex head', fournisseur: 'RURAL MASTER', prixUnitaire: 2.62, stockAtelier: 1, stockVehicule1: 0, stockVehicule2: 0, stockVehicule3: 0, stockMin: 1, equipementsAffectes: [] },
+    { id: 10, code: '388497', description: 'Support pont avant', fournisseur: 'RURAL MASTER', prixUnitaire: 53.02, stockAtelier: 1, stockVehicule1: 0, stockVehicule2: 0, stockVehicule3: 0, stockMin: 1, equipementsAffectes: [] },
+    { id: 11, code: '764617', description: 'Chambre à air 20x108 STI', fournisseur: 'RURAL MASTER', prixUnitaire: 44.30, stockAtelier: 2, stockVehicule1: 0, stockVehicule2: 1, stockVehicule3: 0, stockMin: 2, equipementsAffectes: [] },
+    { id: 12, code: 'HIFSO 8055', description: 'Filtre à huile', fournisseur: 'V6 AUTOPRO', prixUnitaire: 40.80, stockAtelier: 1, stockVehicule1: 0, stockVehicule2: 1, stockVehicule3: 0, stockMin: 1, equipementsAffectes: [1] },
+    { id: 13, code: 'HIFSN 916020', description: 'Filtre à gasoil séparateur d\'eau', fournisseur: 'V6 AUTOPRO', prixUnitaire: 34.12, stockAtelier: 1, stockVehicule1: 0, stockVehicule2: 1, stockVehicule3: 0, stockMin: 1, equipementsAffectes: [1] },
+    { id: 14, code: 'WY119802-55710', description: 'Séparateur d\'eau', fournisseur: 'CLAAS LAGARRIGUE', prixUnitaire: 15.05, stockAtelier: 1, stockVehicule1: 0, stockVehicule2: 0, stockVehicule3: 0, stockMin: 1, equipementsAffectes: [6] },
+    { id: 15, code: 'WY123907-55810', description: 'Filtre combustible', fournisseur: 'CLAAS LAGARRIGUE', prixUnitaire: 36.88, stockAtelier: 1, stockVehicule1: 0, stockVehicule2: 0, stockVehicule3: 0, stockMin: 1, equipementsAffectes: [6] },
+    { id: 16, code: 'WY129150-35170', description: 'Filtre à huile', fournisseur: 'CLAAS LAGARRIGUE', prixUnitaire: 14.17, stockAtelier: 1, stockVehicule1: 0, stockVehicule2: 0, stockVehicule3: 0, stockMin: 1, equipementsAffectes: [6] },
+    { id: 17, code: '44524021', description: 'Filtre TRANS (TTR/TRH 9800) PONT AV', fournisseur: 'CLAAS LAGARRIGUE', prixUnitaire: 31.65, stockAtelier: 1, stockVehicule1: 0, stockVehicule2: 0, stockVehicule3: 0, stockMin: 1, equipementsAffectes: [6] },
+    { id: 18, code: '44524020', description: 'Filtre HYDRAU PRESSION', fournisseur: 'CLAAS LAGARRIGUE', prixUnitaire: 62.71, stockAtelier: 1, stockVehicule1: 0, stockVehicule2: 0, stockVehicule3: 0, stockMin: 1, equipementsAffectes: [6] },
+    { id: 19, code: 'BF16', description: 'Huile BF16 (20L)', fournisseur: 'SARL QUIERS', prixUnitaire: 5.07, stockAtelier: 20, stockVehicule1: 10, stockVehicule2: 10, stockVehicule3: 0, stockMin: 10, equipementsAffectes: [6] },
   ]);
 
   // ===== MOUVEMENTS DE STOCK =====
@@ -126,8 +175,18 @@ export default function SolaireNettoyageFlotte() {
   const [articlePourCommande, setArticlePourCommande] = useState(null);
   const [panierCommande, setPanierCommande] = useState([]);
   const [afficherArticlesEquipement, setAfficherArticlesEquipement] = useState(false);
+  const [rechercheEquipement, setRechercheEquipement] = useState('');
   
   const typesIntervention = ['Vidange moteur', 'Révision complète', 'Changement pneus', 'Nettoyage', 'Maintenance', 'Contrôle hydraulique', 'Réparation', 'Autre'];
+
+  // Filtrer les équipements selon la recherche
+  const equipementsFiltres = equipements.filter(eq => {
+    const terme = rechercheEquipement.toLowerCase();
+    return eq.immat.toLowerCase().includes(terme) || 
+           eq.marque.toLowerCase().includes(terme) || 
+           eq.modele.toLowerCase().includes(terme) || 
+           eq.type.toLowerCase().includes(terme);
+  });
 
   // ===== FONCTIONS STOCK =====
   const enregistrerEntreeStock = () => {
@@ -391,7 +450,7 @@ ${articles.map(item => `${item.article.code} | ${item.article.description} | ${i
   const annulerEditionStockMin = () => {
     setArticleEnEdition(null);
   };
-  const valeurStockTotal = articles.reduce((sum, a) => sum + (a.stock * a.prixUnitaire), 0);
+  const valeurStockTotal = articles.reduce((sum, a) => sum + ((a.stockAtelier + a.stockVehicule1 + a.stockVehicule2 + a.stockVehicule3) * a.prixUnitaire), 0);
   const interventionsEnCours = interventions.filter(i => i.statut === 'en_cours');
   const equipSelectionne = equipements.find(e => e.id === equipementSelectionne);
   const accessoiresTotal = (accessoiresEquipement[equipementSelectionne] || []).reduce((sum, a) => sum + a.valeur, 0);
@@ -433,7 +492,7 @@ ${articles.map(item => `${item.article.code} | ${item.article.description} | ${i
                 <div className="text-sm">Articles</div>
               </div>
               <div className="bg-green-50 p-4 rounded border border-green-200">
-                <div className="text-3xl font-bold text-green-600">{articles.reduce((s,a)=>s+a.stock,0)}</div>
+                <div className="text-3xl font-bold text-green-600">{articles.reduce((s,a)=>s+(a.stockAtelier + a.stockVehicule1 + a.stockVehicule2 + a.stockVehicule3),0)}</div>
                 <div className="text-sm">Pièces stock</div>
               </div>
               <div className="bg-indigo-50 p-4 rounded border border-indigo-200">
@@ -454,16 +513,41 @@ ${articles.map(item => `${item.article.code} | ${item.article.description} | ${i
 
         {ongletActif === 'fiche' && equipSelectionne && (
           <div className="space-y-6">
-            <div className="sticky top-20 z-20">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                {equipements.map(eq => (
-                  <button key={eq.id} onClick={() => setEquipementSelectionne(eq.id)} 
-                    className={`p-4 rounded-lg font-semibold transition ${equipementSelectionne === eq.id ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg' : 'bg-white text-gray-800 border-2 border-gray-200'}`}>
-                    <div className="text-xl">{eq.immat}</div>
-                    <div className="text-sm mt-1">{eq.marque} {eq.modele}</div>
+            <div className="bg-white p-4 rounded-lg shadow-md">
+              <div className="flex gap-2 items-center mb-4">
+                <input 
+                  type="text" 
+                  placeholder="🔍 Rechercher par immat, marque, type..." 
+                  value={rechercheEquipement} 
+                  onChange={(e) => setRechercheEquipement(e.target.value)}
+                  className="flex-1 border-2 border-orange-300 rounded-lg px-4 py-2 focus:border-orange-500 outline-none"
+                />
+                {rechercheEquipement && (
+                  <button 
+                    onClick={() => setRechercheEquipement('')}
+                    className="bg-red-500 text-white px-4 py-2 rounded-lg font-bold hover:bg-red-600"
+                  >
+                    ✕ Effacer
                   </button>
-                ))}
+                )}
               </div>
+              
+              <div className="overflow-x-auto pb-2">
+                <div className="flex gap-3 min-w-min">
+                  {equipementsFiltres.map(eq => (
+                    <button key={eq.id} onClick={() => setEquipementSelectionne(eq.id)} 
+                      className={`px-6 py-3 rounded-lg font-semibold transition whitespace-nowrap flex-shrink-0 ${equipementSelectionne === eq.id ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg' : 'bg-white text-gray-800 border-2 border-gray-200 hover:border-orange-300'}`}>
+                      <div>{eq.immat}</div>
+                      <div className="text-xs mt-1">{eq.marque} {eq.modele}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {equipementsFiltres.length === 0 && (
+                <div className="text-center py-4 text-gray-500 italic">
+                  Aucun équipement ne correspond à votre recherche
+                </div>
+              )}
             </div>
 
             <div className="bg-gradient-to-br from-orange-500 to-yellow-400 text-white p-8 rounded-xl shadow-lg">
@@ -564,7 +648,10 @@ ${articles.map(item => `${item.article.code} | ${item.article.description} | ${i
               {articles.map(a => (
                 <div key={a.id} className="flex justify-between p-2 bg-gray-50 rounded">
                   <div><strong>{a.code}</strong> - {a.description}</div>
-                  <div className="text-right"><span className={`font-bold ${a.stock <= 2 ? 'text-red-600' : 'text-green-600'}`}>{a.stock}</span> × {a.prixUnitaire}€</div>
+                  <div className="text-right text-xs">
+                    <div className="font-bold">Atelier: {a.stockAtelier} | V1: {a.stockVehicule1} | V2: {a.stockVehicule2} | V3: {a.stockVehicule3}</div>
+                    <div className="text-green-600">Total: {a.stockAtelier + a.stockVehicule1 + a.stockVehicule2 + a.stockVehicule3} × {a.prixUnitaire}€</div>
+                  </div>
                 </div>
               ))}
             </div>
@@ -643,43 +730,44 @@ ${articles.map(item => `${item.article.code} | ${item.article.description} | ${i
             )}
 
             <div className="bg-white p-4 rounded border overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full text-xs">
                 <thead>
                   <tr className="bg-orange-50">
                     <th className="px-2 py-2 text-left">Code</th>
                     <th className="px-2 py-2 text-left">Description</th>
-                    <th className="px-2 py-2 text-right">Prix</th>
-                    <th className="px-2 py-2 text-center">Stock</th>
+                    <th className="px-2 py-2 text-center">Atelier</th>
+                    <th className="px-2 py-2 text-center">V1</th>
+                    <th className="px-2 py-2 text-center">V2</th>
+                    <th className="px-2 py-2 text-center">V3</th>
+                    <th className="px-2 py-2 text-center">Total</th>
                     <th className="px-2 py-2 text-center">Min</th>
+                    <th className="px-2 py-2 text-right">Prix U.</th>
                     <th className="px-2 py-2 text-right">Valeur</th>
                     <th className="px-2 py-2 text-center">Statut</th>
-                    <th className="px-2 py-2 text-center">Action</th>
                   </tr>
                 </thead>
                 <tbody>
                   {articles.map(a => {
-                    const enAlerte = a.stock < a.stockMin;
+                    const total = a.stockAtelier + a.stockVehicule1 + a.stockVehicule2 + a.stockVehicule3;
+                    const enAlerte = total < a.stockMin;
                     return (
                       <tr key={a.id} className={`border-b ${enAlerte ? 'bg-red-50' : ''}`}>
                         <td className="px-2 py-2 font-semibold text-orange-600">{a.code}</td>
-                        <td className="px-2 py-2">{a.description}</td>
+                        <td className="px-2 py-2 text-xs">{a.description}</td>
+                        <td className="px-2 py-2 text-center font-bold">{a.stockAtelier}</td>
+                        <td className="px-2 py-2 text-center font-bold">{a.stockVehicule1}</td>
+                        <td className="px-2 py-2 text-center font-bold">{a.stockVehicule2}</td>
+                        <td className="px-2 py-2 text-center font-bold">{a.stockVehicule3}</td>
+                        <td className="px-2 py-2 text-center font-bold text-blue-600">{total}</td>
+                        <td className="px-2 py-2 text-center">{a.stockMin}</td>
                         <td className="px-2 py-2 text-right">{a.prixUnitaire}€</td>
-                        <td className={`px-2 py-2 text-center font-bold ${a.stock < a.stockMin ? 'text-red-600' : 'text-green-600'}`}>{a.stock}</td>
-                        <td className="px-2 py-2 text-center font-semibold">
-                          <button onClick={() => ouvrirEditionStockMin(a)} className="text-blue-600 hover:text-blue-900 font-bold cursor-pointer underline">{a.stockMin}</button>
-                        </td>
-                        <td className="px-2 py-2 text-right font-bold">{(a.stock * a.prixUnitaire).toFixed(2)}€</td>
+                        <td className="px-2 py-2 text-right font-bold">{(total * a.prixUnitaire).toFixed(2)}€</td>
                         <td className="px-2 py-2 text-center">
                           {enAlerte ? (
                             <span className="bg-red-200 text-red-800 px-2 py-1 rounded text-xs font-bold">⚠️ ALERTE</span>
                           ) : (
                             <span className="bg-green-200 text-green-800 px-2 py-1 rounded text-xs font-bold">✓ OK</span>
                           )}
-                        </td>
-                        <td className="px-2 py-2 text-center">
-                          <button onClick={() => genererTexteCommande(a)} className="bg-blue-600 text-white px-2 py-1 rounded text-xs font-bold hover:bg-blue-700 w-full">
-                            📧 Commander
-                          </button>
                         </td>
                       </tr>
                     );
@@ -831,8 +919,9 @@ ${articles.map(item => `${item.article.code} | ${item.article.description} | ${i
                         <div>
                           <h4 className="font-bold text-lg">{i.type}</h4>
                           <p className="text-sm text-gray-600">{eq?.immat} - {i.date}</p>
+                          <p className="text-xs text-gray-500 mt-1">{i.articles.length} article(s)</p>
                         </div>
-                        <button onClick={() => cloturerIntervention(i.id)} className="bg-green-600 text-white px-4 py-2 rounded text-sm font-bold">Terminer</button>
+                        <button onClick={() => cloturerIntervention(i.id)} className="bg-green-600 text-white px-4 py-2 rounded text-sm font-bold hover:bg-green-700">Terminer</button>
                       </div>
                     </div>
                   );
