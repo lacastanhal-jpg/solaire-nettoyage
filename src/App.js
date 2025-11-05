@@ -1,56 +1,8 @@
-const cloturerIntervention = (interventionId) => {
-    setInterventions(interventions.map(i => i.id === interventionId ? { ...i, statut: 'effectue' } : i));
-  };
-
-  // ===== FONCTIONS ÉDITION INTERVENTIONS =====
-  const ouvrirEditionIntervention = (intervention) => {
-    console.log('Ouverture intervention:', intervention);
-    setInterventionEnEdition({ ...intervention });
-  };
-
-  const sauvegarderIntervention = () => {
-    if (interventionEnEdition) {
-      const coutTotal = interventionEnEdition.articles.reduce((sum, art) => sum + (art.quantite * art.prixUnitaire), 0);
-      const interventionModifiee = { ...interventionEnEdition, coutTotal };
-      setInterventions(interventions.map(i => 
-        i.id === interventionEnEdition.id ? interventionModifiee : i
-      ));
-      setInterventionEnEdition(null);
-      setNouvelArticleIntervention({ articleId: '', quantite: '' });
-    }
-  };
-
-  const ajouterArticleIntervention = () => {
-    if (interventionEnEdition && nouvelArticleIntervention.articleId && nouvelArticleIntervention.quantite) {
-      const article = articles.find(a => a.id === parseInt(nouvelArticleIntervention.articleId));
-      const quantite = parseInt(nouvelArticleIntervention.quantite);
-      if (!article) return;
-      const nouvelArticleObj = { articleId: parseInt(nouvelArticleIntervention.articleId), quantite, prixUnitaire: article.prixUnitaire, description: article.description, code: article.code };
-      const nouveauxArticles = [...interventionEnEdition.articles, nouvelArticleObj];
-      setInterventionEnEdition({
-        ...interventionEnEdition, 
-        articles: nouveauxArticles
-      });
-      setNouvelArticleIntervention({ articleId: '', quantite: '' });
-    }
-  };
-
-  const supprimerArticleIntervention = (indexArticle) => {
-    if (interventionEnEdition) {
-      setInterventionEnEdition({
-        ...interventionEnEdition,
-        articles: interventionEnEdition.articles.filter((_, i) => i !== indexArticle)
-      });
-    }
-  };
-
-  const annulerEditionIntervention = () => {
-    setNouvelArticleIntervention({ articleId: '', quantite: '' });
-    setInterventionEnEdition(null);
-  };import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { ChevronDown, Plus, Trash2, Edit2, AlertCircle } from 'lucide-react';
 
 export default function SolaireNettoyageFlotte() {
+  // ===== ÉTAT PRINCIPAL =====
   const [ongletActif, setOngletActif] = useState('accueil');
   const [equipementSelectionne, setEquipementSelectionne] = useState(1);
   
@@ -176,17 +128,9 @@ export default function SolaireNettoyageFlotte() {
   const [panierCommande, setPanierCommande] = useState([]);
   const [afficherArticlesEquipement, setAfficherArticlesEquipement] = useState(false);
   const [rechercheEquipement, setRechercheEquipement] = useState('');
+  const [interventionEnEdition, setInterventionEnEdition] = useState(null);
   
   const typesIntervention = ['Vidange moteur', 'Révision complète', 'Changement pneus', 'Nettoyage', 'Maintenance', 'Contrôle hydraulique', 'Réparation', 'Autre'];
-
-  // Filtrer les équipements selon la recherche
-  const equipementsFiltres = equipements.filter(eq => {
-    const terme = rechercheEquipement.toLowerCase();
-    return eq.immat.toLowerCase().includes(terme) || 
-           eq.marque.toLowerCase().includes(terme) || 
-           eq.modele.toLowerCase().includes(terme) || 
-           eq.type.toLowerCase().includes(terme);
-  });
 
   // ===== FONCTIONS STOCK =====
   const enregistrerEntreeStock = () => {
@@ -280,6 +224,51 @@ export default function SolaireNettoyageFlotte() {
     setInterventions(interventions.map(i => i.id === interventionId ? { ...i, statut: 'effectue' } : i));
   };
 
+  const ouvrirEditionIntervention = (intervention) => {
+    setInterventionEnEdition({ ...intervention });
+  };
+
+  const sauvegarderIntervention = () => {
+    if (interventionEnEdition) {
+      const coutTotal = interventionEnEdition.articles.reduce((sum, art) => sum + (art.quantite * art.prixUnitaire), 0);
+      const interventionModifiee = { ...interventionEnEdition, coutTotal };
+      setInterventions(interventions.map(i => 
+        i.id === interventionEnEdition.id ? interventionModifiee : i
+      ));
+      setInterventionEnEdition(null);
+      setNouvelArticleIntervention({ articleId: '', quantite: '' });
+    }
+  };
+
+  const ajouterArticleIntervention = () => {
+    if (interventionEnEdition && nouvelArticleIntervention.articleId && nouvelArticleIntervention.quantite) {
+      const article = articles.find(a => a.id === parseInt(nouvelArticleIntervention.articleId));
+      const quantite = parseInt(nouvelArticleIntervention.quantite);
+      if (!article) return;
+      const nouvelArticleObj = { articleId: parseInt(nouvelArticleIntervention.articleId), quantite, prixUnitaire: article.prixUnitaire, description: article.description, code: article.code };
+      const nouveauxArticles = [...interventionEnEdition.articles, nouvelArticleObj];
+      setInterventionEnEdition({
+        ...interventionEnEdition, 
+        articles: nouveauxArticles
+      });
+      setNouvelArticleIntervention({ articleId: '', quantite: '' });
+    }
+  };
+
+  const supprimerArticleIntervention = (indexArticle) => {
+    if (interventionEnEdition) {
+      setInterventionEnEdition({
+        ...interventionEnEdition,
+        articles: interventionEnEdition.articles.filter((_, i) => i !== indexArticle)
+      });
+    }
+  };
+
+  const annulerEditionIntervention = () => {
+    setNouvelArticleIntervention({ articleId: '', quantite: '' });
+    setInterventionEnEdition(null);
+  };
+
   // ===== FONCTIONS ACCESSOIRES =====
   const ajouterAccessoire = (equipementId) => {
     if (nouvelAccessoire.nom && nouvelAccessoire.valeur) {
@@ -340,19 +329,14 @@ export default function SolaireNettoyageFlotte() {
   const getArticlesDisponibles = () => {
     if (afficherArticlesEquipement && nouvelleIntervention.equipementId) {
       const selectedId = parseInt(nouvelleIntervention.equipementId);
-      
-      // Si c'est le SunBrush (ID 999), afficher les articles du ANTONIO CARRARO (id 6)
       if (selectedId === 999) {
         return articles.filter(a => a.equipementsAffectes.includes(6) || a.equipementsAffectes.includes(999));
       }
-      
-      // Sinon c'est un équipement normal
       return articles.filter(a => a.equipementsAffectes.includes(selectedId));
     }
     return articles;
   };
 
-  // ===== FONCTION POUR RÉCUPÉRER ÉQUIPEMENTS + ACCESSOIRES ACTIFS =====
   const getEquipementsEtSunbrush = () => {
     const liste = equipements.map(eq => ({
       id: eq.id,
@@ -360,7 +344,6 @@ export default function SolaireNettoyageFlotte() {
       type: 'equipement'
     }));
     
-    // Ajouter SEULEMENT les accessoires actifs (cochés)
     Object.entries(accessoiresEquipement).forEach(([eqId, accs]) => {
       accs.forEach(acc => {
         if (acc.actif) {
@@ -450,6 +433,15 @@ ${articles.map(item => `${item.article.code} | ${item.article.description} | ${i
   const annulerEditionStockMin = () => {
     setArticleEnEdition(null);
   };
+
+  const equipementsFiltres = equipements.filter(eq => {
+    const terme = rechercheEquipement.toLowerCase();
+    return eq.immat.toLowerCase().includes(terme) || 
+           eq.marque.toLowerCase().includes(terme) || 
+           eq.modele.toLowerCase().includes(terme) || 
+           eq.type.toLowerCase().includes(terme);
+  });
+
   const valeurStockTotal = articles.reduce((sum, a) => sum + ((a.stockAtelier + a.stockVehicule1 + a.stockVehicule2 + a.stockVehicule3) * a.prixUnitaire), 0);
   const interventionsEnCours = interventions.filter(i => i.statut === 'en_cours');
   const equipSelectionne = equipements.find(e => e.id === equipementSelectionne);
@@ -603,14 +595,14 @@ ${articles.map(item => `${item.article.code} | ${item.article.description} | ${i
                   <input type="text" placeholder="Nom" value={nouvelAccessoire.nom} onChange={(e) => setNouvelAccessoire({...nouvelAccessoire, nom: e.target.value})} className="border-2 border-pink-300 rounded px-3 py-2 outline-none" />
                   <input type="number" step="0.01" placeholder="Valeur €" value={nouvelAccessoire.valeur} onChange={(e) => setNouvelAccessoire({...nouvelAccessoire, valeur: e.target.value})} className="border-2 border-pink-300 rounded px-3 py-2 outline-none" />
                   <input type="text" placeholder="Description" value={nouvelAccessoire.description} onChange={(e) => setNouvelAccessoire({...nouvelAccessoire, description: e.target.value})} className="border-2 border-pink-300 rounded px-3 py-2 col-span-2 outline-none" />
-                  <button onClick={() => ajouterAccessoire(equipementSelectionne)} className="bg-pink-500 text-white px-4 py-2 rounded font-bold hover:bg-pink-600">Ajouter</button>
+                  <button onClick={() => ajouterAccessoire(equipementSelectionne.id)} className="bg-pink-500 text-white px-4 py-2 rounded font-bold hover:bg-pink-600">Ajouter</button>
                 </div>
               </div>
-              {(accessoiresEquipement[equipementSelectionne] || []).length === 0 ? (
+              {(accessoiresEquipement[equipementSelectionne.id] || []).length === 0 ? (
                 <p className="text-gray-500 italic text-center py-4">Aucun accessoire</p>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {(accessoiresEquipement[equipementSelectionne] || []).map(acc => (
+                  {(accessoiresEquipement[equipementSelectionne.id] || []).map(acc => (
                     <div key={acc.id} className="bg-pink-50 p-4 rounded-lg border-2 border-pink-200">
                       <div className="flex justify-between items-start mb-2">
                         <div className="flex items-center gap-2 flex-1">
@@ -632,7 +624,7 @@ ${articles.map(item => `${item.article.code} | ${item.article.description} | ${i
                         <div className="text-xl font-black text-green-600">{acc.valeur.toFixed(2)}€</div>
                       </div>
                       <p className="text-sm text-gray-700 mb-2">{acc.description}</p>
-                      <button onClick={() => supprimerAccessoire(equipementSelectionne, acc.id)} className="text-red-600 hover:text-red-900 font-bold text-sm">Supprimer</button>
+                      <button onClick={() => supprimerAccessoire(equipementSelectionne.id, acc.id)} className="text-red-600 hover:text-red-900 font-bold text-sm">Supprimer</button>
                     </div>
                   ))}
                 </div>
