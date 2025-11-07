@@ -101,37 +101,93 @@ export default function SolaireNettoyageFlotte() {
   const [videoStream, setVideoStream] = useState(null);
   const [scannedArticleId, setScannedArticleId] = useState(null);
   const [jsQRLoaded, setJsQRLoaded] = useState(false);
+  const [scanResultat, setScanResultat] = useState(null);
+  const [actionScan, setActionScan] = useState(null); // 'entree', 'sortie', 'transfert'
+  const [formScanEntree, setFormScanEntree] = useState({ quantite: '', prixUnitaire: '', raison: '', date: new Date().toISOString().split('T')[0], depot: 'Atelier' });
+  const [formScanSortie, setFormScanSortie] = useState({ quantite: '', raison: '', date: new Date().toISOString().split('T')[0], depot: 'Atelier' });
+  const [formScanTransfert, setFormScanTransfert] = useState({ quantite: '', depotSource: 'Atelier', depotDestination: 'Véhicule 1' });
   
   const typesIntervention = ['Vidange moteur', 'Révision complète', 'Changement pneus', 'Nettoyage', 'Maintenance', 'Contrôle hydraulique', 'Réparation', 'Autre'];
 
-  // Charger jsQR depuis CDN
+  // Charger jsQR depuis CDN avec fallback
   useEffect(() => {
+    // Vérifier si déjà chargé
+    if (window.jsQR) {
+      jsQRRef.current = window.jsQR;
+      setJsQRLoaded(true);
+      console.log('✅ jsQR déjà dans window');
+      return;
+    }
+
     const script = document.createElement('script');
-    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jsqr/1.4.0/jsQR.min.js';
-    script.onload = () => setJsQRLoaded(true);
+    script.src = 'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js';
+    script.async = true;
+    
+    script.onload = () => {
+      console.log('✅ jsQR chargé (jsDelivr):', typeof window.jsQR);
+      jsQRRef.current = window.jsQR;
+      setJsQRLoaded(true);
+    };
+    
+    script.onerror = () => {
+      console.warn('jsDelivr échoué, tentative cloudflare...');
+      const script2 = document.createElement('script');
+      script2.src = 'https://cdnjs.cloudflare.com/ajax/libs/jsqr/1.4.0/jsQR.min.js';
+      script2.async = true;
+      script2.onload = () => {
+        console.log('✅ jsQR chargé (Cloudflare):', typeof window.jsQR);
+        jsQRRef.current = window.jsQR;
+        setJsQRLoaded(true);
+      };
+      script2.onerror = () => console.error('❌ Impossible de charger jsQR');
+      document.head.appendChild(script2);
+    };
+    
     document.head.appendChild(script);
   }, []);
 
   // Scanner QR en temps réel
   useEffect(() => {
-    if (!afficherScannerQR || !videoRef.current || !canvasRef.current || !jsQRLoaded || !window.jsQR) return;
+    if (!afficherScannerQR || !videoRef.current || !canvasRef.current || scanResultat) return;
 
     const canvas = canvasRef.current;
     const video = videoRef.current;
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+    let lastDetectedCode = null;
+    let lastDetectedTime = 0;
 
     const tick = () => {
-      if (videoRef.current && videoRef.current.readyState === videoRef.current.HAVE_ENOUGH_DATA) {
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      try {
+        if (video.readyState === video.HAVE_ENOUGH_DATA) {
+          const videoWidth = video.videoWidth;
+          const videoHeight = video.videoHeight;
 
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const code = window.jsQR(imageData.data, canvas.width, canvas.height);
-
-        if (code) {
-          traiterScanQR(code.data);
+          if (videoWidth > 0 && videoHeight > 0) {
+            canvas.width = videoWidth;
+            canvas.height = videoHeight;
+            
+            ctx.drawImage(video, 0, 0, videoWidth, videoHeight);
+            const imageData = ctx.getImageData(0, 0, videoWidth, videoHeight);
+            
+            const jsQR = jsQRRef.current || window.jsQR;
+            if (jsQR && typeof jsQR === 'function') {
+              const code = jsQR(imageData.data, videoWidth, videoHeight);
+              if (code && code.data) {
+                const now = Date.now();
+                // Délai 5 sec entre deux mêmes détections
+                if (code.data !== lastDetectedCode || now - lastDetectedTime > 5000) {
+                  console.log('✅ QR détecté:', code.data);
+                  lastDetectedCode = code.data;
+                  lastDetectedTime = now;
+                  traiterScanQR(code.data);
+                }
+              }
+            }
+          }
         }
+      } catch (err) {
+        console.error('Erreur scan:', err);
       }
       scanningRef.current = requestAnimationFrame(tick);
     };
@@ -141,7 +197,7 @@ export default function SolaireNettoyageFlotte() {
     return () => {
       if (scanningRef.current) cancelAnimationFrame(scanningRef.current);
     };
-  }, [afficherScannerQR, jsQRLoaded]);
+  }, [afficherScannerQR, scanResultat]);
 
   const getStockTotal = (article) => {
     return depots.reduce((sum, depot) => sum + (article.stockParDepot[depot] || 0), 0);
@@ -318,9 +374,13 @@ export default function SolaireNettoyageFlotte() {
     const article = articles.find(a => a.code === code);
     if (article) {
       setScannedArticleId(article.id);
-      alert(`✅ Article trouvé: ${article.code} - ${article.description}`);
+      setScanResultat({ success: true, article, code });
+      setActionScan(null);
+      console.log('✅ Article trouvé:', article.code);
     } else {
-      alert(`❌ Article non trouvé: ${code}`);
+      setScanResultat({ success: false, code });
+      setActionScan(null);
+      console.log('❌ Article non trouvé:', code);
     }
   };
 
@@ -544,7 +604,7 @@ export default function SolaireNettoyageFlotte() {
 
         {ongletActif === 'stock' && (
           <div className="space-y-6">
-            <div className="bg-indigo-100 border-2 border-indigo-400 p-4 rounded"><h3 className="font-bold mb-3">📱 Scanner QR Code</h3><button onClick={toggleScannerQR} className={`px-4 py-2 rounded font-bold text-white ${afficherScannerQR ? 'bg-red-600 hover:bg-red-700' : 'bg-indigo-600 hover:bg-indigo-700'}`}>{afficherScannerQR ? '❌ Fermer Scanner' : '📷 Activer Scanner'}</button>{afficherScannerQR && (<div className="mt-4"><div className="bg-gray-900 rounded overflow-hidden" style={{maxWidth: '400px'}}><video ref={videoRef} autoPlay playsInline muted style={{width: '100%', display: 'block'}} /><canvas ref={canvasRef} style={{display: 'none'}} /></div><div className="mt-3"><input type="text" placeholder="Entrer code article ou scanner QR" onKeyDown={(e) => {if (e.key === 'Enter' && e.target.value) {traiterScanQR(e.target.value); e.target.value = ''}}} className="w-full border-2 border-indigo-300 rounded px-3 py-2 font-bold" /></div><div className="mt-2 text-sm text-indigo-700 font-semibold">🎯 Scanner actif - Pointez un QR code vers la caméra</div></div>)}</div>
+            <div className="bg-indigo-100 border-2 border-indigo-400 p-4 rounded"><h3 className="font-bold mb-3">📱 Scanner QR Code</h3><button onClick={toggleScannerQR} className={`px-4 py-2 rounded font-bold text-white ${afficherScannerQR ? 'bg-red-600 hover:bg-red-700' : 'bg-indigo-600 hover:bg-indigo-700'}`}>{afficherScannerQR ? '❌ Fermer Scanner' : '📷 Activer Scanner'}</button>{afficherScannerQR && !scanResultat && (<div className="mt-4"><div className="bg-gray-900 rounded overflow-hidden" style={{maxWidth: '400px'}}><video ref={videoRef} autoPlay playsInline muted style={{width: '100%', display: 'block'}} onLoadedMetadata={() => console.log('✅ Vidéo chargée')} /><canvas ref={canvasRef} style={{display: 'none'}} /></div><div className="mt-3 p-3 bg-indigo-50 rounded border border-indigo-300"><p className="text-sm font-bold text-indigo-700">📊 Statut :</p><p className="text-xs text-indigo-600">• jsQR: {jsQRLoaded ? '✅ Chargé' : '⏳ Chargement...'}</p><p className="text-xs text-indigo-600">• Vidéo: {videoRef.current?.readyState === 4 ? '✅ Active' : '⏳ En cours...'}</p></div><div className="mt-3"><input type="text" placeholder="Entrer code article ou scanner QR" onKeyDown={(e) => {if (e.key === 'Enter' && e.target.value) {traiterScanQR(e.target.value); e.target.value = ''}}} className="w-full border-2 border-indigo-300 rounded px-3 py-2 font-bold" /></div><div className="mt-2 text-sm text-indigo-700 font-semibold">🎯 Scanner actif - Pointez un QR code</div></div>)}{scanResultat && (<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"><div className="bg-white rounded-2xl shadow-2xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto"><div className="text-center mb-4">{scanResultat.success ? (<><div className="text-4xl mb-2">✅</div><h3 className="text-xl font-black text-green-600">Article détecté !</h3></>) : (<><div className="text-4xl mb-2">❌</div><h3 className="text-xl font-black text-red-600">Article non trouvé</h3></>)}</div>{scanResultat.success && (<><div className="bg-green-50 p-4 rounded-lg mb-4 border-2 border-green-300"><div className="font-bold text-lg text-green-700">{scanResultat.article.code}</div><div className="text-sm text-gray-700 mt-1">{scanResultat.article.description}</div><div className="text-xs text-gray-600 mt-2">Fournisseur: {scanResultat.article.fournisseur}</div><div className="text-xs text-gray-600">Prix: {scanResultat.article.prixUnitaire}€</div><div className="text-sm font-bold text-green-600 mt-2">Stock: {getStockTotal(scanResultat.article)}</div></div>{!actionScan ? (<><div className="grid grid-cols-3 gap-2 mb-4"><button onClick={() => setActionScan('entree')} className="bg-green-600 text-white px-3 py-3 rounded font-bold text-sm hover:bg-green-700">📥 Entrée</button><button onClick={() => setActionScan('sortie')} className="bg-red-600 text-white px-3 py-3 rounded font-bold text-sm hover:bg-red-700">📤 Sortie</button><button onClick={() => setActionScan('transfert')} className="bg-amber-600 text-white px-3 py-3 rounded font-bold text-sm hover:bg-amber-700">🔄 Transfer</button></div></>) : actionScan === 'entree' ? (<div className="bg-green-50 p-4 rounded-lg mb-4 border-2 border-green-300"><h4 className="font-bold text-green-700 mb-3">📥 Entrée de Stock</h4><div className="space-y-2"><input type="number" placeholder="Quantité *" value={formScanEntree.quantite} onChange={(e) => setFormScanEntree({...formScanEntree, quantite: e.target.value})} className="w-full border rounded px-2 py-1" /><input type="number" step="0.01" placeholder="Prix unitaire *" value={formScanEntree.prixUnitaire} onChange={(e) => setFormScanEntree({...formScanEntree, prixUnitaire: e.target.value})} className="w-full border rounded px-2 py-1" /><input placeholder="Raison (facture, BL...)" value={formScanEntree.raison} onChange={(e) => setFormScanEntree({...formScanEntree, raison: e.target.value})} className="w-full border rounded px-2 py-1" /><select value={formScanEntree.depot} onChange={(e) => setFormScanEntree({...formScanEntree, depot: e.target.value})} className="w-full border rounded px-2 py-1">{depots.map(d => <option key={d} value={d}>{d}</option>)}</select><input type="date" value={formScanEntree.date} onChange={(e) => setFormScanEntree({...formScanEntree, date: e.target.value})} className="w-full border rounded px-2 py-1" /></div><div className="flex gap-2 mt-3"><button onClick={enregistrerEntreeStockScan} className="flex-1 bg-green-600 text-white px-3 py-2 rounded font-bold">✓ Valider</button><button onClick={() => setActionScan(null)} className="flex-1 bg-gray-400 text-white px-3 py-2 rounded font-bold">↩️ Retour</button></div></div>) : actionScan === 'sortie' ? (<div className="bg-red-50 p-4 rounded-lg mb-4 border-2 border-red-300"><h4 className="font-bold text-red-700 mb-3">📤 Sortie de Stock</h4><div className="space-y-2"><input type="number" placeholder="Quantité *" value={formScanSortie.quantite} onChange={(e) => setFormScanSortie({...formScanSortie, quantite: e.target.value})} className="w-full border rounded px-2 py-1" /><input placeholder="Raison (intervention, usage...)" value={formScanSortie.raison} onChange={(e) => setFormScanSortie({...formScanSortie, raison: e.target.value})} className="w-full border rounded px-2 py-1" /><select value={formScanSortie.depot} onChange={(e) => setFormScanSortie({...formScanSortie, depot: e.target.value})} className="w-full border rounded px-2 py-1">{depots.map(d => <option key={d} value={d}>{d}</option>)}</select><input type="date" value={formScanSortie.date} onChange={(e) => setFormScanSortie({...formScanSortie, date: e.target.value})} className="w-full border rounded px-2 py-1" /></div><div className="flex gap-2 mt-3"><button onClick={enregistrerSortieStockScan} className="flex-1 bg-red-600 text-white px-3 py-2 rounded font-bold">✓ Valider</button><button onClick={() => setActionScan(null)} className="flex-1 bg-gray-400 text-white px-3 py-2 rounded font-bold">↩️ Retour</button></div></div>) : (<div className="bg-amber-50 p-4 rounded-lg mb-4 border-2 border-amber-300"><h4 className="font-bold text-amber-700 mb-3">🔄 Transfert</h4><div className="space-y-2"><input type="number" placeholder="Quantité *" value={formScanTransfert.quantite} onChange={(e) => setFormScanTransfert({...formScanTransfert, quantite: e.target.value})} className="w-full border rounded px-2 py-1" /><select value={formScanTransfert.depotSource} onChange={(e) => setFormScanTransfert({...formScanTransfert, depotSource: e.target.value})} className="w-full border rounded px-2 py-1"><option value="">Dépôt source</option>{depots.map(d => <option key={d} value={d}>{d}</option>)}</select><select value={formScanTransfert.depotDestination} onChange={(e) => setFormScanTransfert({...formScanTransfert, depotDestination: e.target.value})} className="w-full border rounded px-2 py-1"><option value="">Dépôt destination</option>{depots.map(d => <option key={d} value={d}>{d}</option>)}</select></div><div className="flex gap-2 mt-3"><button onClick={enregistrerTransfertStockScan} className="flex-1 bg-amber-600 text-white px-3 py-2 rounded font-bold">✓ Valider</button><button onClick={() => setActionScan(null)} className="flex-1 bg-gray-400 text-white px-3 py-2 rounded font-bold">↩️ Retour</button></div></div>)}</>)}{!scanResultat.success && (<div className="flex gap-2"><button onClick={() => setScanResultat(null)} className="flex-1 bg-blue-600 text-white px-4 py-2 rounded font-bold">🔄 Rescanner</button><button onClick={() => {setAfficherScannerQR(false); setScanResultat(null);}} className="flex-1 bg-gray-400 text-white px-4 py-2 rounded font-bold">✕ Fermer</button></div>)}</div></div>)}</div>
             <div className="bg-green-50 border-2 border-green-300 p-4 rounded"><h3 className="font-bold mb-3">📥 Entrée - {depotSelectionne}</h3><div className="grid grid-cols-1 md:grid-cols-5 gap-2"><select value={nouvelleEntreeStock.articleId} onChange={(e) => setNouvelleEntreeStock({...nouvelleEntreeStock, articleId: e.target.value})} className="border rounded px-2 py-1"><option value="">Article</option>{articles.map(a => <option key={a.id} value={a.id}>{a.code}</option>)}</select><input type="number" placeholder="Qté" value={nouvelleEntreeStock.quantite} onChange={(e) => setNouvelleEntreeStock({...nouvelleEntreeStock, quantite: e.target.value})} className="border rounded px-2 py-1" /><input type="number" step="0.01" placeholder="Prix" value={nouvelleEntreeStock.prixUnitaire} onChange={(e) => setNouvelleEntreeStock({...nouvelleEntreeStock, prixUnitaire: e.target.value})} className="border rounded px-2 py-1" /><input placeholder="Raison" value={nouvelleEntreeStock.raison} onChange={(e) => setNouvelleEntreeStock({...nouvelleEntreeStock, raison: e.target.value})} className="border rounded px-2 py-1" /><button onClick={enregistrerEntreeStock} className="bg-green-600 text-white px-3 py-1 rounded font-bold">Entrer</button></div></div>
             <div className="bg-red-50 border-2 border-red-300 p-4 rounded"><h3 className="font-bold mb-3">📤 Sortie - {depotSelectionne}</h3><div className="grid grid-cols-1 md:grid-cols-5 gap-2"><select value={nouveauMouvementSortie.articleId} onChange={(e) => setNouveauMouvementSortie({...nouveauMouvementSortie, articleId: e.target.value})} className="border rounded px-2 py-1"><option value="">Article</option>{articles.map(a => <option key={a.id} value={a.id}>{a.code}</option>)}</select><input type="number" placeholder="Qté" value={nouveauMouvementSortie.quantite} onChange={(e) => setNouveauMouvementSortie({...nouveauMouvementSortie, quantite: e.target.value})} className="border rounded px-2 py-1" /><input placeholder="Raison" value={nouveauMouvementSortie.raison} onChange={(e) => setNouveauMouvementSortie({...nouveauMouvementSortie, raison: e.target.value})} className="border rounded px-2 py-1" /><input type="date" value={nouveauMouvementSortie.date} onChange={(e) => setNouveauMouvementSortie({...nouveauMouvementSortie, date: e.target.value})} className="border rounded px-2 py-1" /><button onClick={enregistrerSortieStock} className="bg-red-600 text-white px-3 py-1 rounded font-bold">Sortir</button></div></div>
             <div className="bg-amber-50 border-2 border-amber-400 p-4 rounded"><h3 className="font-bold mb-3">🔄 Transfert</h3><div className="grid grid-cols-1 md:grid-cols-6 gap-2"><select value={nouveauTransfert.articleId} onChange={(e) => setNouveauTransfert({...nouveauTransfert, articleId: e.target.value})} className="border rounded px-2 py-1"><option value="">Article</option>{articles.map(a => <option key={a.id} value={a.id}>{a.code}</option>)}</select><select value={nouveauTransfert.depotSource} onChange={(e) => setNouveauTransfert({...nouveauTransfert, depotSource: e.target.value})} className="border rounded px-2 py-1">{depots.map(d => <option key={d} value={d}>{d}</option>)}</select><select value={nouveauTransfert.depotDestination} onChange={(e) => setNouveauTransfert({...nouveauTransfert, depotDestination: e.target.value})} className="border rounded px-2 py-1">{depots.map(d => <option key={d} value={d}>{d}</option>)}</select><input type="number" placeholder="Qté" value={nouveauTransfert.quantite} onChange={(e) => setNouveauTransfert({...nouveauTransfert, quantite: e.target.value})} className="border rounded px-2 py-1" /><input placeholder="Note" value={nouveauTransfert.raison} onChange={(e) => setNouveauTransfert({...nouveauTransfert, raison: e.target.value})} className="border rounded px-2 py-1" /><button onClick={enregistrerTransfertStock} className="bg-amber-600 text-white px-3 py-1 rounded font-bold">Transférer</button></div></div>
