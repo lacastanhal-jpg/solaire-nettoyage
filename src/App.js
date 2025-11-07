@@ -115,14 +115,25 @@ export default function SolaireNettoyageFlotte() {
     }
   }, [articles]);
 
+  const getArticlesDisponiblesCallback = useCallback(() => {
+    if (afficherArticlesEquipement && nouvelleIntervention.equipementId) {
+      const selectedId = parseInt(nouvelleIntervention.equipementId);
+      if (selectedId === 999) {
+        return articles.filter(a => a.equipementsAffectes.includes(6) || a.equipementsAffectes.includes(999));
+      }
+      return articles.filter(a => a.equipementsAffectes.includes(selectedId));
+    }
+    return articles;
+  }, [articles, afficherArticlesEquipement, nouvelleIntervention.equipementId]);
+
   const traiterScanQRIntervention = useCallback((code) => {
-    const article = getArticlesDisponibles().find(a => a.code === code);
+    const article = getArticlesDisponiblesCallback().find(a => a.code === code);
     if (article) {
       setScanResultatIntervention({ article, code });
     } else {
       alert(`Article non trouvé: ${code}`);
     }
-  }, [articles, afficherArticlesEquipement, nouvelleIntervention.equipementId]);
+  }, [getArticlesDisponiblesCallback]);
 
   useEffect(() => {
     if (!afficherScannerQR || !videoRef.current || !canvasRef.current || scanResultat) return;
