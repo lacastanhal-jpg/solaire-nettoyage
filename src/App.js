@@ -1,17 +1,16 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { ChevronDown, Plus, Trash2, Edit2, AlertCircle } from 'lucide-react';
 
 export default function SolaireNettoyageFlotte() {
   const [ongletActif, setOngletActif] = useState('accueil');
   const [equipementSelectionne, setEquipementSelectionne] = useState(1);
-  const [depotSelectionne, setDepotSelectionne] = useState('Atelier');
-  
   const canvasRef = useRef(null);
   const videoRef = useRef(null);
   const scanningRef = useRef(false);
   const jsQRRef = useRef(null);
-  const canvasRefIntervention = useRef(null);
-  const videoRefIntervention = useRef(null);
-  const scanningRefIntervention = useRef(false);
+  const videoIntervention = useRef(null);
+  const canvasIntervention = useRef(null);
+  const scanningIntervention = useRef(false);
   
   const depots = ['Atelier', 'Véhicule 1', 'Véhicule 2', 'Véhicule 3'];
   
@@ -40,17 +39,6 @@ export default function SolaireNettoyageFlotte() {
   const [mouvementsStock, setMouvementsStock] = useState([
     { id: 1, articleId: 1, type: 'entree', quantite: 3, date: '2025-09-29', raison: 'Facture 233440 - LE BON ROULEMENT', coutTotal: 15.15, depot: 'Atelier' },
     { id: 2, articleId: 2, type: 'entree', quantite: 3, date: '2025-09-29', raison: 'Facture 233440 - LE BON ROULEMENT', coutTotal: 27.20, depot: 'Atelier' },
-    { id: 3, articleId: 3, type: 'entree', quantite: 1, date: '2025-10-10', raison: 'Facture 202510061701 - RURAL MASTER', coutTotal: 12.41, depot: 'Atelier' },
-    { id: 4, articleId: 4, type: 'entree', quantite: 1, date: '2025-10-10', raison: 'Facture 202510061701 - RURAL MASTER', coutTotal: 5.68, depot: 'Atelier' },
-    { id: 5, articleId: 5, type: 'entree', quantite: 1, date: '2025-10-10', raison: 'Facture 202510061701 - RURAL MASTER', coutTotal: 2.06, depot: 'Atelier' },
-    { id: 6, articleId: 6, type: 'entree', quantite: 1, date: '2025-10-10', raison: 'Facture 202510061701 - RURAL MASTER', coutTotal: 2.76, depot: 'Atelier' },
-    { id: 7, articleId: 7, type: 'entree', quantite: 1, date: '2025-10-10', raison: 'Facture 202510061701 - RURAL MASTER', coutTotal: 2.20, depot: 'Atelier' },
-    { id: 8, articleId: 8, type: 'entree', quantite: 2, date: '2025-10-10', raison: 'Facture 202510061701 - RURAL MASTER', coutTotal: 7.18, depot: 'Atelier' },
-    { id: 9, articleId: 9, type: 'entree', quantite: 1, date: '2025-10-10', raison: 'Facture 202510061701 - RURAL MASTER', coutTotal: 2.62, depot: 'Atelier' },
-    { id: 10, articleId: 10, type: 'entree', quantite: 1, date: '2025-10-10', raison: 'Facture 202510061701 - RURAL MASTER', coutTotal: 53.02, depot: 'Atelier' },
-    { id: 11, articleId: 11, type: 'entree', quantite: 3, date: '2025-10-10', raison: 'Facture 202510061701 - RURAL MASTER', coutTotal: 132.90, depot: 'Atelier' },
-    { id: 12, articleId: 12, type: 'entree', quantite: 2, date: '2024-11-28', raison: 'Bon de livraison 10001646 - V6 AUTOPRO', coutTotal: 81.60, depot: 'Atelier' },
-    { id: 13, articleId: 13, type: 'entree', quantite: 2, date: '2024-11-28', raison: 'Bon de livraison 10001646 - V6 AUTOPRO', coutTotal: 68.24, depot: 'Atelier' },
   ]);
 
   const [equipements, setEquipements] = useState([
@@ -58,32 +46,22 @@ export default function SolaireNettoyageFlotte() {
     { id: 2, immat: 'DX-780-QN', type: 'Tracteur Routier', marque: 'IVECO', modele: 'STRALIS 560', annee: 2015, km: 293992, heures: 0, carburant: 'Diesel', vin: 'WJMS2NWH60C329019', ptac: 26000, poids: 8518, proprietaire: 'SOLAIRE NETTOYAGE', valeurAchat: 45000, valeurActuelle: 42000, typeFinancement: 'Achat', coutMensuel: 0, dateDebut: '2020-09-18', dateFin: '', assurance: 85.00, dateContracteTechnique: '2020-10-17', notes: 'STRALIS 560 • Type 6x2' },
     { id: 3, immat: 'CZ-022-DP', type: 'Semi-Remorque', marque: 'NICOLAS', modele: 'B3207C', annee: 2002, km: 0, heures: 0, carburant: 'N/A', vin: 'VF9B3207C02058032', ptac: 34000, poids: 12550, proprietaire: 'SOLAIRE NETTOYAGE', valeurAchat: 15000, valeurActuelle: 14000, typeFinancement: 'Achat', coutMensuel: 0, dateDebut: '2018-06-29', dateFin: '', assurance: 120.00, dateContracteTechnique: '2019-08-22', notes: 'Semi-Remorque NICOLAS B3207C' },
     { id: 4, immat: 'G3-415-BW', type: 'Micro-tracteur', marque: 'FARMTRAC', modele: 'F26VHE14HMNDWF', annee: 2022, km: 0, heures: 0, carburant: 'Essence', vin: 'M6SH09RLANF585383', ptac: 1800, poids: 1057, proprietaire: 'SOLAIRE NETTOYAGE', valeurAchat: 12325.00, valeurActuelle: 12325.00, typeFinancement: 'Achat', coutMensuel: 0, dateDebut: '2022-08-25', dateFin: '', assurance: 0, dateContracteTechnique: '2022-08-25', notes: 'TRACTEUR FARMTRAC - Immatriculation 25/08/2022' },
-    { id: 5, immat: 'GM-843-SW', type: 'Micro-tracteur', marque: 'FARMTRAC', modele: 'F26VHE14HMNDWL', annee: 2023, km: 0, heures: 0, carburant: 'Essence', vin: 'M6SH09RLDNF610727', ptac: 1800, poids: 1057, proprietaire: 'SOLAIRE NETTOYAGE', valeurAchat: 12325.00, valeurActuelle: 12325.00, typeFinancement: 'Achat', coutMensuel: 0, dateDebut: '2023-03-16', dateFin: '', assurance: 0, dateContracteTechnique: '2023-03-16', notes: 'TRACTEUR FARMTRAC - Immatriculation 16/03/2023 - Facture RURAL MASTER F0614463062' },
-    { id: 6, immat: 'DZ-609-JX', type: 'Tracteur', marque: 'ANTONIO CARRARO', modele: 'ERGIT-ST2088965A2', annee: 2016, km: 0, heures: 3170, carburant: 'Agricole', vin: 'T20ACATA000P471', ptac: 4800, poids: 2650, proprietaire: 'SOLAIRE NETTOYAGE', valeurAchat: 42000.00, valeurActuelle: 42000.00, typeFinancement: 'Achat', coutMensuel: 0, dateDebut: '2025-05-27', dateFin: '', assurance: 0, dateContracteTechnique: '2025-05-27', notes: 'TRACTEUR ANTONIO CARRARO MACH 4 CHENILLES - Facture SAINT-MARTIN 00054696' },
+    { id: 5, immat: 'GM-843-SW', type: 'Micro-tracteur', marque: 'FARMTRAC', modele: 'F26VHE14HMNDWL', annee: 2023, km: 0, heures: 0, carburant: 'Essence', vin: 'M6SH09RLDNF610727', ptac: 1800, poids: 1057, proprietaire: 'SOLAIRE NETTOYAGE', valeurAchat: 12325.00, valeurActuelle: 12325.00, typeFinancement: 'Achat', coutMensuel: 0, dateDebut: '2023-03-16', dateFin: '', assurance: 0, dateContracteTechnique: '2023-03-16', notes: 'TRACTEUR FARMTRAC - Immatriculation 16/03/2023' },
+    { id: 6, immat: 'DZ-609-JX', type: 'Tracteur', marque: 'ANTONIO CARRARO', modele: 'ERGIT-ST2088965A2', annee: 2016, km: 0, heures: 3170, carburant: 'Agricole', vin: 'T20ACATA000P471', ptac: 4800, poids: 2650, proprietaire: 'SOLAIRE NETTOYAGE', valeurAchat: 42000.00, valeurActuelle: 42000.00, typeFinancement: 'Achat', coutMensuel: 0, dateDebut: '2025-05-27', dateFin: '', assurance: 0, dateContracteTechnique: '2025-05-27', notes: 'TRACTEUR ANTONIO CARRARO MACH 4 CHENILLES' },
   ]);
 
   const [accessoiresEquipement, setAccessoiresEquipement] = useState({
     1: [
       { id: 1, nom: 'Carrosserie TEPEMATIC 26T', valeur: 51583, dateAjout: '2023-11-15', description: 'Plateau fixe porte matériel TP', actif: false },
       { id: 2, nom: 'Feux latéraux LED 24V (x4)', valeur: 65.16, dateAjout: '2023-11-22', description: 'Feu latéral orange à LED 24V', actif: false },
-      { id: 3, nom: 'Marche pied 2 marches', valeur: 98.10, dateAjout: '2023-11-22', description: 'Marche pied 2 marches telescopique', actif: false },
-      { id: 4, nom: 'Klaxon 6 trompes Basuri', valeur: 232.50, dateAjout: '2023-12-07', description: 'Klaxon 6 trompes Basuri 20 mélodies', actif: false },
-    ],
-    4: [
-      { id: 6, nom: 'Chargeur COCHET CX19', valeur: 3491.67, dateAjout: '2022-08-20', description: 'Chargeur COCHET CX19 FARMTRAC BENNIE STANDARD 1.20M', actif: false },
-      { id: 7, nom: 'Kit Flexible Complet Coupleur', valeur: 48.57, dateAjout: '2022-10-14', description: 'Kit flexible complet coupleur - HYDRODIS', actif: false },
-      { id: 8, nom: 'Verin 3PT 30x50 CSE210 EAF460', valeur: 217.54, dateAjout: '2022-10-14', description: 'Verin 3ème point hydraulique 30x50 - HYDRODIS', actif: false },
-    ],
-    5: [
-      { id: 5, nom: 'Chargeur COCHET CX19', valeur: 3491.67, dateAjout: '2023-03-16', description: 'Chargeur COCHET CX19 FARMTRAC BENNIE STANDARD 1.20M', actif: false },
     ],
     6: [
-      { id: 9, nom: 'SunBrush mobil TrackFlex 3.0', valeur: 64277.00, dateAjout: '2025-05-14', description: 'SunBrush mobil TrackFlex 3.0 5,5m brush trim 350mm - Cleaning device 5.5m brush - WashTronic control - CAN-Bus joystick - Installation training freight', actif: true },
+      { id: 9, nom: 'SunBrush mobil TrackFlex 3.0', valeur: 64277.00, dateAjout: '2025-05-14', description: 'SunBrush mobil TrackFlex 3.0 5,5m brush', actif: true },
     ]
   });
 
   const [interventions, setInterventions] = useState([
-    { id: 1, equipementId: 3, type: 'Révision/Maintenance', date: '2023-10-31', km: 363392, heures: 0, description: 'Entretien atelier', articles: [], statut: 'effectue', coutTotal: 7635.12, coutTVA: 1527.02, coutTTC: 9162.14, depotPrelevement: 'Atelier' }
+    { id: 1, equipementId: 3, type: 'Révision/Maintenance', date: '2023-10-31', km: 363392, heures: 0, description: 'Entretien atelier', articles: [], statut: 'effectue', coutTotal: 7635.12, depotPrelevement: 'Atelier' }
   ]);
   
   const [planMaintenance, setPlanMaintenance] = useState([
@@ -103,88 +81,57 @@ export default function SolaireNettoyageFlotte() {
   const [afficherScannerQR, setAfficherScannerQR] = useState(false);
   const [videoStream, setVideoStream] = useState(null);
   const [scannedArticleId, setScannedArticleId] = useState(null);
-  const [jsQRLoaded, setJsQRLoaded] = useState(false);
   const [scanResultat, setScanResultat] = useState(null);
   const [actionScan, setActionScan] = useState(null);
   const [formScanEntree, setFormScanEntree] = useState({ quantite: '', prixUnitaire: '', raison: '', date: new Date().toISOString().split('T')[0], depot: 'Atelier' });
   const [formScanSortie, setFormScanSortie] = useState({ quantite: '', raison: '', date: new Date().toISOString().split('T')[0], depot: 'Atelier' });
   const [formScanTransfert, setFormScanTransfert] = useState({ quantite: '', depotSource: 'Atelier', depotDestination: 'Véhicule 1' });
   const [afficherScannerIntervention, setAfficherScannerIntervention] = useState(false);
-  const [videoStreamIntervention, setVideoStreamIntervention] = useState(null);
   const [scanResultatIntervention, setScanResultatIntervention] = useState(null);
   const [quantiteScanIntervention, setQuantiteScanIntervention] = useState('');
+  const [jsQRLoaded, setJsQRLoaded] = useState(false);
   
   const typesIntervention = ['Vidange moteur', 'Révision complète', 'Changement pneus', 'Nettoyage', 'Maintenance', 'Contrôle hydraulique', 'Réparation', 'Autre'];
 
-  // Charger jsQR depuis CDN avec fallback
   useEffect(() => {
-    // Vérifier si déjà chargé
     if (window.jsQR) {
       jsQRRef.current = window.jsQR;
       setJsQRLoaded(true);
-      console.log('✅ jsQR déjà dans window');
       return;
     }
-
     const script = document.createElement('script');
     script.src = 'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js';
     script.async = true;
-    
     script.onload = () => {
-      console.log('✅ jsQR chargé (jsDelivr):', typeof window.jsQR);
       jsQRRef.current = window.jsQR;
       setJsQRLoaded(true);
     };
-    
-    script.onerror = () => {
-      console.warn('jsDelivr échoué, tentative cloudflare...');
-      const script2 = document.createElement('script');
-      script2.src = 'https://cdnjs.cloudflare.com/ajax/libs/jsqr/1.4.0/jsQR.min.js';
-      script2.async = true;
-      script2.onload = () => {
-        console.log('✅ jsQR chargé (Cloudflare):', typeof window.jsQR);
-        jsQRRef.current = window.jsQR;
-        setJsQRLoaded(true);
-      };
-      script2.onerror = () => console.error('❌ Impossible de charger jsQR');
-      document.head.appendChild(script2);
-    };
-    
     document.head.appendChild(script);
   }, []);
 
-  // Scanner QR en temps réel
   useEffect(() => {
     if (!afficherScannerQR || !videoRef.current || !canvasRef.current || scanResultat) return;
-
     const canvas = canvasRef.current;
     const video = videoRef.current;
     const ctx = canvas.getContext('2d', { willReadFrequently: true });
-
     let lastDetectedCode = null;
     let lastDetectedTime = 0;
-
     const tick = () => {
       try {
         if (video.readyState === video.HAVE_ENOUGH_DATA) {
           const videoWidth = video.videoWidth;
           const videoHeight = video.videoHeight;
-
           if (videoWidth > 0 && videoHeight > 0) {
             canvas.width = videoWidth;
             canvas.height = videoHeight;
-            
             ctx.drawImage(video, 0, 0, videoWidth, videoHeight);
             const imageData = ctx.getImageData(0, 0, videoWidth, videoHeight);
-            
             const jsQR = jsQRRef.current || window.jsQR;
             if (jsQR && typeof jsQR === 'function') {
               const code = jsQR(imageData.data, videoWidth, videoHeight);
               if (code && code.data) {
                 const now = Date.now();
-                // Délai 5 sec entre deux mêmes détections
                 if (code.data !== lastDetectedCode || now - lastDetectedTime > 5000) {
-                  console.log('✅ QR détecté:', code.data);
                   lastDetectedCode = code.data;
                   lastDetectedTime = now;
                   traiterScanQR(code.data);
@@ -198,16 +145,129 @@ export default function SolaireNettoyageFlotte() {
       }
       scanningRef.current = requestAnimationFrame(tick);
     };
-
     scanningRef.current = requestAnimationFrame(tick);
-
     return () => {
       if (scanningRef.current) cancelAnimationFrame(scanningRef.current);
     };
-  }, [afficherScannerQR, scanResultat, articles]);
+  }, [afficherScannerQR, scanResultat]);
+
+  useEffect(() => {
+    if (!afficherScannerIntervention || !videoIntervention.current || !canvasIntervention.current || scanResultatIntervention) return;
+    const canvas = canvasIntervention.current;
+    const video = videoIntervention.current;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    let lastDetectedCode = null;
+    let lastDetectedTime = 0;
+    const tick = () => {
+      try {
+        if (video.readyState === video.HAVE_ENOUGH_DATA) {
+          const videoWidth = video.videoWidth;
+          const videoHeight = video.videoHeight;
+          if (videoWidth > 0 && videoHeight > 0) {
+            canvas.width = videoWidth;
+            canvas.height = videoHeight;
+            ctx.drawImage(video, 0, 0, videoWidth, videoHeight);
+            const imageData = ctx.getImageData(0, 0, videoWidth, videoHeight);
+            const jsQR = jsQRRef.current || window.jsQR;
+            if (jsQR && typeof jsQR === 'function') {
+              const code = jsQR(imageData.data, videoWidth, videoHeight);
+              if (code && code.data) {
+                const now = Date.now();
+                if (code.data !== lastDetectedCode || now - lastDetectedTime > 5000) {
+                  lastDetectedCode = code.data;
+                  lastDetectedTime = now;
+                  traiterScanQRIntervention(code.data);
+                }
+              }
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Erreur scan intervention:', err);
+      }
+      scanningIntervention.current = requestAnimationFrame(tick);
+    };
+    scanningIntervention.current = requestAnimationFrame(tick);
+    return () => {
+      if (scanningIntervention.current) cancelAnimationFrame(scanningIntervention.current);
+    };
+  }, [afficherScannerIntervention, scanResultatIntervention]);
 
   const getStockTotal = (article) => {
     return depots.reduce((sum, depot) => sum + (article.stockParDepot[depot] || 0), 0);
+  };
+
+  const traiterScanQR = (code) => {
+    const article = articles.find(a => a.code === code);
+    if (article) {
+      setScannedArticleId(article.id);
+      setScanResultat({ success: true, article, code });
+      setActionScan(null);
+    } else {
+      setScanResultat({ success: false, code });
+      setActionScan(null);
+    }
+  };
+
+  const traiterScanQRIntervention = (code) => {
+    const article = getArticlesDisponibles().find(a => a.code === code);
+    if (article) {
+      setScanResultatIntervention({ article, code });
+    } else {
+      alert(`Article non trouvé: ${code}`);
+    }
+  };
+
+  const ajouterArticlePrevuScan = () => {
+    if (!quantiteScanIntervention) {
+      alert('Quantité requise');
+      return;
+    }
+    const article = scanResultatIntervention.article;
+    const quantite = parseInt(quantiteScanIntervention);
+    const stockDispo = article.stockParDepot[nouvelleIntervention.depotPrelevement] || 0;
+    
+    if (stockDispo < quantite) {
+      alert(`Stock insuffisant! Disponible: ${stockDispo}`);
+      return;
+    }
+
+    setArticles(articles.map(a => a.id === article.id ? { ...a, stockParDepot: { ...a.stockParDepot, [nouvelleIntervention.depotPrelevement]: stockDispo - quantite } } : a));
+
+    setNouvelleIntervention({
+      ...nouvelleIntervention, 
+      articlesPrevu: [...nouvelleIntervention.articlesPrevu, { 
+        articleId: article.id, 
+        quantite, 
+        prixUnitaire: article.prixUnitaire, 
+        description: article.description, 
+        code: article.code,
+        articleScanned: true
+      }]
+    });
+
+    setScanResultatIntervention(null);
+    setQuantiteScanIntervention('');
+  };
+
+  const toggleScannerIntervention = async () => {
+    if (afficherScannerIntervention) {
+      if (videoIntervention.current && videoIntervention.current.srcObject) {
+        videoIntervention.current.srcObject.getTracks().forEach(track => track.stop());
+      }
+      setAfficherScannerIntervention(false);
+    } else {
+      setAfficherScannerIntervention(true);
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+        if (videoIntervention.current) {
+          videoIntervention.current.srcObject = stream;
+        }
+      } catch (err) {
+        alert('Caméra non disponible');
+        setAfficherScannerIntervention(false);
+      }
+    }
   };
 
   const genererTexteCommande = (article) => {
@@ -254,7 +314,6 @@ export default function SolaireNettoyageFlotte() {
       nom: `${eq.immat} - ${eq.marque} ${eq.modele}`,
       type: 'equipement'
     }));
-    
     Object.entries(accessoiresEquipement).forEach(([eqId, accs]) => {
       accs.forEach(acc => {
         if (acc.actif) {
@@ -267,36 +326,23 @@ export default function SolaireNettoyageFlotte() {
         }
       });
     });
-    
     return liste;
   };
 
   const copierToutCommandes = () => {
     const groupes = regrouperParFournisseur();
-    const htmlTextes = [];
     const plainTexts = [];
-
     Object.keys(groupes).forEach(fournisseur => {
       const items = groupes[fournisseur];
-      const tableRows = items.map(item => `<tr><td style="border: 1px solid #d97706; padding: 10px;">${item.article.code}</td><td style="border: 1px solid #d97706; padding: 10px;">${item.article.description}</td><td style="border: 1px solid #d97706; padding: 10px; text-align: center;">${item.qteEditable}</td></tr>`).join('');
-      const htmlTexte = `<html><body><h2 style="color: #1f2937;">📧 Commande - ${fournisseur}</h2><table style="border-collapse: collapse; width: 100%;"><thead><tr style="background-color: #fed7aa;"><th style="border: 1px solid #d97706; padding: 10px;">Code</th><th style="border: 1px solid #d97706; padding: 10px;">Description</th><th style="border: 1px solid #d97706; padding: 10px;">Quantité</th></tr></thead><tbody>${tableRows}</tbody></table></body></html>`;
       const plainText = `COMMANDE - ${fournisseur}\n${items.map(item => `${item.article.code} | ${item.article.description} | ${item.qteEditable}`).join('\n')}`;
-      htmlTextes.push(htmlTexte);
       plainTexts.push(plainText);
     });
-
-    const htmlComplet = htmlTextes.join('\n');
     const plainComplet = plainTexts.join('\n\n');
-    const blob = new Blob([htmlComplet], { type: 'text/html' });
-    const data = [new ClipboardItem({ 'text/html': blob, 'text/plain': new Blob([plainComplet], { type: 'text/plain' }) })];
-    
-    navigator.clipboard.write(data).then(() => {
+    navigator.clipboard.writeText(plainComplet).then(() => {
       alert('✓ Commandes copiées !');
       setPanierCommande([]);
     }).catch(() => {
-      navigator.clipboard.writeText(plainComplet);
-      alert('✓ Commandes copiées (texte) !');
-      setPanierCommande([]);
+      alert('Erreur copie');
     });
   };
 
@@ -318,38 +364,7 @@ export default function SolaireNettoyageFlotte() {
   };
 
   const genererQRCodesPDF = () => {
-    const htmlContent = `
-      <html>
-        <head>
-          <title>QR Codes Articles</title>
-          <style>
-            body { font-family: Arial; margin: 10mm; }
-            .page { page-break-after: always; }
-            .qr-item { display: inline-block; margin: 10px; text-align: center; page-break-inside: avoid; }
-            .qr-item img { width: 150px; height: 150px; margin: 10px 0; }
-            .qr-code { border: 2px solid #333; padding: 10px; }
-            .code { font-weight: bold; font-size: 12px; margin-top: 5px; }
-            .description { font-size: 10px; color: #666; }
-          </style>
-        </head>
-        <body>
-          <h1>QR Codes Articles - Solaire Nettoyage</h1>
-          <p>Généré le: ${new Date().toLocaleString('fr-FR')}</p>
-          <div class="page">
-            ${articles.map(a => `
-              <div class="qr-item">
-                <div class="qr-code">
-                  <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(a.code)}" alt="QR Code ${a.code}">
-                </div>
-                <div class="code">${a.code}</div>
-                <div class="description">${a.description.substring(0, 30)}</div>
-              </div>
-            `).join('')}
-          </div>
-        </body>
-      </html>
-    `;
-    
+    const htmlContent = `<html><head><title>QR Codes</title><style>body { font-family: Arial; margin: 10mm; } .qr-item { display: inline-block; margin: 10px; text-align: center; } .qr-item img { width: 150px; height: 150px; } .code { font-weight: bold; font-size: 12px; }</style></head><body><h1>QR Codes Articles</h1><p>Généré le: ${new Date().toLocaleString('fr-FR')}</p>${articles.map(a => `<div class="qr-item"><img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(a.code)}" alt="QR ${a.code}"><div class="code">${a.code}</div></div>`).join('')}</body></html>`;
     const newWindow = window.open();
     newWindow.document.write(htmlContent);
     newWindow.document.close();
@@ -371,130 +386,43 @@ export default function SolaireNettoyageFlotte() {
         }
         setVideoStream(stream);
       } catch (err) {
-        alert('Caméra non disponible. Veuillez utiliser un appareil compatible.');
+        alert('Caméra non disponible');
         setAfficherScannerQR(false);
       }
     }
   };
 
-  const traiterScanQR = (code) => {
-    const article = articles.find(a => a.code === code);
-    if (article) {
-      setScannedArticleId(article.id);
-      setScanResultat({ success: true, article, code });
-      setActionScan(null);
-      console.log('✅ Article trouvé:', article.code);
-    } else {
-      setScanResultat({ success: false, code });
-      setActionScan(null);
-      console.log('❌ Article non trouvé:', code);
-    }
-  };
-
-  const traiterScanQRIntervention = (code) => {
-    const article = articles.find(a => a.code === code);
-    if (article) {
-      setScanResultatIntervention({ article, code });
-      setQuantiteScanIntervention('');
-      console.log('✅ Article trouvé intervention:', article.code);
-    } else {
-      setScanResultatIntervention({ error: true, code });
-      console.log('❌ Article non trouvé intervention:', code);
-    }
-  };
-
-  const ajouterArticlePrevuScan = () => {
-    if (!quantiteScanIntervention) {
-      alert('Quantité requise');
-      return;
-    }
-    const quantite = parseInt(quantiteScanIntervention);
-    const article = scanResultatIntervention.article;
-    
-    if ((article.stockParDepot[nouvelleIntervention.depotPrelevement] || 0) < quantite) {
-      alert('Stock insuffisant!');
-      return;
-    }
-    
-    // Décrémente le stock IMMÉDIATEMENT
-    setArticles(articles.map(a => a.id === article.id ? { ...a, stockParDepot: { ...a.stockParDepot, [nouvelleIntervention.depotPrelevement]: (a.stockParDepot[nouvelleIntervention.depotPrelevement] || 0) - quantite } } : a));
-    
-    // Ajoute aux articlesPrevu avec flag dejaDecremente
-    setNouvelleIntervention({...nouvelleIntervention, articlesPrevu: [...nouvelleIntervention.articlesPrevu, { articleId: article.id, quantite, prixUnitaire: article.prixUnitaire, description: article.description, code: article.code, dejaDecremente: true }]});
-    
-    alert(`✅ Article ajouté: ${quantite}x ${article.code}`);
-    setScanResultatIntervention(null);
-    setQuantiteScanIntervention('');
-  };
-
-  const toggleScannerIntervention = async () => {
-    if (afficherScannerIntervention) {
-      if (videoStreamIntervention) {
-        videoStreamIntervention.getTracks().forEach(track => track.stop());
-        setVideoStreamIntervention(null);
-      }
-      setAfficherScannerIntervention(false);
-    } else {
-      setAfficherScannerIntervention(true);
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-        if (videoRefIntervention.current) {
-          videoRefIntervention.current.srcObject = stream;
-        }
-        setVideoStreamIntervention(stream);
-      } catch (err) {
-        alert('Caméra non disponible.');
-        setAfficherScannerIntervention(false);
-      }
-    }
-  };
-
   const enregistrerEntreeStockScan = () => {
-    if (!formScanEntree.quantite || !formScanEntree.prixUnitaire) {
-      alert('Quantité et prix requis');
-      return;
-    }
+    if (!formScanEntree.quantite || !formScanEntree.prixUnitaire) { alert('Quantité et prix requis'); return; }
     const quantite = parseInt(formScanEntree.quantite);
     const coutTotal = parseFloat(formScanEntree.prixUnitaire) * quantite;
     setArticles(articles.map(a => a.id === scanResultat.article.id ? { ...a, stockParDepot: { ...a.stockParDepot, [formScanEntree.depot]: (a.stockParDepot[formScanEntree.depot] || 0) + quantite } } : a));
-    setMouvementsStock([...mouvementsStock, { id: mouvementsStock.length + 1, articleId: scanResultat.article.id, type: 'entree', quantite: quantite, date: formScanEntree.date, raison: formScanEntree.raison, coutTotal: coutTotal, depot: formScanEntree.depot }]);
-    alert(`✅ Entrée enregistrée: +${quantite} ${scanResultat.article.code}`);
+    setMouvementsStock([...mouvementsStock, { id: mouvementsStock.length + 1, articleId: scanResultat.article.id, type: 'entree', quantite, date: formScanEntree.date, raison: formScanEntree.raison, coutTotal, depot: formScanEntree.depot }]);
+    alert(`✅ +${quantite} ${scanResultat.article.code}`);
     setScanResultat(null);
     setActionScan(null);
     setFormScanEntree({ quantite: '', prixUnitaire: '', raison: '', date: new Date().toISOString().split('T')[0], depot: 'Atelier' });
   };
 
   const enregistrerSortieStockScan = () => {
-    if (!formScanSortie.quantite) {
-      alert('Quantité requise');
-      return;
-    }
+    if (!formScanSortie.quantite) { alert('Quantité requise'); return; }
     const quantite = parseInt(formScanSortie.quantite);
-    if ((scanResultat.article.stockParDepot[formScanSortie.depot] || 0) < quantite) {
-      alert('Stock insuffisant!');
-      return;
-    }
+    if ((scanResultat.article.stockParDepot[formScanSortie.depot] || 0) < quantite) { alert('Stock insuffisant!'); return; }
     setArticles(articles.map(a => a.id === scanResultat.article.id ? { ...a, stockParDepot: { ...a.stockParDepot, [formScanSortie.depot]: (a.stockParDepot[formScanSortie.depot] || 0) - quantite } } : a));
-    setMouvementsStock([...mouvementsStock, { id: mouvementsStock.length + 1, articleId: scanResultat.article.id, type: 'sortie', quantite: quantite, date: formScanSortie.date, raison: formScanSortie.raison, coutTotal: 0, depot: formScanSortie.depot }]);
-    alert(`✅ Sortie enregistrée: -${quantite} ${scanResultat.article.code}`);
+    setMouvementsStock([...mouvementsStock, { id: mouvementsStock.length + 1, articleId: scanResultat.article.id, type: 'sortie', quantite, date: formScanSortie.date, raison: formScanSortie.raison, coutTotal: 0, depot: formScanSortie.depot }]);
+    alert(`✅ -${quantite} ${scanResultat.article.code}`);
     setScanResultat(null);
     setActionScan(null);
     setFormScanSortie({ quantite: '', raison: '', date: new Date().toISOString().split('T')[0], depot: 'Atelier' });
   };
 
   const enregistrerTransfertStockScan = () => {
-    if (!formScanTransfert.quantite || formScanTransfert.depotSource === formScanTransfert.depotDestination) {
-      alert('Quantité et dépôts différents requis');
-      return;
-    }
+    if (!formScanTransfert.quantite || formScanTransfert.depotSource === formScanTransfert.depotDestination) { alert('Quantité et dépôts différents requis'); return; }
     const quantite = parseInt(formScanTransfert.quantite);
-    if ((scanResultat.article.stockParDepot[formScanTransfert.depotSource] || 0) < quantite) {
-      alert('Stock insuffisant!');
-      return;
-    }
+    if ((scanResultat.article.stockParDepot[formScanTransfert.depotSource] || 0) < quantite) { alert('Stock insuffisant!'); return; }
     setArticles(articles.map(a => a.id === scanResultat.article.id ? { ...a, stockParDepot: { ...a.stockParDepot, [formScanTransfert.depotSource]: (a.stockParDepot[formScanTransfert.depotSource] || 0) - quantite, [formScanTransfert.depotDestination]: (a.stockParDepot[formScanTransfert.depotDestination] || 0) + quantite } } : a));
-    setMouvementsStock([...mouvementsStock, { id: mouvementsStock.length + 1, articleId: scanResultat.article.id, type: 'transfer', quantite: quantite, date: new Date().toISOString().split('T')[0], raison: `Transfert de ${formScanTransfert.depotSource} vers ${formScanTransfert.depotDestination}`, coutTotal: 0, depotSource: formScanTransfert.depotSource, depotDestination: formScanTransfert.depotDestination }]);
-    alert(`✅ Transfert enregistré: ${quantite} ${scanResultat.article.code}`);
+    setMouvementsStock([...mouvementsStock, { id: mouvementsStock.length + 1, articleId: scanResultat.article.id, type: 'transfer', quantite, date: new Date().toISOString().split('T')[0], raison: `Transfert`, coutTotal: 0, depotSource: formScanTransfert.depotSource, depotDestination: formScanTransfert.depotDestination }]);
+    alert(`✅ ${quantite} ${scanResultat.article.code}`);
     setScanResultat(null);
     setActionScan(null);
     setFormScanTransfert({ quantite: '', depotSource: 'Atelier', depotDestination: 'Véhicule 1' });
@@ -505,7 +433,7 @@ export default function SolaireNettoyageFlotte() {
       const quantite = parseInt(nouvelleEntreeStock.quantite);
       const coutTotal = parseFloat(nouvelleEntreeStock.prixUnitaire) * quantite;
       setArticles(articles.map(a => a.id === parseInt(nouvelleEntreeStock.articleId) ? { ...a, stockParDepot: { ...a.stockParDepot, [nouvelleEntreeStock.depot]: (a.stockParDepot[nouvelleEntreeStock.depot] || 0) + quantite } } : a));
-      setMouvementsStock([...mouvementsStock, { id: mouvementsStock.length + 1, articleId: parseInt(nouvelleEntreeStock.articleId), type: 'entree', quantite: quantite, date: nouvelleEntreeStock.date, raison: nouvelleEntreeStock.raison, coutTotal: coutTotal, depot: nouvelleEntreeStock.depot }]);
+      setMouvementsStock([...mouvementsStock, { id: mouvementsStock.length + 1, articleId: parseInt(nouvelleEntreeStock.articleId), type: 'entree', quantite, date: nouvelleEntreeStock.date, raison: nouvelleEntreeStock.raison, coutTotal, depot: nouvelleEntreeStock.depot }]);
       setNouvelleEntreeStock({ articleId: '', quantite: '', prixUnitaire: '', raison: '', date: new Date().toISOString().split('T')[0], depot: 'Atelier' });
     }
   };
@@ -516,7 +444,7 @@ export default function SolaireNettoyageFlotte() {
       const quantite = parseInt(nouveauMouvementSortie.quantite);
       if ((article.stockParDepot[nouveauMouvementSortie.depot] || 0) < quantite) { alert('Stock insuffisant!'); return; }
       setArticles(articles.map(a => a.id === parseInt(nouveauMouvementSortie.articleId) ? { ...a, stockParDepot: { ...a.stockParDepot, [nouveauMouvementSortie.depot]: (a.stockParDepot[nouveauMouvementSortie.depot] || 0) - quantite } } : a));
-      setMouvementsStock([...mouvementsStock, { id: mouvementsStock.length + 1, articleId: parseInt(nouveauMouvementSortie.articleId), type: 'sortie', quantite: quantite, date: nouveauMouvementSortie.date, raison: nouveauMouvementSortie.raison, coutTotal: 0, depot: nouveauMouvementSortie.depot }]);
+      setMouvementsStock([...mouvementsStock, { id: mouvementsStock.length + 1, articleId: parseInt(nouveauMouvementSortie.articleId), type: 'sortie', quantite, date: nouveauMouvementSortie.date, raison: nouveauMouvementSortie.raison, coutTotal: 0, depot: nouveauMouvementSortie.depot }]);
       setNouveauMouvementSortie({ articleId: '', quantite: '', raison: '', date: new Date().toISOString().split('T')[0], depot: 'Atelier' });
     }
   };
@@ -527,7 +455,7 @@ export default function SolaireNettoyageFlotte() {
       const quantite = parseInt(nouveauTransfert.quantite);
       if ((article.stockParDepot[nouveauTransfert.depotSource] || 0) < quantite) { alert('Stock insuffisant!'); return; }
       setArticles(articles.map(a => a.id === parseInt(nouveauTransfert.articleId) ? { ...a, stockParDepot: { ...a.stockParDepot, [nouveauTransfert.depotSource]: (a.stockParDepot[nouveauTransfert.depotSource] || 0) - quantite, [nouveauTransfert.depotDestination]: (a.stockParDepot[nouveauTransfert.depotDestination] || 0) + quantite } } : a));
-      setMouvementsStock([...mouvementsStock, { id: mouvementsStock.length + 1, articleId: parseInt(nouveauTransfert.articleId), type: 'transfer', quantite: quantite, date: nouveauTransfert.date, raison: `Transfert de ${nouveauTransfert.depotSource} vers ${nouveauTransfert.depotDestination}`, coutTotal: 0, depotSource: nouveauTransfert.depotSource, depotDestination: nouveauTransfert.depotDestination }]);
+      setMouvementsStock([...mouvementsStock, { id: mouvementsStock.length + 1, articleId: parseInt(nouveauTransfert.articleId), type: 'transfer', quantite, date: nouveauTransfert.date, raison: `Transfert`, coutTotal: 0, depotSource: nouveauTransfert.depotSource, depotDestination: nouveauTransfert.depotDestination }]);
       setNouveauTransfert({ articleId: '', quantite: '', depotSource: 'Atelier', depotDestination: 'Véhicule 1', raison: '', date: new Date().toISOString().split('T')[0] });
     }
   };
@@ -551,16 +479,13 @@ export default function SolaireNettoyageFlotte() {
     const interventionId = interventions.length > 0 ? Math.max(...interventions.map(i => i.id)) + 1 : 1;
     const coutTotal = nouvelleIntervention.articlesPrevu.reduce((sum, art) => sum + (art.quantite * art.prixUnitaire), 0);
     let nouvelStock = articles;
-    
-    // Décrémente UNIQUEMENT les articles NOT dejaDecremente (ajoutés via select manuel)
     nouvelleIntervention.articlesPrevu.forEach(art => {
-      if (!art.dejaDecremente) {
+      if (!art.articleScanned) {
         nouvelStock = nouvelStock.map(a => a.id === art.articleId ? { ...a, stockParDepot: { ...a.stockParDepot, [nouvelleIntervention.depotPrelevement]: (a.stockParDepot[nouvelleIntervention.depotPrelevement] || 0) - art.quantite } } : a);
       }
     });
-    
     setArticles(nouvelStock);
-    setInterventions([...interventions, { id: interventionId, equipementId: parseInt(nouvelleIntervention.equipementId), type: nouvelleIntervention.type, date: nouvelleIntervention.date, km: parseInt(nouvelleIntervention.km) || 0, heures: parseInt(nouvelleIntervention.heures) || 0, description: nouvelleIntervention.description, articles: nouvelleIntervention.articlesPrevu, statut: 'en_cours', coutTotal: coutTotal, depotPrelevement: nouvelleIntervention.depotPrelevement }]);
+    setInterventions([...interventions, { id: interventionId, equipementId: parseInt(nouvelleIntervention.equipementId), type: nouvelleIntervention.type, date: nouvelleIntervention.date, km: parseInt(nouvelleIntervention.km) || 0, heures: parseInt(nouvelleIntervention.heures) || 0, description: nouvelleIntervention.description, articles: nouvelleIntervention.articlesPrevu, statut: 'en_cours', coutTotal, depotPrelevement: nouvelleIntervention.depotPrelevement }]);
     setNouvelleIntervention({ equipementId: '', type: '', date: new Date().toISOString().split('T')[0], km: '', heures: '', description: '', articlesPrevu: [], depotPrelevement: 'Atelier' });
   };
 
@@ -725,18 +650,16 @@ export default function SolaireNettoyageFlotte() {
 
         {ongletActif === 'stock' && (
           <div className="space-y-6">
-            <div className="bg-indigo-100 border-2 border-indigo-400 p-4 rounded"><h3 className="font-bold mb-3">📱 Scanner QR Code</h3><button onClick={toggleScannerQR} className={`px-4 py-2 rounded font-bold text-white ${afficherScannerQR ? 'bg-red-600 hover:bg-red-700' : 'bg-indigo-600 hover:bg-indigo-700'}`}>{afficherScannerQR ? '❌ Fermer Scanner' : '📷 Activer Scanner'}</button>{afficherScannerQR && !scanResultat && (<div className="mt-4"><div className="bg-gray-900 rounded overflow-hidden" style={{maxWidth: '400px'}}><video ref={videoRef} autoPlay playsInline muted style={{width: '100%', display: 'block'}} onLoadedMetadata={() => console.log('✅ Vidéo chargée')} /><canvas ref={canvasRef} style={{display: 'none'}} /></div><div className="mt-3 p-3 bg-indigo-50 rounded border border-indigo-300"><p className="text-sm font-bold text-indigo-700">📊 Statut :</p><p className="text-xs text-indigo-600">• jsQR: {jsQRLoaded ? '✅ Chargé' : '⏳ Chargement...'}</p><p className="text-xs text-indigo-600">• Vidéo: {videoRef.current?.readyState === 4 ? '✅ Active' : '⏳ En cours...'}</p></div><div className="mt-3"><input type="text" placeholder="Entrer code article ou scanner QR" onKeyDown={(e) => {if (e.key === 'Enter' && e.target.value) {traiterScanQR(e.target.value); e.target.value = ''}}} className="w-full border-2 border-indigo-300 rounded px-3 py-2 font-bold" /></div><div className="mt-2 text-sm text-indigo-700 font-semibold">🎯 Scanner actif - Pointez un QR code</div></div>)}{scanResultat && (<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"><div className="bg-white rounded-2xl shadow-2xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto"><div className="text-center mb-4">{scanResultat.success ? (<><div className="text-4xl mb-2">✅</div><h3 className="text-xl font-black text-green-600">Article détecté !</h3></>) : (<><div className="text-4xl mb-2">❌</div><h3 className="text-xl font-black text-red-600">Article non trouvé</h3></>)}</div>{scanResultat.success && (<><div className="bg-green-50 p-4 rounded-lg mb-4 border-2 border-green-300"><div className="font-bold text-lg text-green-700">{scanResultat.article.code}</div><div className="text-sm text-gray-700 mt-1">{scanResultat.article.description}</div><div className="text-xs text-gray-600 mt-2">Fournisseur: {scanResultat.article.fournisseur}</div><div className="text-xs text-gray-600">Prix: {scanResultat.article.prixUnitaire}€</div><div className="text-sm font-bold text-green-600 mt-2">Stock: {getStockTotal(scanResultat.article)}</div></div>{!actionScan ? (<><div className="grid grid-cols-3 gap-2 mb-4"><button onClick={() => setActionScan('entree')} className="bg-green-600 text-white px-3 py-3 rounded font-bold text-sm hover:bg-green-700">📥 Entrée</button><button onClick={() => setActionScan('sortie')} className="bg-red-600 text-white px-3 py-3 rounded font-bold text-sm hover:bg-red-700">📤 Sortie</button><button onClick={() => setActionScan('transfert')} className="bg-amber-600 text-white px-3 py-3 rounded font-bold text-sm hover:bg-amber-700">🔄 Transfer</button></div></>) : actionScan === 'entree' ? (<div className="bg-green-50 p-4 rounded-lg mb-4 border-2 border-green-300"><h4 className="font-bold text-green-700 mb-3">📥 Entrée de Stock</h4><div className="space-y-2"><input type="number" placeholder="Quantité *" value={formScanEntree.quantite} onChange={(e) => setFormScanEntree({...formScanEntree, quantite: e.target.value})} className="w-full border rounded px-2 py-1" /><input type="number" step="0.01" placeholder="Prix unitaire *" value={formScanEntree.prixUnitaire} onChange={(e) => setFormScanEntree({...formScanEntree, prixUnitaire: e.target.value})} className="w-full border rounded px-2 py-1" /><input placeholder="Raison (facture, BL...)" value={formScanEntree.raison} onChange={(e) => setFormScanEntree({...formScanEntree, raison: e.target.value})} className="w-full border rounded px-2 py-1" /><select value={formScanEntree.depot} onChange={(e) => setFormScanEntree({...formScanEntree, depot: e.target.value})} className="w-full border rounded px-2 py-1">{depots.map(d => <option key={d} value={d}>{d}</option>)}</select><input type="date" value={formScanEntree.date} onChange={(e) => setFormScanEntree({...formScanEntree, date: e.target.value})} className="w-full border rounded px-2 py-1" /></div><div className="flex gap-2 mt-3"><button onClick={enregistrerEntreeStockScan} className="flex-1 bg-green-600 text-white px-3 py-2 rounded font-bold">✓ Valider</button><button onClick={() => setActionScan(null)} className="flex-1 bg-gray-400 text-white px-3 py-2 rounded font-bold">↩️ Retour</button></div></div>) : actionScan === 'sortie' ? (<div className="bg-red-50 p-4 rounded-lg mb-4 border-2 border-red-300"><h4 className="font-bold text-red-700 mb-3">📤 Sortie de Stock</h4><div className="space-y-2"><input type="number" placeholder="Quantité *" value={formScanSortie.quantite} onChange={(e) => setFormScanSortie({...formScanSortie, quantite: e.target.value})} className="w-full border rounded px-2 py-1" /><input placeholder="Raison (intervention, usage...)" value={formScanSortie.raison} onChange={(e) => setFormScanSortie({...formScanSortie, raison: e.target.value})} className="w-full border rounded px-2 py-1" /><select value={formScanSortie.depot} onChange={(e) => setFormScanSortie({...formScanSortie, depot: e.target.value})} className="w-full border rounded px-2 py-1">{depots.map(d => <option key={d} value={d}>{d}</option>)}</select><input type="date" value={formScanSortie.date} onChange={(e) => setFormScanSortie({...formScanSortie, date: e.target.value})} className="w-full border rounded px-2 py-1" /></div><div className="flex gap-2 mt-3"><button onClick={enregistrerSortieStockScan} className="flex-1 bg-red-600 text-white px-3 py-2 rounded font-bold">✓ Valider</button><button onClick={() => setActionScan(null)} className="flex-1 bg-gray-400 text-white px-3 py-2 rounded font-bold">↩️ Retour</button></div></div>) : (<div className="bg-amber-50 p-4 rounded-lg mb-4 border-2 border-amber-300"><h4 className="font-bold text-amber-700 mb-3">🔄 Transfert</h4><div className="space-y-2"><input type="number" placeholder="Quantité *" value={formScanTransfert.quantite} onChange={(e) => setFormScanTransfert({...formScanTransfert, quantite: e.target.value})} className="w-full border rounded px-2 py-1" /><select value={formScanTransfert.depotSource} onChange={(e) => setFormScanTransfert({...formScanTransfert, depotSource: e.target.value})} className="w-full border rounded px-2 py-1"><option value="">Dépôt source</option>{depots.map(d => <option key={d} value={d}>{d}</option>)}</select><select value={formScanTransfert.depotDestination} onChange={(e) => setFormScanTransfert({...formScanTransfert, depotDestination: e.target.value})} className="w-full border rounded px-2 py-1"><option value="">Dépôt destination</option>{depots.map(d => <option key={d} value={d}>{d}</option>)}</select></div><div className="flex gap-2 mt-3"><button onClick={enregistrerTransfertStockScan} className="flex-1 bg-amber-600 text-white px-3 py-2 rounded font-bold">✓ Valider</button><button onClick={() => setActionScan(null)} className="flex-1 bg-gray-400 text-white px-3 py-2 rounded font-bold">↩️ Retour</button></div></div>)}</>)}{!scanResultat.success && (<div className="flex gap-2"><button onClick={() => setScanResultat(null)} className="flex-1 bg-blue-600 text-white px-4 py-2 rounded font-bold">🔄 Rescanner</button><button onClick={() => {setAfficherScannerQR(false); setScanResultat(null);}} className="flex-1 bg-gray-400 text-white px-4 py-2 rounded font-bold">✕ Fermer</button></div>)}</div></div>)}</div>
-            <div className="bg-green-50 border-2 border-green-300 p-4 rounded"><h3 className="font-bold mb-3">📥 Entrée - {depotSelectionne}</h3><div className="grid grid-cols-1 md:grid-cols-5 gap-2"><select value={nouvelleEntreeStock.articleId} onChange={(e) => setNouvelleEntreeStock({...nouvelleEntreeStock, articleId: e.target.value})} className="border rounded px-2 py-1"><option value="">Article</option>{articles.map(a => <option key={a.id} value={a.id}>{a.code}</option>)}</select><input type="number" placeholder="Qté" value={nouvelleEntreeStock.quantite} onChange={(e) => setNouvelleEntreeStock({...nouvelleEntreeStock, quantite: e.target.value})} className="border rounded px-2 py-1" /><input type="number" step="0.01" placeholder="Prix" value={nouvelleEntreeStock.prixUnitaire} onChange={(e) => setNouvelleEntreeStock({...nouvelleEntreeStock, prixUnitaire: e.target.value})} className="border rounded px-2 py-1" /><input placeholder="Raison" value={nouvelleEntreeStock.raison} onChange={(e) => setNouvelleEntreeStock({...nouvelleEntreeStock, raison: e.target.value})} className="border rounded px-2 py-1" /><button onClick={enregistrerEntreeStock} className="bg-green-600 text-white px-3 py-1 rounded font-bold">Entrer</button></div></div>
-            <div className="bg-red-50 border-2 border-red-300 p-4 rounded"><h3 className="font-bold mb-3">📤 Sortie - {depotSelectionne}</h3><div className="grid grid-cols-1 md:grid-cols-5 gap-2"><select value={nouveauMouvementSortie.articleId} onChange={(e) => setNouveauMouvementSortie({...nouveauMouvementSortie, articleId: e.target.value})} className="border rounded px-2 py-1"><option value="">Article</option>{articles.map(a => <option key={a.id} value={a.id}>{a.code}</option>)}</select><input type="number" placeholder="Qté" value={nouveauMouvementSortie.quantite} onChange={(e) => setNouveauMouvementSortie({...nouveauMouvementSortie, quantite: e.target.value})} className="border rounded px-2 py-1" /><input placeholder="Raison" value={nouveauMouvementSortie.raison} onChange={(e) => setNouveauMouvementSortie({...nouveauMouvementSortie, raison: e.target.value})} className="border rounded px-2 py-1" /><input type="date" value={nouveauMouvementSortie.date} onChange={(e) => setNouveauMouvementSortie({...nouveauMouvementSortie, date: e.target.value})} className="border rounded px-2 py-1" /><button onClick={enregistrerSortieStock} className="bg-red-600 text-white px-3 py-1 rounded font-bold">Sortir</button></div></div>
+            <div className="bg-indigo-100 border-2 border-indigo-400 p-4 rounded"><h3 className="font-bold mb-3">📱 Scanner QR Code</h3><button onClick={toggleScannerQR} className={`px-4 py-2 rounded font-bold text-white ${afficherScannerQR ? 'bg-red-600 hover:bg-red-700' : 'bg-indigo-600 hover:bg-indigo-700'}`}>{afficherScannerQR ? '❌ Fermer Scanner' : '📷 Activer Scanner'}</button>{afficherScannerQR && !scanResultat && (<div className="mt-4"><div className="bg-gray-900 rounded overflow-hidden" style={{maxWidth: '400px'}}><video ref={videoRef} autoPlay playsInline muted style={{width: '100%', display: 'block'}} /><canvas ref={canvasRef} style={{display: 'none'}} /></div><div className="mt-3"><input type="text" placeholder="Entrer code article ou scanner QR" onKeyDown={(e) => {if (e.key === 'Enter' && e.target.value) {traiterScanQR(e.target.value); e.target.value = ''}}} className="w-full border-2 border-indigo-300 rounded px-3 py-2 font-bold" /></div><div className="mt-2 text-sm text-indigo-700 font-semibold">🎯 Scanner actif</div></div>)}{scanResultat && (<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"><div className="bg-white rounded-2xl shadow-2xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto"><div className="text-center mb-4">{scanResultat.success ? (<><div className="text-4xl mb-2">✅</div><h3 className="text-xl font-black text-green-600">Article détecté !</h3></>) : (<><div className="text-4xl mb-2">❌</div><h3 className="text-xl font-black text-red-600">Article non trouvé</h3></>)}</div>{scanResultat.success && (<><div className="bg-green-50 p-4 rounded-lg mb-4 border-2 border-green-300"><div className="font-bold text-lg text-green-700">{scanResultat.article.code}</div><div className="text-sm text-gray-700 mt-1">{scanResultat.article.description}</div><div className="text-xs text-gray-600 mt-2">Fournisseur: {scanResultat.article.fournisseur}</div><div className="text-sm font-bold text-green-600 mt-2">Stock: {getStockTotal(scanResultat.article)}</div></div>{!actionScan ? (<><div className="grid grid-cols-3 gap-2 mb-4"><button onClick={() => setActionScan('entree')} className="bg-green-600 text-white px-3 py-3 rounded font-bold text-sm hover:bg-green-700">📥 Entrée</button><button onClick={() => setActionScan('sortie')} className="bg-red-600 text-white px-3 py-3 rounded font-bold text-sm hover:bg-red-700">📤 Sortie</button><button onClick={() => setActionScan('transfert')} className="bg-amber-600 text-white px-3 py-3 rounded font-bold text-sm hover:bg-amber-700">🔄 Transfer</button></div></>) : actionScan === 'entree' ? (<div className="bg-green-50 p-4 rounded-lg mb-4 border-2 border-green-300"><h4 className="font-bold text-green-700 mb-3">📥 Entrée de Stock</h4><div className="space-y-2"><input type="number" placeholder="Quantité *" value={formScanEntree.quantite} onChange={(e) => setFormScanEntree({...formScanEntree, quantite: e.target.value})} className="w-full border rounded px-2 py-1" /><input type="number" step="0.01" placeholder="Prix unitaire *" value={formScanEntree.prixUnitaire} onChange={(e) => setFormScanEntree({...formScanEntree, prixUnitaire: e.target.value})} className="w-full border rounded px-2 py-1" /><input placeholder="Raison" value={formScanEntree.raison} onChange={(e) => setFormScanEntree({...formScanEntree, raison: e.target.value})} className="w-full border rounded px-2 py-1" /><select value={formScanEntree.depot} onChange={(e) => setFormScanEntree({...formScanEntree, depot: e.target.value})} className="w-full border rounded px-2 py-1">{depots.map(d => <option key={d} value={d}>{d}</option>)}</select><input type="date" value={formScanEntree.date} onChange={(e) => setFormScanEntree({...formScanEntree, date: e.target.value})} className="w-full border rounded px-2 py-1" /></div><div className="flex gap-2 mt-3"><button onClick={enregistrerEntreeStockScan} className="flex-1 bg-green-600 text-white px-3 py-2 rounded font-bold">✓ Valider</button><button onClick={() => setActionScan(null)} className="flex-1 bg-gray-400 text-white px-3 py-2 rounded font-bold">↩️ Retour</button></div></div>) : actionScan === 'sortie' ? (<div className="bg-red-50 p-4 rounded-lg mb-4 border-2 border-red-300"><h4 className="font-bold text-red-700 mb-3">📤 Sortie de Stock</h4><div className="space-y-2"><input type="number" placeholder="Quantité *" value={formScanSortie.quantite} onChange={(e) => setFormScanSortie({...formScanSortie, quantite: e.target.value})} className="w-full border rounded px-2 py-1" /><input placeholder="Raison" value={formScanSortie.raison} onChange={(e) => setFormScanSortie({...formScanSortie, raison: e.target.value})} className="w-full border rounded px-2 py-1" /><select value={formScanSortie.depot} onChange={(e) => setFormScanSortie({...formScanSortie, depot: e.target.value})} className="w-full border rounded px-2 py-1">{depots.map(d => <option key={d} value={d}>{d}</option>)}</select><input type="date" value={formScanSortie.date} onChange={(e) => setFormScanSortie({...formScanSortie, date: e.target.value})} className="w-full border rounded px-2 py-1" /></div><div className="flex gap-2 mt-3"><button onClick={enregistrerSortieStockScan} className="flex-1 bg-red-600 text-white px-3 py-2 rounded font-bold">✓ Valider</button><button onClick={() => setActionScan(null)} className="flex-1 bg-gray-400 text-white px-3 py-2 rounded font-bold">↩️ Retour</button></div></div>) : (<div className="bg-amber-50 p-4 rounded-lg mb-4 border-2 border-amber-300"><h4 className="font-bold text-amber-700 mb-3">🔄 Transfert</h4><div className="space-y-2"><input type="number" placeholder="Quantité *" value={formScanTransfert.quantite} onChange={(e) => setFormScanTransfert({...formScanTransfert, quantite: e.target.value})} className="w-full border rounded px-2 py-1" /><select value={formScanTransfert.depotSource} onChange={(e) => setFormScanTransfert({...formScanTransfert, depotSource: e.target.value})} className="w-full border rounded px-2 py-1">{depots.map(d => <option key={d} value={d}>{d}</option>)}</select><select value={formScanTransfert.depotDestination} onChange={(e) => setFormScanTransfert({...formScanTransfert, depotDestination: e.target.value})} className="w-full border rounded px-2 py-1">{depots.map(d => <option key={d} value={d}>{d}</option>)}</select></div><div className="flex gap-2 mt-3"><button onClick={enregistrerTransfertStockScan} className="flex-1 bg-amber-600 text-white px-3 py-2 rounded font-bold">✓ Valider</button><button onClick={() => setActionScan(null)} className="flex-1 bg-gray-400 text-white px-3 py-2 rounded font-bold">↩️ Retour</button></div></div>)}</>)}{!scanResultat.success && (<div className="flex gap-2"><button onClick={() => setScanResultat(null)} className="flex-1 bg-blue-600 text-white px-4 py-2 rounded font-bold">🔄 Rescanner</button><button onClick={() => {setAfficherScannerQR(false); setScanResultat(null);}} className="flex-1 bg-gray-400 text-white px-4 py-2 rounded font-bold">✕ Fermer</button></div>)}</div></div>)}</div>
+            <div className="bg-green-50 border-2 border-green-300 p-4 rounded"><h3 className="font-bold mb-3">📥 Entrée</h3><div className="grid grid-cols-1 md:grid-cols-5 gap-2"><select value={nouvelleEntreeStock.articleId} onChange={(e) => setNouvelleEntreeStock({...nouvelleEntreeStock, articleId: e.target.value})} className="border rounded px-2 py-1"><option value="">Article</option>{articles.map(a => <option key={a.id} value={a.id}>{a.code}</option>)}</select><input type="number" placeholder="Qté" value={nouvelleEntreeStock.quantite} onChange={(e) => setNouvelleEntreeStock({...nouvelleEntreeStock, quantite: e.target.value})} className="border rounded px-2 py-1" /><input type="number" step="0.01" placeholder="Prix" value={nouvelleEntreeStock.prixUnitaire} onChange={(e) => setNouvelleEntreeStock({...nouvelleEntreeStock, prixUnitaire: e.target.value})} className="border rounded px-2 py-1" /><input placeholder="Raison" value={nouvelleEntreeStock.raison} onChange={(e) => setNouvelleEntreeStock({...nouvelleEntreeStock, raison: e.target.value})} className="border rounded px-2 py-1" /><button onClick={enregistrerEntreeStock} className="bg-green-600 text-white px-3 py-1 rounded font-bold">Entrer</button></div></div>
+            <div className="bg-red-50 border-2 border-red-300 p-4 rounded"><h3 className="font-bold mb-3">📤 Sortie</h3><div className="grid grid-cols-1 md:grid-cols-5 gap-2"><select value={nouveauMouvementSortie.articleId} onChange={(e) => setNouveauMouvementSortie({...nouveauMouvementSortie, articleId: e.target.value})} className="border rounded px-2 py-1"><option value="">Article</option>{articles.map(a => <option key={a.id} value={a.id}>{a.code}</option>)}</select><input type="number" placeholder="Qté" value={nouveauMouvementSortie.quantite} onChange={(e) => setNouveauMouvementSortie({...nouveauMouvementSortie, quantite: e.target.value})} className="border rounded px-2 py-1" /><input placeholder="Raison" value={nouveauMouvementSortie.raison} onChange={(e) => setNouveauMouvementSortie({...nouveauMouvementSortie, raison: e.target.value})} className="border rounded px-2 py-1" /><input type="date" value={nouveauMouvementSortie.date} onChange={(e) => setNouveauMouvementSortie({...nouveauMouvementSortie, date: e.target.value})} className="border rounded px-2 py-1" /><button onClick={enregistrerSortieStock} className="bg-red-600 text-white px-3 py-1 rounded font-bold">Sortir</button></div></div>
             <div className="bg-amber-50 border-2 border-amber-400 p-4 rounded"><h3 className="font-bold mb-3">🔄 Transfert</h3><div className="grid grid-cols-1 md:grid-cols-6 gap-2"><select value={nouveauTransfert.articleId} onChange={(e) => setNouveauTransfert({...nouveauTransfert, articleId: e.target.value})} className="border rounded px-2 py-1"><option value="">Article</option>{articles.map(a => <option key={a.id} value={a.id}>{a.code}</option>)}</select><select value={nouveauTransfert.depotSource} onChange={(e) => setNouveauTransfert({...nouveauTransfert, depotSource: e.target.value})} className="border rounded px-2 py-1">{depots.map(d => <option key={d} value={d}>{d}</option>)}</select><select value={nouveauTransfert.depotDestination} onChange={(e) => setNouveauTransfert({...nouveauTransfert, depotDestination: e.target.value})} className="border rounded px-2 py-1">{depots.map(d => <option key={d} value={d}>{d}</option>)}</select><input type="number" placeholder="Qté" value={nouveauTransfert.quantite} onChange={(e) => setNouveauTransfert({...nouveauTransfert, quantite: e.target.value})} className="border rounded px-2 py-1" /><input placeholder="Note" value={nouveauTransfert.raison} onChange={(e) => setNouveauTransfert({...nouveauTransfert, raison: e.target.value})} className="border rounded px-2 py-1" /><button onClick={enregistrerTransfertStock} className="bg-amber-600 text-white px-3 py-1 rounded font-bold">Transférer</button></div></div>
-
             <div className="bg-white p-4 rounded border">
               <h3 className="font-bold text-lg mb-3">🎯 Affecter articles aux équipements</h3>
               <div className="space-y-2">
                 {articles.map(a => {
                   const equipAffectes = equipements.filter(e => a.equipementsAffectes.includes(e.id));
                   const isAffecte = a.equipementsAffectes.length > 0;
-                  
                   return (
                     <div key={a.id} className={`flex justify-between items-center p-3 rounded border-2 ${isAffecte ? 'bg-blue-100 border-blue-400' : 'bg-gray-50 border-gray-200'}`}>
                       <div className="flex-1">
@@ -745,8 +668,7 @@ export default function SolaireNettoyageFlotte() {
                       </div>
                       <div className="flex gap-1 ml-2 flex-wrap">
                         {equipements.map(e => (
-                          <button key={e.id} onClick={() => affecterArticleEquipement(a.id, e.id)} 
-                            className={`px-3 py-1 rounded text-xs font-bold whitespace-nowrap transition ${a.equipementsAffectes.includes(e.id) ? 'bg-blue-600 text-white shadow-md' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}>
+                          <button key={e.id} onClick={() => affecterArticleEquipement(a.id, e.id)} className={`px-3 py-1 rounded text-xs font-bold whitespace-nowrap transition ${a.equipementsAffectes.includes(e.id) ? 'bg-blue-600 text-white shadow-md' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}>
                             {e.immat}
                           </button>
                         ))}
@@ -797,19 +719,15 @@ export default function SolaireNettoyageFlotte() {
               </div>
               <div className="bg-blue-50 border-2 border-blue-300 p-3 rounded mb-3">
                 <h4 className="font-semibold text-sm mb-2">📦 Articles</h4>
-                <div className="mb-3 flex gap-2">
-                  <button onClick={() => setAfficherArticlesEquipement(!afficherArticlesEquipement)} className={`px-3 py-1 rounded text-xs font-bold ${afficherArticlesEquipement ? 'bg-blue-600 text-white' : 'bg-gray-300'}`}>{afficherArticlesEquipement ? 'Articles équipement' : 'Tous'}</button>
-                  <button onClick={toggleScannerIntervention} className={`px-3 py-1 rounded text-xs font-bold ${afficherScannerIntervention ? 'bg-red-600 text-white' : 'bg-indigo-600 text-white'}`}>{afficherScannerIntervention ? '❌ Fermer Scanner' : '📷 Scanner'}</button>
-                </div>
-                {afficherScannerIntervention && !scanResultatIntervention && (<div className="bg-gray-900 rounded overflow-hidden mb-3" style={{maxWidth: '300px'}}><video ref={videoRefIntervention} autoPlay playsInline muted style={{width: '100%', display: 'block'}} /><canvas ref={canvasRefIntervention} style={{display: 'none'}} /></div>)}
-                {scanResultatIntervention && !scanResultatIntervention.error && (<div className="bg-green-50 p-3 rounded border-2 border-green-300 mb-3"><div className="font-bold text-green-700 mb-2">{scanResultatIntervention.article.code}</div><div className="text-sm text-gray-600 mb-2">{scanResultatIntervention.article.description}</div><div className="text-xs text-gray-600 mb-2">Stock dispo: {scanResultatIntervention.article.stockParDepot[nouvelleIntervention.depotPrelevement] || 0}</div><div className="flex gap-2"><input type="number" min="1" placeholder="Quantité" value={quantiteScanIntervention} onChange={(e) => setQuantiteScanIntervention(e.target.value)} className="flex-1 border rounded px-2 py-1 text-sm" /><button onClick={ajouterArticlePrevuScan} className="bg-green-600 text-white px-3 py-1 rounded text-xs font-bold">➕ Ajouter</button></div><button onClick={() => {setScanResultatIntervention(null); setQuantiteScanIntervention('');}} className="w-full bg-gray-400 text-white px-2 py-1 rounded text-xs font-bold mt-2">Annuler</button></div>)}
-                {scanResultatIntervention?.error && (<div className="bg-red-50 p-3 rounded border-2 border-red-300 mb-3"><div className="text-red-700 font-bold">Article non trouvé: {scanResultatIntervention.code}</div><button onClick={() => setScanResultatIntervention(null)} className="w-full bg-gray-400 text-white px-2 py-1 rounded text-xs font-bold mt-2">Rescanner</button></div>)}
+                <div className="mb-2 flex gap-2"><button onClick={() => setAfficherArticlesEquipement(!afficherArticlesEquipement)} className={`px-3 py-1 rounded text-xs font-bold ${afficherArticlesEquipement ? 'bg-blue-600 text-white' : 'bg-gray-300'}`}>{afficherArticlesEquipement ? 'Équipement' : 'Tous'}</button><button onClick={toggleScannerIntervention} className={`px-3 py-1 rounded text-xs font-bold ${afficherScannerIntervention ? 'bg-red-600 text-white' : 'bg-indigo-600 text-white'}`}>{afficherScannerIntervention ? 'Fermer' : 'Scanner'}</button></div>
+                {afficherScannerIntervention && !scanResultatIntervention && (<div className="mb-3 bg-indigo-50 p-3 rounded border border-indigo-200"><div className="bg-gray-900 rounded overflow-hidden mb-2" style={{maxWidth: '100%', height: '200px'}}><video ref={videoIntervention} autoPlay playsInline muted style={{width: '100%', height: '100%', display: 'block'}} /><canvas ref={canvasIntervention} style={{display: 'none'}} /></div><p className="text-xs text-indigo-600 font-semibold">🎯 Pointez un QR code</p></div>)}
+                {scanResultatIntervention && (<div className="mb-3 bg-green-50 p-3 rounded border-2 border-green-300"><div className="font-bold text-green-700 mb-2">{scanResultatIntervention.article.code} - {scanResultatIntervention.article.description}</div><div className="flex gap-2 items-end"><input type="number" min="1" placeholder="Quantité *" value={quantiteScanIntervention} onChange={(e) => setQuantiteScanIntervention(e.target.value)} className="flex-1 border-2 border-green-300 rounded px-2 py-1 font-bold text-center" /><button onClick={ajouterArticlePrevuScan} className="bg-green-600 text-white px-3 py-1 rounded text-sm font-bold">➕ Ajouter</button><button onClick={() => {setScanResultatIntervention(null); setQuantiteScanIntervention('');}} className="bg-gray-400 text-white px-3 py-1 rounded text-sm">✕</button></div></div>)}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-2 mb-2">
                   <select value={nouvelArticleIntervention.articleId} onChange={(e) => setNouvelArticleIntervention({...nouvelArticleIntervention, articleId: e.target.value})} className="border-2 rounded px-2 py-2 text-sm"><option value="">Article</option>{getArticlesDisponibles().map(a => <option key={a.id} value={a.id}>{a.code} - {a.description} - {a.fournisseur} - {a.prixUnitaire}€ - Stock: {a.stockParDepot[nouvelleIntervention.depotPrelevement] || 0}</option>)}</select>
                   <input type="number" min="1" placeholder="Quantité" value={nouvelArticleIntervention.quantite} onChange={(e) => setNouvelArticleIntervention({...nouvelArticleIntervention, quantite: e.target.value})} className="border-2 rounded px-2 py-2 text-sm" />
-                  <button onClick={ajouterArticlePrevu} className="bg-blue-600 text-white px-3 py-2 rounded text-sm font-bold col-span-2">+ Ajouter (manuel)</button>
+                  <button onClick={ajouterArticlePrevu} className="bg-blue-600 text-white px-3 py-2 rounded text-sm font-bold col-span-2">+ Ajouter</button>
                 </div>
-                {nouvelleIntervention.articlesPrevu.length > 0 && (<div className="bg-white rounded p-2 mb-2 space-y-1 border"><div className="text-xs font-bold mb-2">Prévus:</div>{nouvelleIntervention.articlesPrevu.map((art, idx) => (<div key={idx} className="flex justify-between items-center text-xs bg-gray-50 p-2 rounded"><div><strong>{art.code}</strong> - {art.quantite}x @ {art.prixUnitaire.toFixed(2)}€ {art.dejaDecremente ? '(scan)' : ''}</div><button onClick={() => supprimerArticlePrevu(idx)} className="text-red-600">✕</button></div>))}</div>)}
+                {nouvelleIntervention.articlesPrevu.length > 0 && (<div className="bg-white rounded p-2 mb-2 space-y-1 border"><div className="text-xs font-bold mb-2">Prévus:</div>{nouvelleIntervention.articlesPrevu.map((art, idx) => (<div key={idx} className="flex justify-between items-center text-xs bg-gray-50 p-2 rounded"><div><strong>{art.code}</strong> - {art.quantite}x @ {art.prixUnitaire.toFixed(2)}€ {art.articleScanned && <span className="text-green-600 font-bold">(Scanner)</span>}</div><button onClick={() => supprimerArticlePrevu(idx)} className="text-red-600">✕</button></div>))}</div>)}
               </div>
               <button onClick={creerIntervention} className="w-full bg-orange-500 text-white px-4 py-3 rounded font-bold text-lg">✓ CRÉER INTERVENTION</button>
             </div>
