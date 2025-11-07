@@ -101,33 +101,57 @@ export default function SolaireNettoyageFlotte() {
   const [videoStream, setVideoStream] = useState(null);
   const [scannedArticleId, setScannedArticleId] = useState(null);
   const [jsQRLoaded, setJsQRLoaded] = useState(false);
+  const jsQRRef = useRef(null);
   
   const typesIntervention = ['Vidange moteur', 'Révision complète', 'Changement pneus', 'Nettoyage', 'Maintenance', 'Contrôle hydraulique', 'Réparation', 'Autre'];
 
-  // Charger jsQR depuis CDN
+  // Charger jsQR depuis CDN avec fallback
   useEffect(() => {
-    if (jsQRLoaded) return;
-    
+    // Vérifier si déjà chargé
+    if (window.jsQR) {
+      jsQRRef.current = window.jsQR;
+      setJsQRLoaded(true);
+      console.log('✅ jsQR déjà dans window');
+      return;
+    }
+
     const script = document.createElement('script');
-    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jsqr/1.4.0/jsQR.min.js';
+    script.src = 'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js';
+    script.async = true;
+    
     script.onload = () => {
-      console.log('✅ jsQR chargé:', typeof window.jsQR);
+      console.log('✅ jsQR chargé (jsDelivr):', typeof window.jsQR);
+      jsQRRef.current = window.jsQR;
       setJsQRLoaded(true);
     };
-    script.onerror = () => console.error('❌ Erreur chargement jsQR');
+    
+    script.onerror = () => {
+      console.warn('jsDelivr échoué, tentative cloudflare...');
+      const script2 = document.createElement('script');
+      script2.src = 'https://cdnjs.cloudflare.com/ajax/libs/jsqr/1.4.0/jsQR.min.js';
+      script2.async = true;
+      script2.onload = () => {
+        console.log('✅ jsQR chargé (Cloudflare):', typeof window.jsQR);
+        jsQRRef.current = window.jsQR;
+        setJsQRLoaded(true);
+      };
+      script2.onerror = () => console.error('❌ Impossible de charger jsQR');
+      document.head.appendChild(script2);
+    };
+    
     document.head.appendChild(script);
-  }, [jsQRLoaded]);
+  }, []);
 
   // Scanner QR en temps réel
   useEffect(() => {
-    if (!afficherScannerQR || !videoRef.current || !canvasRef.current) {
-      console.log('❌ Scanner pas prêt:', { afficherScannerQR, video: !!videoRef.current, canvas: !!canvasRef.current });
-      return;
-    }
+    if (!afficherScannerQR || !videoRef.current || !canvasRef.current) return;
 
     const canvas = canvasRef.current;
     const video = videoRef.current;
     const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+    let lastDetectedCode = null;
+    let lastDetectedTime = 0;
 
     const tick = () => {
       try {
@@ -139,18 +163,22 @@ export default function SolaireNettoyageFlotte() {
             canvas.width = videoWidth;
             canvas.height = videoHeight;
             
-            // Dessiner la vidéo sur le canvas
             ctx.drawImage(video, 0, 0, videoWidth, videoHeight);
-            
-            // Extraire les données de l'image
             const imageData = ctx.getImageData(0, 0, videoWidth, videoHeight);
             
-            // Lancer la détection si jsQR existe
-            if (window.jsQR) {
-              const code = window.jsQR(imageData.data, videoWidth, videoHeight);
-              if (code) {
-                console.log('✅ QR détecté:', code.data);
-                traiterScanQR(code.data);
+            // Utiliser jsQR s'il existe
+            const jsQR = jsQRRef.current || window.jsQR;
+            if (jsQR && typeof jsQR === 'function') {
+              const code = jsQR(imageData.data, videoWidth, videoHeight);
+              if (code && code.data) {
+                const now = Date.now();
+                // Éviter les doublons (même code détecté 2x rapidement)
+                if (code.data !== lastDetectedCode || now - lastDetectedTime > 2000) {
+                  console.log('✅ QR détecté:', code.data);
+                  lastDetectedCode = code.data;
+                  lastDetectedTime = now;
+                  traiterScanQR(code.data);
+                }
               }
             }
           }
