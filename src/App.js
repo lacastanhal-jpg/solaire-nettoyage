@@ -93,6 +93,9 @@ export default function SolaireNettoyageFlotte() {
   const [articleEnEdition, setArticleEnEdition] = useState(null);
   const [panierCommande, setPanierCommande] = useState([]);
   const [afficherArticlesEquipement, setAfficherArticlesEquipement] = useState(false);
+  const [afficherScannerQR, setAfficherScannerQR] = useState(false);
+  const [videoStream, setVideoStream] = useState(null);
+  const [scannedArticleId, setScannedArticleId] = useState(null);
   
   const typesIntervention = ['Vidange moteur', 'Révision complète', 'Changement pneus', 'Nettoyage', 'Maintenance', 'Contrôle hydraulique', 'Réparation', 'Autre'];
 
@@ -205,6 +208,73 @@ export default function SolaireNettoyageFlotte() {
 
   const annulerEditionStockMin = () => {
     setArticleEnEdition(null);
+  };
+
+  const genererQRCodesPDF = () => {
+    const htmlContent = `
+      <html>
+        <head>
+          <title>QR Codes Articles</title>
+          <style>
+            body { font-family: Arial; margin: 10mm; }
+            .page { page-break-after: always; }
+            .qr-item { display: inline-block; margin: 10px; text-align: center; page-break-inside: avoid; }
+            .qr-item img { width: 150px; height: 150px; margin: 10px 0; }
+            .qr-code { border: 2px solid #333; padding: 10px; }
+            .code { font-weight: bold; font-size: 12px; margin-top: 5px; }
+            .description { font-size: 10px; color: #666; }
+          </style>
+        </head>
+        <body>
+          <h1>QR Codes Articles - Solaire Nettoyage</h1>
+          <p>Généré le: ${new Date().toLocaleString('fr-FR')}</p>
+          <div class="page">
+            ${articles.map(a => `
+              <div class="qr-item">
+                <div class="qr-code">
+                  <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(a.code)}" alt="QR Code ${a.code}">
+                </div>
+                <div class="code">${a.code}</div>
+                <div class="description">${a.description.substring(0, 30)}</div>
+              </div>
+            `).join('')}
+          </div>
+        </body>
+      </html>
+    `;
+    
+    const newWindow = window.open();
+    newWindow.document.write(htmlContent);
+    newWindow.document.close();
+  };
+
+  const toggleScannerQR = async () => {
+    if (afficherScannerQR) {
+      if (videoStream) {
+        videoStream.getTracks().forEach(track => track.stop());
+        setVideoStream(null);
+      }
+      setAfficherScannerQR(false);
+    } else {
+      setAfficherScannerQR(true);
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+        setVideoStream(stream);
+      } catch (err) {
+        alert('Caméra non disponible. Veuillez utiliser un appareil compatible.');
+        setAfficherScannerQR(false);
+      }
+    }
+  };
+
+  const traiterScanQR = (code) => {
+    const article = articles.find(a => a.code === code);
+    if (article) {
+      setScannedArticleId(article.id);
+      alert(`✅ Article trouvé: ${article.code} - ${article.description}`);
+    } else {
+      alert(`❌ Article non trouvé: ${code}`);
+    }
   };
 
   const enregistrerEntreeStock = () => {
@@ -339,7 +409,7 @@ export default function SolaireNettoyageFlotte() {
         )}
 
         {ongletActif === 'articles' && (
-          <div className="bg-white p-4 rounded border"><h2 className="font-bold mb-3">Articles ({articles.length})</h2><div className="space-y-2">{articles.map(a => (<div key={a.id} className="flex justify-between p-2 bg-gray-50 rounded"><div><strong>{a.code}</strong> - {a.description}</div><div className="text-right"><span className={getStockTotal(a) <= 2 ? 'text-red-600 font-bold' : 'text-green-600 font-bold'}>{getStockTotal(a)}</span> × {a.prixUnitaire}€</div></div>))}</div></div>
+          <div className="bg-white p-4 rounded border"><h2 className="font-bold mb-3">Articles ({articles.length})</h2><button onClick={genererQRCodesPDF} className="mb-4 bg-purple-600 text-white px-4 py-2 rounded font-bold hover:bg-purple-700">📋 Générer QR Codes PDF</button><div className="space-y-2">{articles.map(a => (<div key={a.id} className="flex justify-between p-2 bg-gray-50 rounded"><div><strong>{a.code}</strong> - {a.description}</div><div className="text-right"><span className={getStockTotal(a) <= 2 ? 'text-red-600 font-bold' : 'text-green-600 font-bold'}>{getStockTotal(a)}</span> × {a.prixUnitaire}€</div></div>))}</div></div>
         )}
 
         {ongletActif === 'inventaire' && (
@@ -427,7 +497,7 @@ export default function SolaireNettoyageFlotte() {
 
         {ongletActif === 'stock' && (
           <div className="space-y-6">
-            <div className="bg-cyan-100 border-2 border-cyan-400 p-4 rounded"><h3 className="font-bold mb-3">📍 Dépôt</h3><div className="flex gap-2">{depots.map(d => (<button key={d} onClick={() => setDepotSelectionne(d)} className={`px-4 py-2 rounded font-bold ${depotSelectionne === d ? 'bg-cyan-600 text-white' : 'bg-white border'}`}>{d}</button>))}</div></div>
+            <div className="bg-indigo-100 border-2 border-indigo-400 p-4 rounded"><h3 className="font-bold mb-3">📱 Scanner QR Code</h3><button onClick={toggleScannerQR} className={`px-4 py-2 rounded font-bold text-white ${afficherScannerQR ? 'bg-red-600 hover:bg-red-700' : 'bg-indigo-600 hover:bg-indigo-700'}`}>{afficherScannerQR ? '❌ Fermer Scanner' : '📷 Activer Scanner'}</button>{afficherScannerQR && (<div className="mt-4"><div className="bg-gray-900 rounded overflow-hidden" style={{maxWidth: '400px'}}><div className="text-center text-white p-4"><p className="text-sm">Pointez la caméra vers un QR code</p><p className="text-xs mt-2 text-gray-400">Ou entrez manuellement le code:</p></div></div><div className="mt-3"><input type="text" placeholder="Entrer code article ou scanner QR" onKeyDown={(e) => {if (e.key === 'Enter' && e.target.value) {traiterScanQR(e.target.value); e.target.value = ''}}} className="w-full border-2 border-indigo-300 rounded px-3 py-2 font-bold" /></div></div>)}</div>
             <div className="bg-green-50 border-2 border-green-300 p-4 rounded"><h3 className="font-bold mb-3">📥 Entrée - {depotSelectionne}</h3><div className="grid grid-cols-1 md:grid-cols-5 gap-2"><select value={nouvelleEntreeStock.articleId} onChange={(e) => setNouvelleEntreeStock({...nouvelleEntreeStock, articleId: e.target.value})} className="border rounded px-2 py-1"><option value="">Article</option>{articles.map(a => <option key={a.id} value={a.id}>{a.code}</option>)}</select><input type="number" placeholder="Qté" value={nouvelleEntreeStock.quantite} onChange={(e) => setNouvelleEntreeStock({...nouvelleEntreeStock, quantite: e.target.value})} className="border rounded px-2 py-1" /><input type="number" step="0.01" placeholder="Prix" value={nouvelleEntreeStock.prixUnitaire} onChange={(e) => setNouvelleEntreeStock({...nouvelleEntreeStock, prixUnitaire: e.target.value})} className="border rounded px-2 py-1" /><input placeholder="Raison" value={nouvelleEntreeStock.raison} onChange={(e) => setNouvelleEntreeStock({...nouvelleEntreeStock, raison: e.target.value})} className="border rounded px-2 py-1" /><button onClick={enregistrerEntreeStock} className="bg-green-600 text-white px-3 py-1 rounded font-bold">Entrer</button></div></div>
             <div className="bg-red-50 border-2 border-red-300 p-4 rounded"><h3 className="font-bold mb-3">📤 Sortie - {depotSelectionne}</h3><div className="grid grid-cols-1 md:grid-cols-5 gap-2"><select value={nouveauMouvementSortie.articleId} onChange={(e) => setNouveauMouvementSortie({...nouveauMouvementSortie, articleId: e.target.value})} className="border rounded px-2 py-1"><option value="">Article</option>{articles.map(a => <option key={a.id} value={a.id}>{a.code}</option>)}</select><input type="number" placeholder="Qté" value={nouveauMouvementSortie.quantite} onChange={(e) => setNouveauMouvementSortie({...nouveauMouvementSortie, quantite: e.target.value})} className="border rounded px-2 py-1" /><input placeholder="Raison" value={nouveauMouvementSortie.raison} onChange={(e) => setNouveauMouvementSortie({...nouveauMouvementSortie, raison: e.target.value})} className="border rounded px-2 py-1" /><input type="date" value={nouveauMouvementSortie.date} onChange={(e) => setNouveauMouvementSortie({...nouveauMouvementSortie, date: e.target.value})} className="border rounded px-2 py-1" /><button onClick={enregistrerSortieStock} className="bg-red-600 text-white px-3 py-1 rounded font-bold">Sortir</button></div></div>
             <div className="bg-amber-50 border-2 border-amber-400 p-4 rounded"><h3 className="font-bold mb-3">🔄 Transfert</h3><div className="grid grid-cols-1 md:grid-cols-6 gap-2"><select value={nouveauTransfert.articleId} onChange={(e) => setNouveauTransfert({...nouveauTransfert, articleId: e.target.value})} className="border rounded px-2 py-1"><option value="">Article</option>{articles.map(a => <option key={a.id} value={a.id}>{a.code}</option>)}</select><select value={nouveauTransfert.depotSource} onChange={(e) => setNouveauTransfert({...nouveauTransfert, depotSource: e.target.value})} className="border rounded px-2 py-1">{depots.map(d => <option key={d} value={d}>{d}</option>)}</select><select value={nouveauTransfert.depotDestination} onChange={(e) => setNouveauTransfert({...nouveauTransfert, depotDestination: e.target.value})} className="border rounded px-2 py-1">{depots.map(d => <option key={d} value={d}>{d}</option>)}</select><input type="number" placeholder="Qté" value={nouveauTransfert.quantite} onChange={(e) => setNouveauTransfert({...nouveauTransfert, quantite: e.target.value})} className="border rounded px-2 py-1" /><input placeholder="Note" value={nouveauTransfert.raison} onChange={(e) => setNouveauTransfert({...nouveauTransfert, raison: e.target.value})} className="border rounded px-2 py-1" /><button onClick={enregistrerTransfertStock} className="bg-amber-600 text-white px-3 py-1 rounded font-bold">Transférer</button></div></div>
