@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 
 export default function SolaireNettoyageFlotte() {
   const [ongletActif, setOngletActif] = useState('accueil');
@@ -40,7 +40,7 @@ export default function SolaireNettoyageFlotte() {
     { id: 2, articleId: 2, type: 'entree', quantite: 3, date: '2025-09-29', raison: 'Facture 233440 - LE BON ROULEMENT', coutTotal: 27.20, depot: 'Atelier' },
   ]);
 
-  const [equipements, setEquipements] = useState([
+  const [equipements] = useState([
     { id: 1, immat: 'GT-316-FG', type: 'Camion Citerne', marque: 'IVECO', modele: 'S-WAY', annee: 2023, km: 0, heures: 0, carburant: 'Diesel', vin: 'ZCFCE62RU00C519482', ptac: 26000, poids: 13190, proprietaire: 'SOLAIRE NETTOYAGE', valeurAchat: 0, valeurActuelle: 133500, typeFinancement: 'Location', coutMensuel: 2104, dateDebut: '2023-12-22', dateFin: '2029-12-22', assurance: 80.10, dateContracteTechnique: '2024-12-22', notes: 'Contrat de location A1M75094 001' },
     { id: 2, immat: 'DX-780-QN', type: 'Tracteur Routier', marque: 'IVECO', modele: 'STRALIS 560', annee: 2015, km: 293992, heures: 0, carburant: 'Diesel', vin: 'WJMS2NWH60C329019', ptac: 26000, poids: 8518, proprietaire: 'SOLAIRE NETTOYAGE', valeurAchat: 45000, valeurActuelle: 42000, typeFinancement: 'Achat', coutMensuel: 0, dateDebut: '2020-09-18', dateFin: '', assurance: 85.00, dateContracteTechnique: '2020-10-17', notes: 'STRALIS 560 • Type 6x2' },
     { id: 3, immat: 'CZ-022-DP', type: 'Semi-Remorque', marque: 'NICOLAS', modele: 'B3207C', annee: 2002, km: 0, heures: 0, carburant: 'N/A', vin: 'VF9B3207C02058032', ptac: 34000, poids: 12550, proprietaire: 'SOLAIRE NETTOYAGE', valeurAchat: 15000, valeurActuelle: 14000, typeFinancement: 'Achat', coutMensuel: 0, dateDebut: '2018-06-29', dateFin: '', assurance: 120.00, dateContracteTechnique: '2019-08-22', notes: 'Semi-Remorque NICOLAS B3207C' },
@@ -63,7 +63,7 @@ export default function SolaireNettoyageFlotte() {
     { id: 1, equipementId: 3, type: 'Révision/Maintenance', date: '2023-10-31', km: 363392, heures: 0, description: 'Entretien atelier', articles: [], statut: 'effectue', coutTotal: 7635.12, depotPrelevement: 'Atelier' }
   ]);
   
-  const [planMaintenance, setPlanMaintenance] = useState([
+  const [planMaintenance] = useState([
     { id: 1, equipementId: 1, type: 'Vidange moteur', seuil: 15000, unite: 'km', prochaine: 15000 },
     { id: 2, equipementId: 1, type: 'Révision complète', seuil: 60000, unite: 'km', prochaine: 60000 },
   ]);
@@ -79,7 +79,6 @@ export default function SolaireNettoyageFlotte() {
   const [afficherArticlesEquipement, setAfficherArticlesEquipement] = useState(false);
   const [afficherScannerQR, setAfficherScannerQR] = useState(false);
   const [videoStream, setVideoStream] = useState(null);
-  const [scannedArticleId, setScannedArticleId] = useState(null);
   const [scanResultat, setScanResultat] = useState(null);
   const [actionScan, setActionScan] = useState(null);
   const [formScanEntree, setFormScanEntree] = useState({ quantite: '', prixUnitaire: '', raison: '', date: new Date().toISOString().split('T')[0], depot: 'Atelier' });
@@ -88,14 +87,12 @@ export default function SolaireNettoyageFlotte() {
   const [afficherScannerIntervention, setAfficherScannerIntervention] = useState(false);
   const [scanResultatIntervention, setScanResultatIntervention] = useState(null);
   const [quantiteScanIntervention, setQuantiteScanIntervention] = useState('');
-  const [jsQRLoaded, setJsQRLoaded] = useState(false);
   
   const typesIntervention = ['Vidange moteur', 'Révision complète', 'Changement pneus', 'Nettoyage', 'Maintenance', 'Contrôle hydraulique', 'Réparation', 'Autre'];
 
   useEffect(() => {
     if (window.jsQR) {
       jsQRRef.current = window.jsQR;
-      setJsQRLoaded(true);
       return;
     }
     const script = document.createElement('script');
@@ -103,10 +100,29 @@ export default function SolaireNettoyageFlotte() {
     script.async = true;
     script.onload = () => {
       jsQRRef.current = window.jsQR;
-      setJsQRLoaded(true);
     };
     document.head.appendChild(script);
   }, []);
+
+  const traiterScanQR = useCallback((code) => {
+    const article = articles.find(a => a.code === code);
+    if (article) {
+      setScanResultat({ success: true, article, code });
+      setActionScan(null);
+    } else {
+      setScanResultat({ success: false, code });
+      setActionScan(null);
+    }
+  }, [articles]);
+
+  const traiterScanQRIntervention = useCallback((code) => {
+    const article = getArticlesDisponibles().find(a => a.code === code);
+    if (article) {
+      setScanResultatIntervention({ article, code });
+    } else {
+      alert(`Article non trouvé: ${code}`);
+    }
+  }, [articles, afficherArticlesEquipement, nouvelleIntervention.equipementId]);
 
   useEffect(() => {
     if (!afficherScannerQR || !videoRef.current || !canvasRef.current || scanResultat) return;
@@ -148,7 +164,7 @@ export default function SolaireNettoyageFlotte() {
     return () => {
       if (scanningRef.current) cancelAnimationFrame(scanningRef.current);
     };
-  }, [afficherScannerQR, scanResultat]);
+  }, [afficherScannerQR, scanResultat, traiterScanQR]);
 
   useEffect(() => {
     if (!afficherScannerIntervention || !videoIntervention.current || !canvasIntervention.current || scanResultatIntervention) return;
@@ -190,31 +206,10 @@ export default function SolaireNettoyageFlotte() {
     return () => {
       if (scanningIntervention.current) cancelAnimationFrame(scanningIntervention.current);
     };
-  }, [afficherScannerIntervention, scanResultatIntervention]);
+  }, [afficherScannerIntervention, scanResultatIntervention, traiterScanQRIntervention]);
 
   const getStockTotal = (article) => {
     return depots.reduce((sum, depot) => sum + (article.stockParDepot[depot] || 0), 0);
-  };
-
-  const traiterScanQR = (code) => {
-    const article = articles.find(a => a.code === code);
-    if (article) {
-      setScannedArticleId(article.id);
-      setScanResultat({ success: true, article, code });
-      setActionScan(null);
-    } else {
-      setScanResultat({ success: false, code });
-      setActionScan(null);
-    }
-  };
-
-  const traiterScanQRIntervention = (code) => {
-    const article = getArticlesDisponibles().find(a => a.code === code);
-    if (article) {
-      setScanResultatIntervention({ article, code });
-    } else {
-      alert(`Article non trouvé: ${code}`);
-    }
   };
 
   const ajouterArticlePrevuScan = () => {
