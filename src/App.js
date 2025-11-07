@@ -107,6 +107,9 @@ export default function SolaireNettoyageFlotte() {
   const [formScanEntree, setFormScanEntree] = useState({ quantite: '', prixUnitaire: '', raison: '', date: new Date().toISOString().split('T')[0], depot: 'Atelier' });
   const [formScanSortie, setFormScanSortie] = useState({ quantite: '', raison: '', date: new Date().toISOString().split('T')[0], depot: 'Atelier' });
   const [formScanTransfert, setFormScanTransfert] = useState({ quantite: '', depotSource: 'Atelier', depotDestination: 'Véhicule 1' });
+  const [scannerIntervention, setScannerIntervention] = useState(false);
+  const [scanResultatIntervention, setScanResultatIntervention] = useState(null);
+  const [quantiteScanIntervention, setQuantiteScanIntervention] = useState('');
   
   const typesIntervention = ['Vidange moteur', 'Révision complète', 'Changement pneus', 'Nettoyage', 'Maintenance', 'Contrôle hydraulique', 'Réparation', 'Autre'];
 
@@ -436,6 +439,17 @@ export default function SolaireNettoyageFlotte() {
     setFormScanTransfert({ quantite: '', depotSource: 'Atelier', depotDestination: 'Véhicule 1' });
   };
 
+  const traiterScanQRIntervention = (code) => {
+    const article = getArticlesDisponibles().find(a => a.code === code);
+    if (article) {
+      setScanResultatIntervention({ success: true, article, code });
+      console.log('✅ Article intervention détecté:', article.code);
+    } else {
+      setScanResultatIntervention({ success: false, code });
+      console.log('❌ Article intervention non trouvé:', code);
+    }
+  };
+
   const enregistrerEntreeStock = () => {
     if (nouvelleEntreeStock.articleId && nouvelleEntreeStock.quantite && nouvelleEntreeStock.prixUnitaire) {
       const quantite = parseInt(nouvelleEntreeStock.quantite);
@@ -473,24 +487,48 @@ export default function SolaireNettoyageFlotte() {
       const article = articles.find(a => a.id === parseInt(nouvelArticleIntervention.articleId));
       const quantite = parseInt(nouvelArticleIntervention.quantite);
       if ((article.stockParDepot[nouvelleIntervention.depotPrelevement] || 0) < quantite) { alert('Stock insuffisant'); return; }
+      // Décrementer le stock IMMÉDIATEMENT
+      setArticles(articles.map(a => a.id === parseInt(nouvelArticleIntervention.articleId) ? { ...a, stockParDepot: { ...a.stockParDepot, [nouvelleIntervention.depotPrelevement]: (a.stockParDepot[nouvelleIntervention.depotPrelevement] || 0) - quantite } } : a));
+      // Ajouter aux articles prévus
       setNouvelleIntervention({...nouvelleIntervention, articlesPrevu: [...nouvelleIntervention.articlesPrevu, { articleId: parseInt(nouvelArticleIntervention.articleId), quantite, prixUnitaire: article.prixUnitaire, description: article.description, code: article.code }]});
       setNouvelArticleIntervention({ articleId: '', quantite: '' });
     }
   };
 
   const supprimerArticlePrevu = (index) => {
+    // Restituer le stock quand on supprime un article
+    const article = nouvelleIntervention.articlesPrevu[index];
+    const articleData = articles.find(a => a.id === article.articleId);
+    if (articleData) {
+      setArticles(articles.map(a => a.id === article.articleId ? { ...a, stockParDepot: { ...a.stockParDepot, [nouvelleIntervention.depotPrelevement]: (a.stockParDepot[nouvelleIntervention.depotPrelevement] || 0) + article.quantite } } : a));
+    }
     setNouvelleIntervention({...nouvelleIntervention, articlesPrevu: nouvelleIntervention.articlesPrevu.filter((_, i) => i !== index)});
+  };
+
+  const ajouterArticlePrevuScan = () => {
+    if (!quantiteScanIntervention) {
+      alert('Quantité requise');
+      return;
+    }
+    const quantite = parseInt(quantiteScanIntervention);
+    if ((scanResultatIntervention.article.stockParDepot[nouvelleIntervention.depotPrelevement] || 0) < quantite) {
+      alert('Stock insuffisant!');
+      return;
+    }
+    // Décrementer le stock IMMÉDIATEMENT
+    setArticles(articles.map(a => a.id === scanResultatIntervention.article.id ? { ...a, stockParDepot: { ...a.stockParDepot, [nouvelleIntervention.depotPrelevement]: (a.stockParDepot[nouvelleIntervention.depotPrelevement] || 0) - quantite } } : a));
+    // Ajouter aux articles prévus
+    setNouvelleIntervention({...nouvelleIntervention, articlesPrevu: [...nouvelleIntervention.articlesPrevu, { articleId: scanResultatIntervention.article.id, quantite, prixUnitaire: scanResultatIntervention.article.prixUnitaire, description: scanResultatIntervention.article.description, code: scanResultatIntervention.article.code }]});
+    alert(`✅ Article ajouté: ${scanResultatIntervention.article.code} (${quantite}x)`);
+    setScanResultatIntervention(null);
+    setQuantiteScanIntervention('');
   };
 
   const creerIntervention = () => {
     if (!nouvelleIntervention.equipementId || !nouvelleIntervention.type) { alert('Veuillez sélectionner un équipement et un type'); return; }
     const interventionId = interventions.length > 0 ? Math.max(...interventions.map(i => i.id)) + 1 : 1;
     const coutTotal = nouvelleIntervention.articlesPrevu.reduce((sum, art) => sum + (art.quantite * art.prixUnitaire), 0);
-    let nouvelStock = articles;
-    nouvelleIntervention.articlesPrevu.forEach(art => {
-      nouvelStock = nouvelStock.map(a => a.id === art.articleId ? { ...a, stockParDepot: { ...a.stockParDepot, [nouvelleIntervention.depotPrelevement]: (a.stockParDepot[nouvelleIntervention.depotPrelevement] || 0) - art.quantite } } : a);
-    });
-    setArticles(nouvelStock);
+    // NE PAS re-décrémenter le stock (c'est déjà fait lors de l'ajout aux articles prévus)
     setInterventions([...interventions, { id: interventionId, equipementId: parseInt(nouvelleIntervention.equipementId), type: nouvelleIntervention.type, date: nouvelleIntervention.date, km: parseInt(nouvelleIntervention.km) || 0, heures: parseInt(nouvelleIntervention.heures) || 0, description: nouvelleIntervention.description, articles: nouvelleIntervention.articlesPrevu, statut: 'en_cours', coutTotal: coutTotal, depotPrelevement: nouvelleIntervention.depotPrelevement }]);
     setNouvelleIntervention({ equipementId: '', type: '', date: new Date().toISOString().split('T')[0], km: '', heures: '', description: '', articlesPrevu: [], depotPrelevement: 'Atelier' });
   };
@@ -728,7 +766,9 @@ export default function SolaireNettoyageFlotte() {
               </div>
               <div className="bg-blue-50 border-2 border-blue-300 p-3 rounded mb-3">
                 <h4 className="font-semibold text-sm mb-2">📦 Articles</h4>
-                <div className="mb-2"><button onClick={() => setAfficherArticlesEquipement(!afficherArticlesEquipement)} className={`px-3 py-1 rounded text-xs font-bold mb-2 ${afficherArticlesEquipement ? 'bg-blue-600 text-white' : 'bg-gray-300'}`}>{afficherArticlesEquipement ? 'Articles équipement' : 'Tous'}</button></div>
+                <div className="mb-2 flex gap-2"><button onClick={() => setAfficherArticlesEquipement(!afficherArticlesEquipement)} className={`px-3 py-1 rounded text-xs font-bold ${afficherArticlesEquipement ? 'bg-blue-600 text-white' : 'bg-gray-300'}`}>{afficherArticlesEquipement ? 'Articles équipement' : 'Tous'}</button><button onClick={() => setScannerIntervention(!scannerIntervention)} className={`px-3 py-1 rounded text-xs font-bold ${scannerIntervention ? 'bg-orange-600 text-white' : 'bg-gray-300'}`}>{scannerIntervention ? '📷 Scanner actif' : '📷 Scanner'}</button></div>
+                {scannerIntervention && !scanResultatIntervention && (<div className="bg-orange-50 p-3 rounded mb-2 border border-orange-300"><input type="text" placeholder="Scanne un QR ou entre le code" autoFocus onKeyDown={(e) => {if (e.key === 'Enter' && e.target.value) {traiterScanQRIntervention(e.target.value); e.target.value = ''}}} className="w-full border rounded px-2 py-1 text-sm" /></div>)}
+                {scanResultatIntervention && (<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"><div className="bg-white rounded-xl shadow-xl p-4 max-w-sm w-full"><h4 className="font-bold mb-2 text-green-600">✅ Article détecté</h4><div className="bg-green-50 p-2 rounded mb-3 border border-green-300"><div className="font-bold text-sm">{scanResultatIntervention.article.code}</div><div className="text-xs text-gray-600">{scanResultatIntervention.article.description}</div><div className="text-xs text-gray-600 mt-1">Stock: {scanResultatIntervention.article.stockParDepot[nouvelleIntervention.depotPrelevement] || 0} • Prix: {scanResultatIntervention.article.prixUnitaire}€</div></div><div className="mb-2"><label className="text-xs font-bold">Quantité *</label><input type="number" min="1" placeholder="Quantité" value={quantiteScanIntervention} onChange={(e) => setQuantiteScanIntervention(e.target.value)} className="w-full border rounded px-2 py-1" /></div><div className="flex gap-2"><button onClick={ajouterArticlePrevuScan} className="flex-1 bg-green-600 text-white px-3 py-2 rounded text-sm font-bold">➕ Ajouter</button><button onClick={() => {setScanResultatIntervention(null); setQuantiteScanIntervention('');}} className="flex-1 bg-gray-400 text-white px-3 py-2 rounded text-sm font-bold">✕</button></div></div></div>)}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-2 mb-2">
                   <select value={nouvelArticleIntervention.articleId} onChange={(e) => setNouvelArticleIntervention({...nouvelArticleIntervention, articleId: e.target.value})} className="border-2 rounded px-2 py-2 text-sm"><option value="">Article</option>{getArticlesDisponibles().map(a => <option key={a.id} value={a.id}>{a.code} - {a.description} - {a.fournisseur} - {a.prixUnitaire}€ - Stock: {a.stockParDepot[nouvelleIntervention.depotPrelevement] || 0}</option>)}</select>
                   <input type="number" min="1" placeholder="Quantité" value={nouvelArticleIntervention.quantite} onChange={(e) => setNouvelArticleIntervention({...nouvelArticleIntervention, quantite: e.target.value})} className="border-2 rounded px-2 py-2 text-sm" />
