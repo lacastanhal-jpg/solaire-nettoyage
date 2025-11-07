@@ -1,5 +1,4 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ChevronDown, Plus, Trash2, Edit2, AlertCircle } from 'lucide-react';
 
 export default function SolaireNettoyageFlotte() {
   const [ongletActif, setOngletActif] = useState('accueil');
