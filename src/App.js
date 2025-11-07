@@ -145,7 +145,7 @@ export default function SolaireNettoyageFlotte() {
 
   // Scanner QR en temps réel
   useEffect(() => {
-    if (!afficherScannerQR || !videoRef.current || !canvasRef.current) return;
+    if (!afficherScannerQR || !videoRef.current || !canvasRef.current || scanResultat) return;
 
     const canvas = canvasRef.current;
     const video = videoRef.current;
@@ -167,14 +167,13 @@ export default function SolaireNettoyageFlotte() {
             ctx.drawImage(video, 0, 0, videoWidth, videoHeight);
             const imageData = ctx.getImageData(0, 0, videoWidth, videoHeight);
             
-            // Utiliser jsQR s'il existe
             const jsQR = jsQRRef.current || window.jsQR;
             if (jsQR && typeof jsQR === 'function') {
               const code = jsQR(imageData.data, videoWidth, videoHeight);
               if (code && code.data) {
                 const now = Date.now();
-                // Éviter les doublons (même code détecté 2x rapidement)
-                if (code.data !== lastDetectedCode || now - lastDetectedTime > 2000) {
+                // Délai 5 sec entre deux mêmes détections
+                if (code.data !== lastDetectedCode || now - lastDetectedTime > 5000) {
                   console.log('✅ QR détecté:', code.data);
                   lastDetectedCode = code.data;
                   lastDetectedTime = now;
@@ -195,7 +194,7 @@ export default function SolaireNettoyageFlotte() {
     return () => {
       if (scanningRef.current) cancelAnimationFrame(scanningRef.current);
     };
-  }, [afficherScannerQR]);
+  }, [afficherScannerQR, scanResultat]);
 
   const getStockTotal = (article) => {
     return depots.reduce((sum, depot) => sum + (article.stockParDepot[depot] || 0), 0);
