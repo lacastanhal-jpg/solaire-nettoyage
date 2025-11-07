@@ -880,4 +880,3 @@ ${articles.map(item => `${item.article.code} | ${item.article.description} | ${i
     </div>
   );
 }
-
