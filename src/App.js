@@ -9,6 +9,7 @@ export default function SolaireNettoyageFlotte() {
   const canvasRef = useRef(null);
   const videoRef = useRef(null);
   const scanningRef = useRef(false);
+  const jsQRRef = useRef(null);
   
   const depots = ['Atelier', 'Véhicule 1', 'Véhicule 2', 'Véhicule 3'];
   
