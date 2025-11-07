@@ -10,6 +10,9 @@ export default function SolaireNettoyageFlotte() {
   const videoRef = useRef(null);
   const scanningRef = useRef(false);
   const jsQRRef = useRef(null);
+  const canvasRefIntervention = useRef(null);
+  const videoRefIntervention = useRef(null);
+  const scanningRefIntervention = useRef(false);
   
   const depots = ['Atelier', 'Véhicule 1', 'Véhicule 2', 'Véhicule 3'];
   
@@ -103,11 +106,12 @@ export default function SolaireNettoyageFlotte() {
   const [scannedArticleId, setScannedArticleId] = useState(null);
   const [jsQRLoaded, setJsQRLoaded] = useState(false);
   const [scanResultat, setScanResultat] = useState(null);
-  const [actionScan, setActionScan] = useState(null); // 'entree', 'sortie', 'transfert'
+  const [actionScan, setActionScan] = useState(null);
   const [formScanEntree, setFormScanEntree] = useState({ quantite: '', prixUnitaire: '', raison: '', date: new Date().toISOString().split('T')[0], depot: 'Atelier' });
   const [formScanSortie, setFormScanSortie] = useState({ quantite: '', raison: '', date: new Date().toISOString().split('T')[0], depot: 'Atelier' });
   const [formScanTransfert, setFormScanTransfert] = useState({ quantite: '', depotSource: 'Atelier', depotDestination: 'Véhicule 1' });
-  const [scannerIntervention, setScannerIntervention] = useState(false);
+  const [afficherScannerIntervention, setAfficherScannerIntervention] = useState(false);
+  const [videoStreamIntervention, setVideoStreamIntervention] = useState(null);
   const [scanResultatIntervention, setScanResultatIntervention] = useState(null);
   const [quantiteScanIntervention, setQuantiteScanIntervention] = useState('');
   
@@ -388,6 +392,64 @@ export default function SolaireNettoyageFlotte() {
     }
   };
 
+  const traiterScanQRIntervention = (code) => {
+    const article = articles.find(a => a.code === code);
+    if (article) {
+      setScanResultatIntervention({ article, code });
+      setQuantiteScanIntervention('');
+      console.log('✅ Article trouvé intervention:', article.code);
+    } else {
+      setScanResultatIntervention({ error: true, code });
+      console.log('❌ Article non trouvé intervention:', code);
+    }
+  };
+
+  const ajouterArticlePrevuScan = () => {
+    if (!quantiteScanIntervention) {
+      alert('Quantité requise');
+      return;
+    }
+    const quantite = parseInt(quantiteScanIntervention);
+    const article = scanResultatIntervention.article;
+    
+    if ((article.stockParDepot[nouvelleIntervention.depotPrelevement] || 0) < quantite) {
+      alert('Stock insuffisant!');
+      return;
+    }
+    
+    // Décrémente le stock IMMÉDIATEMENT
+    setArticles(articles.map(a => a.id === article.id ? { ...a, stockParDepot: { ...a.stockParDepot, [nouvelleIntervention.depotPrelevement]: (a.stockParDepot[nouvelleIntervention.depotPrelevement] || 0) - quantite } } : a));
+    
+    // Ajoute aux articlesPrevu avec flag dejaDecremente
+    setNouvelleIntervention({...nouvelleIntervention, articlesPrevu: [...nouvelleIntervention.articlesPrevu, { articleId: article.id, quantite, prixUnitaire: article.prixUnitaire, description: article.description, code: article.code, dejaDecremente: true }]});
+    
+    alert(`✅ Article ajouté: ${quantite}x ${article.code}`);
+    setScanResultatIntervention(null);
+    setQuantiteScanIntervention('');
+  };
+
+  const toggleScannerIntervention = async () => {
+    if (afficherScannerIntervention) {
+      if (videoStreamIntervention) {
+        videoStreamIntervention.getTracks().forEach(track => track.stop());
+        setVideoStreamIntervention(null);
+      }
+      setAfficherScannerIntervention(false);
+    } else {
+      setAfficherScannerIntervention(true);
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+        if (videoRefIntervention.current) {
+          videoRefIntervention.current.srcObject = stream;
+        }
+        setVideoStreamIntervention(stream);
+      } catch (err) {
+        alert('Caméra non disponible.');
+        setAfficherScannerIntervention(false);
+      }
+    }
+  };
+
   const enregistrerEntreeStockScan = () => {
     if (!formScanEntree.quantite || !formScanEntree.prixUnitaire) {
       alert('Quantité et prix requis');
@@ -439,17 +501,6 @@ export default function SolaireNettoyageFlotte() {
     setFormScanTransfert({ quantite: '', depotSource: 'Atelier', depotDestination: 'Véhicule 1' });
   };
 
-  const traiterScanQRIntervention = (code) => {
-    const article = getArticlesDisponibles().find(a => a.code === code);
-    if (article) {
-      setScanResultatIntervention({ success: true, article, code });
-      console.log('✅ Article intervention détecté:', article.code);
-    } else {
-      setScanResultatIntervention({ success: false, code });
-      console.log('❌ Article intervention non trouvé:', code);
-    }
-  };
-
   const enregistrerEntreeStock = () => {
     if (nouvelleEntreeStock.articleId && nouvelleEntreeStock.quantite && nouvelleEntreeStock.prixUnitaire) {
       const quantite = parseInt(nouvelleEntreeStock.quantite);
@@ -487,48 +538,29 @@ export default function SolaireNettoyageFlotte() {
       const article = articles.find(a => a.id === parseInt(nouvelArticleIntervention.articleId));
       const quantite = parseInt(nouvelArticleIntervention.quantite);
       if ((article.stockParDepot[nouvelleIntervention.depotPrelevement] || 0) < quantite) { alert('Stock insuffisant'); return; }
-      // Décrementer le stock IMMÉDIATEMENT
-      setArticles(articles.map(a => a.id === parseInt(nouvelArticleIntervention.articleId) ? { ...a, stockParDepot: { ...a.stockParDepot, [nouvelleIntervention.depotPrelevement]: (a.stockParDepot[nouvelleIntervention.depotPrelevement] || 0) - quantite } } : a));
-      // Ajouter aux articles prévus
       setNouvelleIntervention({...nouvelleIntervention, articlesPrevu: [...nouvelleIntervention.articlesPrevu, { articleId: parseInt(nouvelArticleIntervention.articleId), quantite, prixUnitaire: article.prixUnitaire, description: article.description, code: article.code }]});
       setNouvelArticleIntervention({ articleId: '', quantite: '' });
     }
   };
 
   const supprimerArticlePrevu = (index) => {
-    // Restituer le stock quand on supprime un article
-    const article = nouvelleIntervention.articlesPrevu[index];
-    const articleData = articles.find(a => a.id === article.articleId);
-    if (articleData) {
-      setArticles(articles.map(a => a.id === article.articleId ? { ...a, stockParDepot: { ...a.stockParDepot, [nouvelleIntervention.depotPrelevement]: (a.stockParDepot[nouvelleIntervention.depotPrelevement] || 0) + article.quantite } } : a));
-    }
     setNouvelleIntervention({...nouvelleIntervention, articlesPrevu: nouvelleIntervention.articlesPrevu.filter((_, i) => i !== index)});
-  };
-
-  const ajouterArticlePrevuScan = () => {
-    if (!quantiteScanIntervention) {
-      alert('Quantité requise');
-      return;
-    }
-    const quantite = parseInt(quantiteScanIntervention);
-    if ((scanResultatIntervention.article.stockParDepot[nouvelleIntervention.depotPrelevement] || 0) < quantite) {
-      alert('Stock insuffisant!');
-      return;
-    }
-    // Décrementer le stock IMMÉDIATEMENT
-    setArticles(articles.map(a => a.id === scanResultatIntervention.article.id ? { ...a, stockParDepot: { ...a.stockParDepot, [nouvelleIntervention.depotPrelevement]: (a.stockParDepot[nouvelleIntervention.depotPrelevement] || 0) - quantite } } : a));
-    // Ajouter aux articles prévus
-    setNouvelleIntervention({...nouvelleIntervention, articlesPrevu: [...nouvelleIntervention.articlesPrevu, { articleId: scanResultatIntervention.article.id, quantite, prixUnitaire: scanResultatIntervention.article.prixUnitaire, description: scanResultatIntervention.article.description, code: scanResultatIntervention.article.code }]});
-    alert(`✅ Article ajouté: ${scanResultatIntervention.article.code} (${quantite}x)`);
-    setScanResultatIntervention(null);
-    setQuantiteScanIntervention('');
   };
 
   const creerIntervention = () => {
     if (!nouvelleIntervention.equipementId || !nouvelleIntervention.type) { alert('Veuillez sélectionner un équipement et un type'); return; }
     const interventionId = interventions.length > 0 ? Math.max(...interventions.map(i => i.id)) + 1 : 1;
     const coutTotal = nouvelleIntervention.articlesPrevu.reduce((sum, art) => sum + (art.quantite * art.prixUnitaire), 0);
-    // NE PAS re-décrémenter le stock (c'est déjà fait lors de l'ajout aux articles prévus)
+    let nouvelStock = articles;
+    
+    // Décrémente UNIQUEMENT les articles NOT dejaDecremente (ajoutés via select manuel)
+    nouvelleIntervention.articlesPrevu.forEach(art => {
+      if (!art.dejaDecremente) {
+        nouvelStock = nouvelStock.map(a => a.id === art.articleId ? { ...a, stockParDepot: { ...a.stockParDepot, [nouvelleIntervention.depotPrelevement]: (a.stockParDepot[nouvelleIntervention.depotPrelevement] || 0) - art.quantite } } : a);
+      }
+    });
+    
+    setArticles(nouvelStock);
     setInterventions([...interventions, { id: interventionId, equipementId: parseInt(nouvelleIntervention.equipementId), type: nouvelleIntervention.type, date: nouvelleIntervention.date, km: parseInt(nouvelleIntervention.km) || 0, heures: parseInt(nouvelleIntervention.heures) || 0, description: nouvelleIntervention.description, articles: nouvelleIntervention.articlesPrevu, statut: 'en_cours', coutTotal: coutTotal, depotPrelevement: nouvelleIntervention.depotPrelevement }]);
     setNouvelleIntervention({ equipementId: '', type: '', date: new Date().toISOString().split('T')[0], km: '', heures: '', description: '', articlesPrevu: [], depotPrelevement: 'Atelier' });
   };
@@ -766,15 +798,19 @@ export default function SolaireNettoyageFlotte() {
               </div>
               <div className="bg-blue-50 border-2 border-blue-300 p-3 rounded mb-3">
                 <h4 className="font-semibold text-sm mb-2">📦 Articles</h4>
-                <div className="mb-2 flex gap-2"><button onClick={() => setAfficherArticlesEquipement(!afficherArticlesEquipement)} className={`px-3 py-1 rounded text-xs font-bold ${afficherArticlesEquipement ? 'bg-blue-600 text-white' : 'bg-gray-300'}`}>{afficherArticlesEquipement ? 'Articles équipement' : 'Tous'}</button><button onClick={() => setScannerIntervention(!scannerIntervention)} className={`px-3 py-1 rounded text-xs font-bold ${scannerIntervention ? 'bg-orange-600 text-white' : 'bg-gray-300'}`}>{scannerIntervention ? '📷 Scanner actif' : '📷 Scanner'}</button></div>
-                {scannerIntervention && !scanResultatIntervention && (<div className="bg-orange-50 p-3 rounded mb-2 border border-orange-300"><input type="text" placeholder="Scanne un QR ou entre le code" autoFocus onKeyDown={(e) => {if (e.key === 'Enter' && e.target.value) {traiterScanQRIntervention(e.target.value); e.target.value = ''}}} className="w-full border rounded px-2 py-1 text-sm" /></div>)}
-                {scanResultatIntervention && (<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"><div className="bg-white rounded-xl shadow-xl p-4 max-w-sm w-full"><h4 className="font-bold mb-2 text-green-600">✅ Article détecté</h4><div className="bg-green-50 p-2 rounded mb-3 border border-green-300"><div className="font-bold text-sm">{scanResultatIntervention.article.code}</div><div className="text-xs text-gray-600">{scanResultatIntervention.article.description}</div><div className="text-xs text-gray-600 mt-1">Stock: {scanResultatIntervention.article.stockParDepot[nouvelleIntervention.depotPrelevement] || 0} • Prix: {scanResultatIntervention.article.prixUnitaire}€</div></div><div className="mb-2"><label className="text-xs font-bold">Quantité *</label><input type="number" min="1" placeholder="Quantité" value={quantiteScanIntervention} onChange={(e) => setQuantiteScanIntervention(e.target.value)} className="w-full border rounded px-2 py-1" /></div><div className="flex gap-2"><button onClick={ajouterArticlePrevuScan} className="flex-1 bg-green-600 text-white px-3 py-2 rounded text-sm font-bold">➕ Ajouter</button><button onClick={() => {setScanResultatIntervention(null); setQuantiteScanIntervention('');}} className="flex-1 bg-gray-400 text-white px-3 py-2 rounded text-sm font-bold">✕</button></div></div></div>)}
+                <div className="mb-3 flex gap-2">
+                  <button onClick={() => setAfficherArticlesEquipement(!afficherArticlesEquipement)} className={`px-3 py-1 rounded text-xs font-bold ${afficherArticlesEquipement ? 'bg-blue-600 text-white' : 'bg-gray-300'}`}>{afficherArticlesEquipement ? 'Articles équipement' : 'Tous'}</button>
+                  <button onClick={toggleScannerIntervention} className={`px-3 py-1 rounded text-xs font-bold ${afficherScannerIntervention ? 'bg-red-600 text-white' : 'bg-indigo-600 text-white'}`}>{afficherScannerIntervention ? '❌ Fermer Scanner' : '📷 Scanner'}</button>
+                </div>
+                {afficherScannerIntervention && !scanResultatIntervention && (<div className="bg-gray-900 rounded overflow-hidden mb-3" style={{maxWidth: '300px'}}><video ref={videoRefIntervention} autoPlay playsInline muted style={{width: '100%', display: 'block'}} /><canvas ref={canvasRefIntervention} style={{display: 'none'}} /></div>)}
+                {scanResultatIntervention && !scanResultatIntervention.error && (<div className="bg-green-50 p-3 rounded border-2 border-green-300 mb-3"><div className="font-bold text-green-700 mb-2">{scanResultatIntervention.article.code}</div><div className="text-sm text-gray-600 mb-2">{scanResultatIntervention.article.description}</div><div className="text-xs text-gray-600 mb-2">Stock dispo: {scanResultatIntervention.article.stockParDepot[nouvelleIntervention.depotPrelevement] || 0}</div><div className="flex gap-2"><input type="number" min="1" placeholder="Quantité" value={quantiteScanIntervention} onChange={(e) => setQuantiteScanIntervention(e.target.value)} className="flex-1 border rounded px-2 py-1 text-sm" /><button onClick={ajouterArticlePrevuScan} className="bg-green-600 text-white px-3 py-1 rounded text-xs font-bold">➕ Ajouter</button></div><button onClick={() => {setScanResultatIntervention(null); setQuantiteScanIntervention('');}} className="w-full bg-gray-400 text-white px-2 py-1 rounded text-xs font-bold mt-2">Annuler</button></div>)}
+                {scanResultatIntervention?.error && (<div className="bg-red-50 p-3 rounded border-2 border-red-300 mb-3"><div className="text-red-700 font-bold">Article non trouvé: {scanResultatIntervention.code}</div><button onClick={() => setScanResultatIntervention(null)} className="w-full bg-gray-400 text-white px-2 py-1 rounded text-xs font-bold mt-2">Rescanner</button></div>)}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-2 mb-2">
                   <select value={nouvelArticleIntervention.articleId} onChange={(e) => setNouvelArticleIntervention({...nouvelArticleIntervention, articleId: e.target.value})} className="border-2 rounded px-2 py-2 text-sm"><option value="">Article</option>{getArticlesDisponibles().map(a => <option key={a.id} value={a.id}>{a.code} - {a.description} - {a.fournisseur} - {a.prixUnitaire}€ - Stock: {a.stockParDepot[nouvelleIntervention.depotPrelevement] || 0}</option>)}</select>
                   <input type="number" min="1" placeholder="Quantité" value={nouvelArticleIntervention.quantite} onChange={(e) => setNouvelArticleIntervention({...nouvelArticleIntervention, quantite: e.target.value})} className="border-2 rounded px-2 py-2 text-sm" />
-                  <button onClick={ajouterArticlePrevu} className="bg-blue-600 text-white px-3 py-2 rounded text-sm font-bold col-span-2">+ Ajouter</button>
+                  <button onClick={ajouterArticlePrevu} className="bg-blue-600 text-white px-3 py-2 rounded text-sm font-bold col-span-2">+ Ajouter (manuel)</button>
                 </div>
-                {nouvelleIntervention.articlesPrevu.length > 0 && (<div className="bg-white rounded p-2 mb-2 space-y-1 border"><div className="text-xs font-bold mb-2">Prévus:</div>{nouvelleIntervention.articlesPrevu.map((art, idx) => (<div key={idx} className="flex justify-between items-center text-xs bg-gray-50 p-2 rounded"><div><strong>{art.code}</strong> - {art.quantite}x @ {art.prixUnitaire.toFixed(2)}€</div><button onClick={() => supprimerArticlePrevu(idx)} className="text-red-600">✕</button></div>))}</div>)}
+                {nouvelleIntervention.articlesPrevu.length > 0 && (<div className="bg-white rounded p-2 mb-2 space-y-1 border"><div className="text-xs font-bold mb-2">Prévus:</div>{nouvelleIntervention.articlesPrevu.map((art, idx) => (<div key={idx} className="flex justify-between items-center text-xs bg-gray-50 p-2 rounded"><div><strong>{art.code}</strong> - {art.quantite}x @ {art.prixUnitaire.toFixed(2)}€ {art.dejaDecremente ? '(scan)' : ''}</div><button onClick={() => supprimerArticlePrevu(idx)} className="text-red-600">✕</button></div>))}</div>)}
               </div>
               <button onClick={creerIntervention} className="w-full bg-orange-500 text-white px-4 py-3 rounded font-bold text-lg">✓ CRÉER INTERVENTION</button>
             </div>
