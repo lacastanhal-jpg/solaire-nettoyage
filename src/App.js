@@ -106,32 +106,57 @@ export default function SolaireNettoyageFlotte() {
 
   // Charger jsQR depuis CDN
   useEffect(() => {
+    if (jsQRLoaded) return;
+    
     const script = document.createElement('script');
     script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jsqr/1.4.0/jsQR.min.js';
-    script.onload = () => setJsQRLoaded(true);
+    script.onload = () => {
+      console.log('✅ jsQR chargé:', typeof window.jsQR);
+      setJsQRLoaded(true);
+    };
+    script.onerror = () => console.error('❌ Erreur chargement jsQR');
     document.head.appendChild(script);
-  }, []);
+  }, [jsQRLoaded]);
 
   // Scanner QR en temps réel
   useEffect(() => {
-    if (!afficherScannerQR || !videoRef.current || !canvasRef.current || !jsQRLoaded || !window.jsQR) return;
+    if (!afficherScannerQR || !videoRef.current || !canvasRef.current) {
+      console.log('❌ Scanner pas prêt:', { afficherScannerQR, video: !!videoRef.current, canvas: !!canvasRef.current });
+      return;
+    }
 
     const canvas = canvasRef.current;
     const video = videoRef.current;
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
     const tick = () => {
-      if (videoRef.current && videoRef.current.readyState === videoRef.current.HAVE_ENOUGH_DATA) {
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      try {
+        if (video.readyState === video.HAVE_ENOUGH_DATA) {
+          const videoWidth = video.videoWidth;
+          const videoHeight = video.videoHeight;
 
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const code = window.jsQR(imageData.data, canvas.width, canvas.height);
-
-        if (code) {
-          traiterScanQR(code.data);
+          if (videoWidth > 0 && videoHeight > 0) {
+            canvas.width = videoWidth;
+            canvas.height = videoHeight;
+            
+            // Dessiner la vidéo sur le canvas
+            ctx.drawImage(video, 0, 0, videoWidth, videoHeight);
+            
+            // Extraire les données de l'image
+            const imageData = ctx.getImageData(0, 0, videoWidth, videoHeight);
+            
+            // Lancer la détection si jsQR existe
+            if (window.jsQR) {
+              const code = window.jsQR(imageData.data, videoWidth, videoHeight);
+              if (code) {
+                console.log('✅ QR détecté:', code.data);
+                traiterScanQR(code.data);
+              }
+            }
+          }
         }
+      } catch (err) {
+        console.error('Erreur scan:', err);
       }
       scanningRef.current = requestAnimationFrame(tick);
     };
@@ -141,7 +166,7 @@ export default function SolaireNettoyageFlotte() {
     return () => {
       if (scanningRef.current) cancelAnimationFrame(scanningRef.current);
     };
-  }, [afficherScannerQR, jsQRLoaded]);
+  }, [afficherScannerQR]);
 
   const getStockTotal = (article) => {
     return depots.reduce((sum, depot) => sum + (article.stockParDepot[depot] || 0), 0);
@@ -544,7 +569,7 @@ export default function SolaireNettoyageFlotte() {
 
         {ongletActif === 'stock' && (
           <div className="space-y-6">
-            <div className="bg-indigo-100 border-2 border-indigo-400 p-4 rounded"><h3 className="font-bold mb-3">📱 Scanner QR Code</h3><button onClick={toggleScannerQR} className={`px-4 py-2 rounded font-bold text-white ${afficherScannerQR ? 'bg-red-600 hover:bg-red-700' : 'bg-indigo-600 hover:bg-indigo-700'}`}>{afficherScannerQR ? '❌ Fermer Scanner' : '📷 Activer Scanner'}</button>{afficherScannerQR && (<div className="mt-4"><div className="bg-gray-900 rounded overflow-hidden" style={{maxWidth: '400px'}}><video ref={videoRef} autoPlay playsInline muted style={{width: '100%', display: 'block'}} /><canvas ref={canvasRef} style={{display: 'none'}} /></div><div className="mt-3"><input type="text" placeholder="Entrer code article ou scanner QR" onKeyDown={(e) => {if (e.key === 'Enter' && e.target.value) {traiterScanQR(e.target.value); e.target.value = ''}}} className="w-full border-2 border-indigo-300 rounded px-3 py-2 font-bold" /></div><div className="mt-2 text-sm text-indigo-700 font-semibold">🎯 Scanner actif - Pointez un QR code vers la caméra</div></div>)}</div>
+            <div className="bg-indigo-100 border-2 border-indigo-400 p-4 rounded"><h3 className="font-bold mb-3">📱 Scanner QR Code</h3><button onClick={toggleScannerQR} className={`px-4 py-2 rounded font-bold text-white ${afficherScannerQR ? 'bg-red-600 hover:bg-red-700' : 'bg-indigo-600 hover:bg-indigo-700'}`}>{afficherScannerQR ? '❌ Fermer Scanner' : '📷 Activer Scanner'}</button>{afficherScannerQR && (<div className="mt-4"><div className="bg-gray-900 rounded overflow-hidden" style={{maxWidth: '400px'}}><video ref={videoRef} autoPlay playsInline muted style={{width: '100%', display: 'block'}} onLoadedMetadata={() => console.log('✅ Vidéo chargée')} /><canvas ref={canvasRef} style={{display: 'none'}} /></div><div className="mt-3 p-3 bg-indigo-50 rounded border border-indigo-300"><p className="text-sm font-bold text-indigo-700">📊 Diagnostique :</p><p className="text-xs text-indigo-600">• jsQR: {jsQRLoaded ? '✅ Chargé' : '⏳ Chargement...'}</p><p className="text-xs text-indigo-600">• Vidéo: {videoRef.current?.readyState === 4 ? '✅ Active' : '⏳ En cours...'}</p></div><div className="mt-3"><input type="text" placeholder="Entrer code article ou scanner QR" onKeyDown={(e) => {if (e.key === 'Enter' && e.target.value) {traiterScanQR(e.target.value); e.target.value = ''}}} className="w-full border-2 border-indigo-300 rounded px-3 py-2 font-bold" /></div><div className="mt-2 text-sm text-indigo-700 font-semibold">🎯 Scanner actif - Pointez un QR code vers la caméra (lumière suffisante requise)</div></div>)}</div>
             <div className="bg-green-50 border-2 border-green-300 p-4 rounded"><h3 className="font-bold mb-3">📥 Entrée - {depotSelectionne}</h3><div className="grid grid-cols-1 md:grid-cols-5 gap-2"><select value={nouvelleEntreeStock.articleId} onChange={(e) => setNouvelleEntreeStock({...nouvelleEntreeStock, articleId: e.target.value})} className="border rounded px-2 py-1"><option value="">Article</option>{articles.map(a => <option key={a.id} value={a.id}>{a.code}</option>)}</select><input type="number" placeholder="Qté" value={nouvelleEntreeStock.quantite} onChange={(e) => setNouvelleEntreeStock({...nouvelleEntreeStock, quantite: e.target.value})} className="border rounded px-2 py-1" /><input type="number" step="0.01" placeholder="Prix" value={nouvelleEntreeStock.prixUnitaire} onChange={(e) => setNouvelleEntreeStock({...nouvelleEntreeStock, prixUnitaire: e.target.value})} className="border rounded px-2 py-1" /><input placeholder="Raison" value={nouvelleEntreeStock.raison} onChange={(e) => setNouvelleEntreeStock({...nouvelleEntreeStock, raison: e.target.value})} className="border rounded px-2 py-1" /><button onClick={enregistrerEntreeStock} className="bg-green-600 text-white px-3 py-1 rounded font-bold">Entrer</button></div></div>
             <div className="bg-red-50 border-2 border-red-300 p-4 rounded"><h3 className="font-bold mb-3">📤 Sortie - {depotSelectionne}</h3><div className="grid grid-cols-1 md:grid-cols-5 gap-2"><select value={nouveauMouvementSortie.articleId} onChange={(e) => setNouveauMouvementSortie({...nouveauMouvementSortie, articleId: e.target.value})} className="border rounded px-2 py-1"><option value="">Article</option>{articles.map(a => <option key={a.id} value={a.id}>{a.code}</option>)}</select><input type="number" placeholder="Qté" value={nouveauMouvementSortie.quantite} onChange={(e) => setNouveauMouvementSortie({...nouveauMouvementSortie, quantite: e.target.value})} className="border rounded px-2 py-1" /><input placeholder="Raison" value={nouveauMouvementSortie.raison} onChange={(e) => setNouveauMouvementSortie({...nouveauMouvementSortie, raison: e.target.value})} className="border rounded px-2 py-1" /><input type="date" value={nouveauMouvementSortie.date} onChange={(e) => setNouveauMouvementSortie({...nouveauMouvementSortie, date: e.target.value})} className="border rounded px-2 py-1" /><button onClick={enregistrerSortieStock} className="bg-red-600 text-white px-3 py-1 rounded font-bold">Sortir</button></div></div>
             <div className="bg-amber-50 border-2 border-amber-400 p-4 rounded"><h3 className="font-bold mb-3">🔄 Transfert</h3><div className="grid grid-cols-1 md:grid-cols-6 gap-2"><select value={nouveauTransfert.articleId} onChange={(e) => setNouveauTransfert({...nouveauTransfert, articleId: e.target.value})} className="border rounded px-2 py-1"><option value="">Article</option>{articles.map(a => <option key={a.id} value={a.id}>{a.code}</option>)}</select><select value={nouveauTransfert.depotSource} onChange={(e) => setNouveauTransfert({...nouveauTransfert, depotSource: e.target.value})} className="border rounded px-2 py-1">{depots.map(d => <option key={d} value={d}>{d}</option>)}</select><select value={nouveauTransfert.depotDestination} onChange={(e) => setNouveauTransfert({...nouveauTransfert, depotDestination: e.target.value})} className="border rounded px-2 py-1">{depots.map(d => <option key={d} value={d}>{d}</option>)}</select><input type="number" placeholder="Qté" value={nouveauTransfert.quantite} onChange={(e) => setNouveauTransfert({...nouveauTransfert, quantite: e.target.value})} className="border rounded px-2 py-1" /><input placeholder="Note" value={nouveauTransfert.raison} onChange={(e) => setNouveauTransfert({...nouveauTransfert, raison: e.target.value})} className="border rounded px-2 py-1" /><button onClick={enregistrerTransfertStock} className="bg-amber-600 text-white px-3 py-1 rounded font-bold">Transférer</button></div></div>
