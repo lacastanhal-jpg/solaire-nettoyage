@@ -385,6 +385,57 @@ export default function SolaireNettoyageFlotte() {
     }
   };
 
+  const enregistrerEntreeStockScan = () => {
+    if (!formScanEntree.quantite || !formScanEntree.prixUnitaire) {
+      alert('Quantité et prix requis');
+      return;
+    }
+    const quantite = parseInt(formScanEntree.quantite);
+    const coutTotal = parseFloat(formScanEntree.prixUnitaire) * quantite;
+    setArticles(articles.map(a => a.id === scanResultat.article.id ? { ...a, stockParDepot: { ...a.stockParDepot, [formScanEntree.depot]: (a.stockParDepot[formScanEntree.depot] || 0) + quantite } } : a));
+    setMouvementsStock([...mouvementsStock, { id: mouvementsStock.length + 1, articleId: scanResultat.article.id, type: 'entree', quantite: quantite, date: formScanEntree.date, raison: formScanEntree.raison, coutTotal: coutTotal, depot: formScanEntree.depot }]);
+    alert(`✅ Entrée enregistrée: +${quantite} ${scanResultat.article.code}`);
+    setScanResultat(null);
+    setActionScan(null);
+    setFormScanEntree({ quantite: '', prixUnitaire: '', raison: '', date: new Date().toISOString().split('T')[0], depot: 'Atelier' });
+  };
+
+  const enregistrerSortieStockScan = () => {
+    if (!formScanSortie.quantite) {
+      alert('Quantité requise');
+      return;
+    }
+    const quantite = parseInt(formScanSortie.quantite);
+    if ((scanResultat.article.stockParDepot[formScanSortie.depot] || 0) < quantite) {
+      alert('Stock insuffisant!');
+      return;
+    }
+    setArticles(articles.map(a => a.id === scanResultat.article.id ? { ...a, stockParDepot: { ...a.stockParDepot, [formScanSortie.depot]: (a.stockParDepot[formScanSortie.depot] || 0) - quantite } } : a));
+    setMouvementsStock([...mouvementsStock, { id: mouvementsStock.length + 1, articleId: scanResultat.article.id, type: 'sortie', quantite: quantite, date: formScanSortie.date, raison: formScanSortie.raison, coutTotal: 0, depot: formScanSortie.depot }]);
+    alert(`✅ Sortie enregistrée: -${quantite} ${scanResultat.article.code}`);
+    setScanResultat(null);
+    setActionScan(null);
+    setFormScanSortie({ quantite: '', raison: '', date: new Date().toISOString().split('T')[0], depot: 'Atelier' });
+  };
+
+  const enregistrerTransfertStockScan = () => {
+    if (!formScanTransfert.quantite || formScanTransfert.depotSource === formScanTransfert.depotDestination) {
+      alert('Quantité et dépôts différents requis');
+      return;
+    }
+    const quantite = parseInt(formScanTransfert.quantite);
+    if ((scanResultat.article.stockParDepot[formScanTransfert.depotSource] || 0) < quantite) {
+      alert('Stock insuffisant!');
+      return;
+    }
+    setArticles(articles.map(a => a.id === scanResultat.article.id ? { ...a, stockParDepot: { ...a.stockParDepot, [formScanTransfert.depotSource]: (a.stockParDepot[formScanTransfert.depotSource] || 0) - quantite, [formScanTransfert.depotDestination]: (a.stockParDepot[formScanTransfert.depotDestination] || 0) + quantite } } : a));
+    setMouvementsStock([...mouvementsStock, { id: mouvementsStock.length + 1, articleId: scanResultat.article.id, type: 'transfer', quantite: quantite, date: new Date().toISOString().split('T')[0], raison: `Transfert de ${formScanTransfert.depotSource} vers ${formScanTransfert.depotDestination}`, coutTotal: 0, depotSource: formScanTransfert.depotSource, depotDestination: formScanTransfert.depotDestination }]);
+    alert(`✅ Transfert enregistré: ${quantite} ${scanResultat.article.code}`);
+    setScanResultat(null);
+    setActionScan(null);
+    setFormScanTransfert({ quantite: '', depotSource: 'Atelier', depotDestination: 'Véhicule 1' });
+  };
+
   const enregistrerEntreeStock = () => {
     if (nouvelleEntreeStock.articleId && nouvelleEntreeStock.quantite && nouvelleEntreeStock.prixUnitaire) {
       const quantite = parseInt(nouvelleEntreeStock.quantite);
