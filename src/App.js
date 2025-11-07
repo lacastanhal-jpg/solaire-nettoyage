@@ -102,6 +102,7 @@ export default function SolaireNettoyageFlotte() {
   const [afficherArticlesEquipement, setAfficherArticlesEquipement] = useState(false);
   const [afficherScannerQR, setAfficherScannerQR] = useState(false);
   const [videoStream, setVideoStream] = useState(null);
+  const [scannedArticleId, setScannedArticleId] = useState(null);
   const [jsQRLoaded, setJsQRLoaded] = useState(false);
   const [scanResultat, setScanResultat] = useState(null);
   const [actionScan, setActionScan] = useState(null);
