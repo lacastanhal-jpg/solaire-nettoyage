@@ -124,9 +124,18 @@ export default function SolaireNettoyageFlotte() {
   // Gestion photos défauts
   const gererSelectionPhotos = (e) => {
     const files = Array.from(e.target.files || []);
-    const noms = files.map(f => f.name);
-    setPhotosSelectionnees(prev => [...prev, ...noms]);
-    setNouveauDefaut(prev => ({ ...prev, photosNoms: [...prev.photosNoms, ...noms] }));
+    files.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const base64 = event.target.result;
+        setPhotosSelectionnees(prev => [...prev, { nom: file.name, base64 }]);
+        setNouveauDefaut(prev => ({ 
+          ...prev, 
+          photosNoms: [...prev.photosNoms, { nom: file.name, base64 }] 
+        }));
+      };
+      reader.readAsDataURL(file);
+    });
   };
 
   const supprimerPhotoSelectionnee = (index) => {
@@ -908,9 +917,12 @@ export default function SolaireNettoyageFlotte() {
                   {photosSelectionnees.length > 0 && (
                     <div className="space-y-2">
                       <p className="text-sm font-semibold">Photos sélectionnées ({photosSelectionnees.length}):</p>
-                      {photosSelectionnees.map((nom, idx) => (
+                      {photosSelectionnees.map((photo, idx) => (
                         <div key={idx} className="flex justify-between items-center bg-white p-2 rounded border">
-                          <span className="text-sm">{nom}</span>
+                          <div className="flex-1">
+                            <p className="text-sm font-semibold">{photo.nom}</p>
+                            <img src={photo.base64} alt={photo.nom} className="mt-1 h-16 rounded border" />
+                          </div>
                           <button onClick={() => supprimerPhotoSelectionnee(idx)} className="text-red-600 font-bold">✕</button>
                         </div>
                       ))}
@@ -1097,10 +1109,15 @@ export default function SolaireNettoyageFlotte() {
                 {defautSelectionne.photos && defautSelectionne.photos.length > 0 && (
                   <div>
                     <p className="text-xs text-gray-500 font-bold mb-2">📸 PHOTOS ({defautSelectionne.photos.length})</p>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-2 gap-3">
                       {defautSelectionne.photos.map((photo, idx) => (
-                        <div key={idx} className="bg-gray-100 p-2 rounded border-2 border-gray-300">
-                          <p className="text-sm text-center font-semibold text-gray-700">{photo}</p>
+                        <div key={idx} className="border-2 border-gray-300 rounded-lg overflow-hidden">
+                          <img 
+                            src={photo.base64} 
+                            alt={photo.nom} 
+                            className="w-full h-auto object-cover"
+                          />
+                          <p className="text-xs text-center font-semibold text-gray-700 p-1 bg-gray-100">{photo.nom}</p>
                         </div>
                       ))}
                     </div>
