@@ -16,6 +16,10 @@ export default function SolaireNettoyageFlotte() {
   const [filtreAlerteFournisseur, setFiltreAlerteFournisseur] = useState('');
   const [filtreAlerteDepot, setFiltreAlerteDepot] = useState('');
   const [triAlertes, setTriAlertes] = useState('severite');
+  const [articleEnDetailsAlerte, setArticleEnDetailsAlerte] = useState(null);
+  const [articleEnTransfertAlerte, setArticleEnTransfertAlerte] = useState(null);
+  const [articleEnHistoriqueAlerte, setArticleEnHistoriqueAlerte] = useState(null);
+  const [transfertRapideData, setTransfertRapideData] = useState({ depotSource: 'Atelier', depotDestination: 'Véhicule 1', quantite: '' });
 
   const operateurs = ['Axel', 'Jérôme', 'Sébastien', 'Joffrey', 'Fabien', 'Angelo'];
   const depots = ['Atelier', 'Véhicule 1', 'Véhicule 2', 'Véhicule 3'];
@@ -381,6 +385,23 @@ export default function SolaireNettoyageFlotte() {
   const alertesAttention = alertesTotales.filter(a => a.severite === 'attention');
   const alertesVigilance = alertesTotales.filter(a => a.severite === 'vigilance');
   const alertesFiltrees = appliquerFiltresAlertes(alertesTotales);
+
+  const effectuerTransfertRapide = () => {
+    if (!transfertRapideData.quantite || transfertRapideData.depotSource === transfertRapideData.depotDestination) {
+      alert('Quantité et dépôts différents requis');
+      return;
+    }
+    const quantite = parseInt(transfertRapideData.quantite);
+    if ((articleEnTransfertAlerte.stockParDepot[transfertRapideData.depotSource] || 0) < quantite) {
+      alert('Stock insuffisant!');
+      return;
+    }
+    setArticles(articles.map(a => a.id === articleEnTransfertAlerte.id ? { ...a, stockParDepot: { ...a.stockParDepot, [transfertRapideData.depotSource]: (a.stockParDepot[transfertRapideData.depotSource] || 0) - quantite, [transfertRapideData.depotDestination]: (a.stockParDepot[transfertRapideData.depotDestination] || 0) + quantite } } : a));
+    setMouvementsStock([...mouvementsStock, { id: mouvementsStock.length + 1, articleId: articleEnTransfertAlerte.id, type: 'transfer', quantite, date: new Date().toISOString().split('T')[0], raison: `Transfert rapide alerte`, coutTotal: 0, depotSource: transfertRapideData.depotSource, depotDestination: transfertRapideData.depotDestination }]);
+    alert(`✅ ${quantite} ${articleEnTransfertAlerte.code} transférés!`);
+    setArticleEnTransfertAlerte(null);
+    setTransfertRapideData({ depotSource: 'Atelier', depotDestination: 'Véhicule 1', quantite: '' });
+  };
 
   const ajouterArticlePrevuScan = () => {
     if (!quantiteScanIntervention) {
@@ -1295,7 +1316,121 @@ export default function SolaireNettoyageFlotte() {
           </div>
         )}
 
-        {/* MODAL DÉTAILS (DÉFAUT OU INTERVENTION) */}
+        {/* MODAL TRANSFERT RAPIDE */}
+        {articleEnTransfertAlerte && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl shadow-2xl p-6 max-w-md w-full">
+              <h2 className="text-2xl font-black text-blue-700 mb-4">🔄 TRANSFERT RAPIDE</h2>
+              <div className="space-y-4">
+                <div className="bg-blue-50 p-3 rounded border-2 border-blue-300">
+                  <p className="font-bold text-blue-700">{articleEnTransfertAlerte.code}</p>
+                  <p className="text-sm text-gray-600">{articleEnTransfertAlerte.description}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-bold text-gray-700">Dépôt source *</label>
+                  <select value={transfertRapideData.depotSource} onChange={(e) => setTransfertRapideData({...transfertRapideData, depotSource: e.target.value})} className="w-full border-2 rounded px-3 py-2 mt-1">
+                    {depots.map(d => <option key={d} value={d}>{d} (Stock: {articleEnTransfertAlerte.stockParDepot[d] || 0})</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-sm font-bold text-gray-700">Dépôt destination *</label>
+                  <select value={transfertRapideData.depotDestination} onChange={(e) => setTransfertRapideData({...transfertRapideData, depotDestination: e.target.value})} className="w-full border-2 rounded px-3 py-2 mt-1">
+                    {depots.map(d => <option key={d} value={d}>{d}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-sm font-bold text-gray-700">Quantité *</label>
+                  <input type="number" min="1" value={transfertRapideData.quantite} onChange={(e) => setTransfertRapideData({...transfertRapideData, quantite: e.target.value})} className="w-full border-2 rounded px-3 py-2 mt-1" />
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={effectuerTransfertRapide} className="flex-1 bg-blue-600 text-white px-4 py-2 rounded font-bold hover:bg-blue-700">✓ Transférer</button>
+                  <button onClick={() => setArticleEnTransfertAlerte(null)} className="flex-1 bg-gray-400 text-white px-4 py-2 rounded font-bold">Annuler</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* MODAL DÉTAILS ARTICLE */}
+        {articleEnDetailsAlerte && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl shadow-2xl p-6 max-w-md w-full max-h-[80vh] overflow-y-auto">
+              <div className="flex justify-between items-start mb-4">
+                <h2 className="text-2xl font-black">📋 DÉTAILS</h2>
+                <button onClick={() => setArticleEnDetailsAlerte(null)} className="text-2xl">✕</button>
+              </div>
+              <div className="space-y-3">
+                <div className="bg-gray-50 p-3 rounded border-2">
+                  <p className="text-xs text-gray-600 font-bold">CODE</p>
+                  <p className="font-bold text-lg">{articleEnDetailsAlerte.code}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-600 font-bold">DESCRIPTION</p>
+                  <p className="font-semibold">{articleEnDetailsAlerte.description}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-600 font-bold">FOURNISSEUR</p>
+                  <p className="font-semibold">{articleEnDetailsAlerte.fournisseur}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-600 font-bold">PRIX UNITAIRE</p>
+                  <p className="font-bold text-green-600">{articleEnDetailsAlerte.prixUnitaire}€</p>
+                </div>
+                <div className="border-t pt-3">
+                  <p className="text-xs text-gray-600 font-bold mb-2">STOCK PAR DÉPÔT</p>
+                  <div className="space-y-1">
+                    {depots.map(d => (
+                      <div key={d} className="flex justify-between p-2 bg-gray-100 rounded">
+                        <span className="font-semibold">{d}:</span>
+                        <span className="font-bold">{articleEnDetailsAlerte.stockParDepot[d] || 0}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="bg-blue-50 p-3 rounded border-2 border-blue-300">
+                  <p className="text-xs text-gray-600 font-bold">STOCK TOTAL</p>
+                  <p className="text-2xl font-black text-blue-600">{getStockTotal(articleEnDetailsAlerte)}</p>
+                  <p className="text-xs text-blue-700 mt-1">Minimum: {articleEnDetailsAlerte.stockMin}</p>
+                </div>
+                <button onClick={() => setArticleEnDetailsAlerte(null)} className="w-full bg-gray-600 text-white px-4 py-2 rounded font-bold">Fermer</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* MODAL HISTORIQUE */}
+        {articleEnHistoriqueAlerte && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl shadow-2xl p-6 max-w-lg w-full max-h-[80vh] overflow-y-auto">
+              <div className="flex justify-between items-start mb-4">
+                <h2 className="text-2xl font-black">📊 HISTORIQUE</h2>
+                <button onClick={() => setArticleEnHistoriqueAlerte(null)} className="text-2xl">✕</button>
+              </div>
+              <div className="bg-gray-50 p-3 rounded border-2 mb-4">
+                <p className="font-bold">{articleEnHistoriqueAlerte.code}</p>
+                <p className="text-sm text-gray-600">{articleEnHistoriqueAlerte.description}</p>
+              </div>
+              <div className="space-y-2">
+                {mouvementsStock.filter(m => m.articleId === articleEnHistoriqueAlerte.id).length === 0 ? (
+                  <p className="text-gray-500 italic">Aucun mouvement</p>
+                ) : (
+                  mouvementsStock.filter(m => m.articleId === articleEnHistoriqueAlerte.id).map(m => (
+                    <div key={m.id} className={`p-3 rounded border-l-4 ${m.type === 'entree' ? 'bg-green-50 border-green-500' : m.type === 'sortie' ? 'bg-red-50 border-red-500' : 'bg-blue-50 border-blue-500'}`}>
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <p className="font-bold">{m.type === 'entree' ? '📥 Entrée' : m.type === 'sortie' ? '📤 Sortie' : '🔄 Transfert'}</p>
+                          <p className="text-xs text-gray-600">{m.date} • {m.raison}</p>
+                        </div>
+                        <p className="font-black text-lg">{m.type === 'transfer' ? '→' : m.type === 'entree' ? '+' : '-'} {m.quantite}</p>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+              <button onClick={() => setArticleEnHistoriqueAlerte(null)} className="w-full bg-gray-600 text-white px-4 py-2 rounded font-bold mt-4">Fermer</button>
+            </div>
+          </div>
+        )}
         {defautSelectionne && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-xl shadow-2xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
@@ -1563,13 +1698,13 @@ export default function SolaireNettoyageFlotte() {
                         <button onClick={() => genererTexteCommande(article)} className="bg-green-600 text-white px-3 py-2 rounded font-bold text-sm hover:bg-green-700">
                           🛒 Commander
                         </button>
-                        <button onClick={() => alert('Transfert rapide: À implémenter')} className="bg-blue-600 text-white px-3 py-2 rounded font-bold text-sm hover:bg-blue-700">
+                        <button onClick={() => setArticleEnTransfertAlerte(article)} className="bg-blue-600 text-white px-3 py-2 rounded font-bold text-sm hover:bg-blue-700">
                           🔄 Transférer
                         </button>
-                        <button onClick={() => alert(`Détails ${article.code}: À implémenter`)} className="bg-gray-600 text-white px-3 py-2 rounded font-bold text-sm hover:bg-gray-700">
+                        <button onClick={() => setArticleEnDetailsAlerte(article)} className="bg-gray-600 text-white px-3 py-2 rounded font-bold text-sm hover:bg-gray-700">
                           👁️ Détails
                         </button>
-                        <button onClick={() => alert(`Historique ${article.code}: À implémenter`)} className="bg-purple-600 text-white px-3 py-2 rounded font-bold text-sm hover:bg-purple-700">
+                        <button onClick={() => setArticleEnHistoriqueAlerte(article)} className="bg-purple-600 text-white px-3 py-2 rounded font-bold text-sm hover:bg-purple-700">
                           📊 Historique
                         </button>
                       </div>
