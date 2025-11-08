@@ -610,6 +610,172 @@ export default function SolaireNettoyageFlotte() {
     }));
   };
 
+  const exporterPDF = () => {
+    const eqInterventions = interventions.filter(i => i.equipementId === equipSelectionne.id);
+    const eqDefauts = defauts.filter(d => d.equipementId === equipSelectionne.id);
+    const eqAccessoires = accessoiresEquipement[equipSelectionne.id] || [];
+    const coutTotal = eqInterventions.filter(i => i.statut === 'effectue').reduce((sum, i) => sum + (i.coutTotal || 0), 0);
+
+    let html = `
+      <html>
+        <head>
+          <meta charset="UTF-8">
+          <title>Statistiques ${equipSelectionne.immat}</title>
+          <style>
+            body { font-family: Arial; margin: 20px; color: #333; }
+            h1 { color: #6B46C1; border-bottom: 3px solid #6B46C1; padding-bottom: 10px; }
+            h2 { color: #7C3AED; margin-top: 25px; border-left: 5px solid #7C3AED; padding-left: 10px; }
+            table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+            th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+            th { background-color: #7C3AED; color: white; }
+            tr:nth-child(even) { background-color: #f9f5ff; }
+            .summary { background-color: #f0e6ff; padding: 15px; border-radius: 8px; margin: 15px 0; }
+            .summary-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
+            .summary-box { background: white; padding: 10px; border-left: 4px solid #7C3AED; }
+            .total { font-weight: bold; color: #6B46C1; }
+            .date { font-size: 12px; color: #666; }
+          </style>
+        </head>
+        <body>
+          <h1>📊 STATISTIQUES ÉQUIPEMENT</h1>
+          <p><strong>Équipement:</strong> ${equipSelectionne.immat} - ${equipSelectionne.marque} ${equipSelectionne.modele}</p>
+          <p><strong>Générée le:</strong> ${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR')}</p>
+
+          <div class="summary">
+            <div class="summary-grid">
+              <div class="summary-box">
+                <p><strong>Interventions:</strong> ${eqInterventions.length}</p>
+                <p class="date">${eqInterventions.filter(i => i.statut === 'effectue').length} effectuées</p>
+              </div>
+              <div class="summary-box">
+                <p><strong>Défauts:</strong> ${eqDefauts.length}</p>
+                <p class="date">${eqDefauts.filter(d => d.statut === 'resolu').length} résolus</p>
+              </div>
+              <div class="summary-box">
+                <p><strong>Accessoires:</strong> ${eqAccessoires.length}</p>
+                <p class="date">Valeur: ${eqAccessoires.reduce((s, a) => s + a.valeur, 0).toFixed(2)}€</p>
+              </div>
+              <div class="summary-box">
+                <p class="total">💰 TOTAL INTERVENTIONS: ${coutTotal.toFixed(2)}€</p>
+              </div>
+            </div>
+          </div>
+
+          ${eqInterventions.length > 0 ? `
+            <h2>🔧 INTERVENTIONS (${eqInterventions.length})</h2>
+            <table>
+              <tr>
+                <th>Date</th>
+                <th>Type</th>
+                <th>KM</th>
+                <th>Coût</th>
+                <th>Statut</th>
+              </tr>
+              ${eqInterventions.map(i => `
+                <tr>
+                  <td>${i.date}</td>
+                  <td>${i.type}</td>
+                  <td>${i.km}</td>
+                  <td>${i.coutTotal}€</td>
+                  <td>${i.statut === 'effectue' ? '✅ Effectuée' : '⏳ En cours'}</td>
+                </tr>
+              `).join('')}
+            </table>
+          ` : ''}
+
+          ${eqDefauts.length > 0 ? `
+            <h2>🚨 DÉFAUTS (${eqDefauts.length})</h2>
+            <table>
+              <tr>
+                <th>Date</th>
+                <th>Type</th>
+                <th>Sévérité</th>
+                <th>Opérateur</th>
+                <th>Statut</th>
+              </tr>
+              ${eqDefauts.map(d => `
+                <tr>
+                  <td>${d.dateConstatation}</td>
+                  <td>${d.type}</td>
+                  <td>${d.severite === 'critique' ? '🔴 Critique' : d.severite === 'moyen' ? '🟠 Moyen' : '🟡 Mineur'}</td>
+                  <td>${d.operateur}</td>
+                  <td>${d.statut === 'resolu' ? '✅ Résolu' : '⏳ À traiter'}</td>
+                </tr>
+              `).join('')}
+            </table>
+          ` : ''}
+
+          ${eqAccessoires.length > 0 ? `
+            <h2>🎨 ACCESSOIRES (${eqAccessoires.length})</h2>
+            <table>
+              <tr>
+                <th>Nom</th>
+                <th>Valeur</th>
+                <th>Date</th>
+                <th>Statut</th>
+              </tr>
+              ${eqAccessoires.map(a => `
+                <tr>
+                  <td>${a.nom}</td>
+                  <td>${a.valeur.toFixed(2)}€</td>
+                  <td>${a.dateAjout}</td>
+                  <td>${a.actif ? '✅ Actif' : '❌ Inactif'}</td>
+                </tr>
+              `).join('')}
+            </table>
+          ` : ''}
+
+          <p style="margin-top: 30px; text-align: center; color: #999; font-size: 12px;">Document généré par Solaire Nettoyage</p>
+        </body>
+      </html>
+    `;
+
+    const printWindow = window.open('', '', 'height=600,width=800');
+    printWindow.document.write(html);
+    printWindow.document.close();
+    setTimeout(() => printWindow.print(), 250);
+  };
+
+  const exporterCSV = () => {
+    const eqInterventions = interventions.filter(i => i.equipementId === equipSelectionne.id);
+    const eqDefauts = defauts.filter(d => d.equipementId === equipSelectionne.id);
+
+    let csv = `SOLAIRE NETTOYAGE - EXPORT STATISTIQUES\n`;
+    csv += `Équipement,${equipSelectionne.immat} - ${equipSelectionne.marque} ${equipSelectionne.modele}\n`;
+    csv += `Généré le,${new Date().toLocaleDateString('fr-FR')} ${new Date().toLocaleTimeString('fr-FR')}\n\n`;
+
+    // Interventions
+    csv += `INTERVENTIONS\n`;
+    csv += `ID,Date,Type,KM,Heures,Description,Coût,Statut,Dépôt\n`;
+    eqInterventions.forEach(i => {
+      csv += `${i.id},"${i.date}","${i.type}",${i.km},${i.heures},"${i.description}",${i.coutTotal},"${i.statut}","${i.depotPrelevement}"\n`;
+    });
+
+    csv += `\n\nDÉFAUTS\n`;
+    csv += `ID,Date,Type,Sévérité,Description,Opérateur,Localisation,Statut,Date Résolution\n`;
+    eqDefauts.forEach(d => {
+      csv += `${d.id},"${d.dateConstatation}","${d.type}","${d.severite}","${d.description}","${d.operateur}","${d.localisation}","${d.statut}","${d.dateArchivage || 'N/A'}"\n`;
+    });
+
+    csv += `\n\nRÉSUMÉ\n`;
+    csv += `Interventions totales,${eqInterventions.length}\n`;
+    csv += `Interventions effectuées,${eqInterventions.filter(i => i.statut === 'effectue').length}\n`;
+    csv += `Coût total interventions,${eqInterventions.filter(i => i.statut === 'effectue').reduce((sum, i) => sum + (i.coutTotal || 0), 0).toFixed(2)}€\n`;
+    csv += `Défauts totaux,${eqDefauts.length}\n`;
+    csv += `Défauts résolus,${eqDefauts.filter(d => d.statut === 'resolu').length}\n`;
+
+    // Télécharger CSV
+    const element = document.createElement('a');
+    element.setAttribute('href', 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv));
+    element.setAttribute('download', `Statistiques_${equipSelectionne.immat}_${new Date().toISOString().split('T')[0]}.csv`);
+    element.style.display = 'none';
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
+
+    alert('✅ CSV téléchargé!');
+  };
+
   const valeurStockTotal = articles.reduce((sum, a) => sum + (getStockTotal(a) * a.prixUnitaire), 0);
   const interventionsEnCours = interventions.filter(i => i.statut === 'en_cours');
   const equipSelectionne = equipements.find(e => e.id === equipementSelectionne);
@@ -1362,10 +1528,10 @@ export default function SolaireNettoyageFlotte() {
 
                 {/* EXPORT */}
                 <div className="flex gap-2">
-                  <button onClick={() => alert('📥 Export PDF en développement')} className="flex-1 bg-red-600 text-white px-4 py-3 rounded-lg font-black hover:bg-red-700">
+                  <button onClick={() => exporterPDF()} className="flex-1 bg-red-600 text-white px-4 py-3 rounded-lg font-black hover:bg-red-700">
                     📄 Exporter PDF
                   </button>
-                  <button onClick={() => alert('📊 Export CSV en développement')} className="flex-1 bg-green-600 text-white px-4 py-3 rounded-lg font-black hover:bg-green-700">
+                  <button onClick={() => exporterCSV()} className="flex-1 bg-green-600 text-white px-4 py-3 rounded-lg font-black hover:bg-green-700">
                     📊 Exporter CSV
                   </button>
                 </div>
