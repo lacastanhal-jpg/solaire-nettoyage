@@ -10,7 +10,9 @@ export default function SolaireNettoyageFlotte() {
   const videoIntervention = useRef(null);
   const canvasIntervention = useRef(null);
   const scanningIntervention = useRef(false);
+  const fileInputRef = useRef(null);
   
+  const operateurs = ['Axel', 'Jérôme', 'Sébastien', 'Joffrey', 'Fabien', 'Angelo'];
   const depots = ['Atelier', 'Véhicule 1', 'Véhicule 2', 'Véhicule 3'];
   
   const [articles, setArticles] = useState([
@@ -68,6 +70,20 @@ export default function SolaireNettoyageFlotte() {
     { id: 2, equipementId: 1, type: 'Révision complète', seuil: 60000, unite: 'km', prochaine: 60000 },
   ]);
 
+  // NOUVEAU: Défauts signalés
+  const [defauts, setDefauts] = useState([
+    { id: 1, equipementId: 6, accessoireId: 9, type: 'Fuite', severite: 'critique', description: 'Fuite hydraulique sur raccord du bras', localisation: 'Raccord du bras', dateConstatation: '2025-11-08', operateur: 'Jérôme', remarques: 'Liquid jaune observable', photos: [], statut: 'a_traiter', interventionLieeId: null, dateArchivage: null }
+  ]);
+
+  const [nouveauDefaut, setNouveauDefaut] = useState({
+    equipementId: '', accessoireId: '', type: 'Fuite', severite: 'moyen', description: '', localisation: '', 
+    dateConstatation: new Date().toISOString().split('T')[0], operateur: 'Axel', remarques: '', photosNoms: []
+  });
+
+  const [defautSelectionne, setDefautSelectionne] = useState(null);
+  const [photosSelectionnees, setPhotosSelectionnees] = useState([]);
+
+  // États pour stock
   const [nouvelleEntreeStock, setNouvelleEntreeStock] = useState({ articleId: '', quantite: '', prixUnitaire: '', raison: '', date: new Date().toISOString().split('T')[0], depot: 'Atelier' });
   const [nouveauMouvementSortie, setNouveauMouvementSortie] = useState({ articleId: '', quantite: '', raison: '', date: new Date().toISOString().split('T')[0], depot: 'Atelier' });
   const [nouveauTransfert, setNouveauTransfert] = useState({ articleId: '', quantite: '', depotSource: 'Atelier', depotDestination: 'Véhicule 1', raison: '', date: new Date().toISOString().split('T')[0] });
@@ -103,6 +119,68 @@ export default function SolaireNettoyageFlotte() {
     };
     document.head.appendChild(script);
   }, []);
+
+  // Gestion photos défauts
+  const gererSelectionPhotos = (e) => {
+    const files = Array.from(e.target.files || []);
+    const noms = files.map(f => f.name);
+    setPhotosSelectionnees(prev => [...prev, ...noms]);
+    setNouveauDefaut(prev => ({ ...prev, photosNoms: [...prev.photosNoms, ...noms] }));
+  };
+
+  const supprimerPhotoSelectionnee = (index) => {
+    const newPhotos = photosSelectionnees.filter((_, i) => i !== index);
+    setPhotosSelectionnees(newPhotos);
+    setNouveauDefaut(prev => ({ ...prev, photosNoms: newPhotos }));
+  };
+
+  const declareDefaut = () => {
+    if (!nouveauDefaut.equipementId || !nouveauDefaut.type || !nouveauDefaut.description) {
+      alert('Équipement, type et description requis');
+      return;
+    }
+
+    const newDefaut = {
+      id: defauts.length > 0 ? Math.max(...defauts.map(d => d.id)) + 1 : 1,
+      equipementId: parseInt(nouveauDefaut.equipementId),
+      accessoireId: nouveauDefaut.accessoireId ? parseInt(nouveauDefaut.accessoireId) : null,
+      type: nouveauDefaut.type,
+      severite: nouveauDefaut.severite,
+      description: nouveauDefaut.description,
+      localisation: nouveauDefaut.localisation,
+      dateConstatation: nouveauDefaut.dateConstatation,
+      operateur: nouveauDefaut.operateur,
+      remarques: nouveauDefaut.remarques,
+      photos: photosSelectionnees,
+      statut: 'a_traiter',
+      interventionLieeId: null,
+      dateArchivage: null
+    };
+
+    setDefauts([...defauts, newDefaut]);
+    setNouveauDefaut({ equipementId: '', accessoireId: '', type: 'Fuite', severite: 'moyen', description: '', localisation: '', dateConstatation: new Date().toISOString().split('T')[0], operateur: 'Axel', remarques: '', photosNoms: [] });
+    setPhotosSelectionnees([]);
+    alert('✅ Défaut signalé!');
+  };
+
+  const resoudreDefaut = (defautId) => {
+    setDefauts(defauts.map(d => d.id === defautId ? { ...d, statut: 'resolu', dateArchivage: new Date().toISOString().split('T')[0] } : d));
+  };
+
+  const creerInterventionDepuisDefaut = (defaut) => {
+    setNouvelleIntervention({
+      equipementId: defaut.accessoireId ? '999' : defaut.equipementId.toString(),
+      type: 'Réparation',
+      date: new Date().toISOString().split('T')[0],
+      km: '',
+      heures: '',
+      description: `Réparation - ${defaut.type}: ${defaut.description}`,
+      articlesPrevu: [],
+      depotPrelevement: 'Atelier'
+    });
+    setOngletActif('interventions');
+    alert('✅ Intervention pré-remplie depuis le défaut');
+  };
 
   const traiterScanQR = useCallback((code) => {
     const article = articles.find(a => a.code === code);
@@ -529,10 +607,16 @@ export default function SolaireNettoyageFlotte() {
   const valeurEquipementTotal = (equipSelectionne?.valeurActuelle || 0) + accessoiresTotal;
   const articlesAffectesEquipement = articles.filter(a => a.equipementsAffectes.includes(equipementSelectionne));
 
+  const defautsATraiter = defauts.filter(d => d.statut === 'a_traiter');
+  const defautsCritiques = defautsATraiter.filter(d => d.severite === 'critique');
+  const defautsAtention = defautsATraiter.filter(d => d.severite === 'moyen');
+  const defautsMineur = defautsATraiter.filter(d => d.severite === 'mineur');
+  const defautsArchives = defauts.filter(d => d.statut === 'resolu');
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white p-4">
-        <h1 className="text-2xl font-bold">☀️ SOLAIRE NETTOYAGE - Gestion Complète Multi-Dépôts</h1>
+        <h1 className="text-2xl font-bold">☀️ SOLAIRE NETTOYAGE - V1.4 Complet</h1>
         <p className="text-yellow-100 text-sm">Flotte • Stock • Maintenance • Interventions • Fiches matériel</p>
       </div>
 
@@ -546,7 +630,9 @@ export default function SolaireNettoyageFlotte() {
             { id: 'stock', label: '📥 Stock' },
             { id: 'equipements', label: `🚛 Équipements (${equipements.length})` },
             { id: 'interventions', label: `🔧 Interventions (${interventions.length})` },
-            { id: 'maintenance', label: '⚙️ Maintenance' },
+            { id: 'maintenance', label: `⚙️ Maintenance (${defautsATraiter.length})` },
+            { id: 'alertes', label: '🚨 Alertes' },
+            { id: 'statistiques', label: '📈 Stats' },
           ].map(tab => (
             <button key={tab.id} onClick={() => setOngletActif(tab.id)} className={`px-4 py-3 font-medium text-sm border-b-2 whitespace-nowrap ${ongletActif === tab.id ? 'border-orange-500 text-orange-600' : 'border-transparent text-gray-600'}`}>
               {tab.label}
@@ -563,6 +649,7 @@ export default function SolaireNettoyageFlotte() {
             <div className="bg-indigo-50 p-4 rounded border border-indigo-200"><div className="text-2xl font-bold text-indigo-600">{valeurStockTotal.toFixed(0)}€</div><div className="text-sm">Valeur stock</div></div>
             <div className="bg-purple-50 p-4 rounded border border-purple-200"><div className="text-3xl font-bold text-purple-600">{equipements.length}</div><div className="text-sm">Équipements</div></div>
             <div className="bg-orange-50 p-4 rounded border border-orange-200"><div className="text-3xl font-bold text-orange-600">{interventionsEnCours.length}</div><div className="text-sm">Interv. en cours</div></div>
+            <div className="bg-red-50 p-4 rounded border border-red-200"><div className="text-3xl font-bold text-red-600">{defautsCritiques.length}</div><div className="text-sm">🔴 Défauts critiques</div></div>
           </div>
         )}
 
@@ -742,7 +829,330 @@ export default function SolaireNettoyageFlotte() {
         )}
 
         {ongletActif === 'maintenance' && (
-          <div className="bg-white p-4 rounded"><h3 className="font-bold mb-3">Plan de maintenance</h3>{planMaintenance.map(pm => {const eq = equipements.find(e => e.id === pm.equipementId); return (<div key={pm.id} className="p-3 bg-gray-50 rounded mb-2"><div className="font-semibold">{eq?.immat} - {pm.type}</div><div className="text-xs">Seuil: {pm.prochaine} {pm.unite}</div></div>);})}</div>
+          <div className="space-y-6">
+            {/* DÉCLARER UN DÉFAUT */}
+            <div className="bg-gradient-to-r from-red-50 to-orange-50 border-2 border-red-300 p-6 rounded-xl">
+              <h2 className="text-2xl font-black text-red-700 mb-4">🚨 DÉCLARER UN DÉFAUT</h2>
+              <div className="space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Équipement *</label>
+                    <select value={nouveauDefaut.equipementId} onChange={(e) => setNouveauDefaut({...nouveauDefaut, equipementId: e.target.value, accessoireId: ''})} className="w-full border-2 border-red-300 rounded px-3 py-2 font-semibold">
+                      <option value="">Sélectionner équipement</option>
+                      {equipements.map(eq => <option key={eq.id} value={eq.id}>{eq.immat} - {eq.marque}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Accessoire (optionnel)</label>
+                    <select value={nouveauDefaut.accessoireId} onChange={(e) => setNouveauDefaut({...nouveauDefaut, accessoireId: e.target.value})} className="w-full border-2 border-red-300 rounded px-3 py-2">
+                      <option value="">Aucun accessoire</option>
+                      {nouveauDefaut.equipementId && accessoiresEquipement[parseInt(nouveauDefaut.equipementId)]?.map(acc => <option key={acc.id} value={acc.id}>{acc.nom}</option>)}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Type de défaut *</label>
+                    <select value={nouveauDefaut.type} onChange={(e) => setNouveauDefaut({...nouveauDefaut, type: e.target.value})} className="w-full border-2 rounded px-3 py-2 font-semibold">
+                      <option value="Fuite">Fuite</option>
+                      <option value="Bruit">Bruit anormal</option>
+                      <option value="Usure">Usure</option>
+                      <option value="Cassure">Cassure/Casse</option>
+                      <option value="Dysfonctionnement">Dysfonctionnement</option>
+                      <option value="Autre">Autre</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Sévérité *</label>
+                    <select value={nouveauDefaut.severite} onChange={(e) => setNouveauDefaut({...nouveauDefaut, severite: e.target.value})} className="w-full border-2 rounded px-3 py-2 font-semibold">
+                      <option value="mineur">🟢 Mineur</option>
+                      <option value="moyen">🟠 Moyen</option>
+                      <option value="critique">🔴 Critique</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Opérateur *</label>
+                    <select value={nouveauDefaut.operateur} onChange={(e) => setNouveauDefaut({...nouveauDefaut, operateur: e.target.value})} className="w-full border-2 rounded px-3 py-2 font-semibold">
+                      {operateurs.map(op => <option key={op} value={op}>{op}</option>)}
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Description détaillée *</label>
+                  <textarea value={nouveauDefaut.description} onChange={(e) => setNouveauDefaut({...nouveauDefaut, description: e.target.value})} placeholder="Ex: Fuite hydraulique sur raccord du bras, liquid jaune observable..." className="w-full border-2 border-red-300 rounded px-3 py-2 h-20 font-semibold" />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Localisation sur équipement</label>
+                    <input type="text" value={nouveauDefaut.localisation} onChange={(e) => setNouveauDefaut({...nouveauDefaut, localisation: e.target.value})} placeholder="Ex: Raccord du bras, moteur..." className="w-full border-2 rounded px-3 py-2" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Date constatation</label>
+                    <input type="date" value={nouveauDefaut.dateConstatation} onChange={(e) => setNouveauDefaut({...nouveauDefaut, dateConstatation: e.target.value})} className="w-full border-2 rounded px-3 py-2" />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Remarques additionnelles</label>
+                  <textarea value={nouveauDefaut.remarques} onChange={(e) => setNouveauDefaut({...nouveauDefaut, remarques: e.target.value})} placeholder="Infos supplémentaires..." className="w-full border-2 rounded px-3 py-2 h-16" />
+                </div>
+
+                <div className="bg-blue-50 border-2 border-blue-300 p-4 rounded">
+                  <label className="block text-sm font-bold text-blue-700 mb-2">📸 Joindre photos (multiples)</label>
+                  <button onClick={() => fileInputRef.current?.click()} className="bg-blue-600 text-white px-4 py-2 rounded font-bold mb-3">+ Ajouter photos</button>
+                  <input ref={fileInputRef} type="file" multiple accept="image/*" onChange={gererSelectionPhotos} style={{display: 'none'}} />
+                  {photosSelectionnees.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-sm font-semibold">Photos sélectionnées ({photosSelectionnees.length}):</p>
+                      {photosSelectionnees.map((nom, idx) => (
+                        <div key={idx} className="flex justify-between items-center bg-white p-2 rounded border">
+                          <span className="text-sm">{nom}</span>
+                          <button onClick={() => supprimerPhotoSelectionnee(idx)} className="text-red-600 font-bold">✕</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <button onClick={declareDefaut} className="w-full bg-red-600 text-white px-6 py-4 rounded-lg font-black text-lg hover:bg-red-700">🚨 DÉCLARER DÉFAUT</button>
+              </div>
+            </div>
+
+            {/* DÉFAUTS À TRAITER */}
+            <div className="space-y-4">
+              <h2 className="text-2xl font-black text-gray-800">📋 DÉFAUTS À TRAITER</h2>
+
+              {/* CRITIQUES */}
+              {defautsCritiques.length > 0 && (
+                <div className="bg-red-50 border-4 border-red-600 p-4 rounded-lg">
+                  <h3 className="text-xl font-black text-red-700 mb-3">🔴 CRITIQUES ({defautsCritiques.length})</h3>
+                  <div className="space-y-3">
+                    {defautsCritiques.map(d => {
+                      const eq = equipements.find(e => e.id === d.equipementId);
+                      const acc = d.accessoireId ? Object.values(accessoiresEquipement).flat().find(a => a.id === d.accessoireId) : null;
+                      return (
+                        <div key={d.id} className="bg-white rounded-lg p-4 border-2 border-red-300">
+                          <div className="flex justify-between items-start mb-2">
+                            <div className="flex-1">
+                              <h4 className="font-black text-lg text-red-700">{d.type}</h4>
+                              <p className="text-sm text-gray-600">{eq?.immat} {acc ? `- ${acc.nom}` : ''}</p>
+                            </div>
+                            <button onClick={() => setDefautSelectionne(d)} className="bg-blue-600 text-white px-3 py-1 rounded font-bold text-sm">👁️ Détails</button>
+                          </div>
+                          <p className="text-sm mb-3">{d.description}</p>
+                          <p className="text-xs text-gray-500 mb-2">Signalé par <strong>{d.operateur}</strong> le {d.dateConstatation}</p>
+                          <div className="flex gap-2">
+                            <button onClick={() => creerInterventionDepuisDefaut(d)} className="flex-1 bg-orange-600 text-white px-3 py-2 rounded font-bold text-sm">🔧 Créer intervention</button>
+                            <button onClick={() => resoudreDefaut(d.id)} className="flex-1 bg-green-600 text-white px-3 py-2 rounded font-bold text-sm">✓ Résolu</button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* MOYENS */}
+              {defautsAtention.length > 0 && (
+                <div className="bg-orange-50 border-4 border-orange-500 p-4 rounded-lg">
+                  <h3 className="text-xl font-black text-orange-700 mb-3">🟠 MOYENS ({defautsAtention.length})</h3>
+                  <div className="space-y-3">
+                    {defautsAtention.map(d => {
+                      const eq = equipements.find(e => e.id === d.equipementId);
+                      const acc = d.accessoireId ? Object.values(accessoiresEquipement).flat().find(a => a.id === d.accessoireId) : null;
+                      return (
+                        <div key={d.id} className="bg-white rounded-lg p-4 border-2 border-orange-300">
+                          <div className="flex justify-between items-start mb-2">
+                            <div className="flex-1">
+                              <h4 className="font-black text-lg text-orange-700">{d.type}</h4>
+                              <p className="text-sm text-gray-600">{eq?.immat} {acc ? `- ${acc.nom}` : ''}</p>
+                            </div>
+                            <button onClick={() => setDefautSelectionne(d)} className="bg-blue-600 text-white px-3 py-1 rounded font-bold text-sm">👁️ Détails</button>
+                          </div>
+                          <p className="text-sm mb-3">{d.description}</p>
+                          <p className="text-xs text-gray-500 mb-2">Signalé par <strong>{d.operateur}</strong> le {d.dateConstatation}</p>
+                          <div className="flex gap-2">
+                            <button onClick={() => creerInterventionDepuisDefaut(d)} className="flex-1 bg-orange-600 text-white px-3 py-2 rounded font-bold text-sm">🔧 Créer intervention</button>
+                            <button onClick={() => resoudreDefaut(d.id)} className="flex-1 bg-green-600 text-white px-3 py-2 rounded font-bold text-sm">✓ Résolu</button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* MINEURS */}
+              {defautsMineur.length > 0 && (
+                <div className="bg-yellow-50 border-4 border-yellow-500 p-4 rounded-lg">
+                  <h3 className="text-xl font-black text-yellow-700 mb-3">🟡 MINEURS ({defautsMineur.length})</h3>
+                  <div className="space-y-3">
+                    {defautsMineur.map(d => {
+                      const eq = equipements.find(e => e.id === d.equipementId);
+                      const acc = d.accessoireId ? Object.values(accessoiresEquipement).flat().find(a => a.id === d.accessoireId) : null;
+                      return (
+                        <div key={d.id} className="bg-white rounded-lg p-4 border-2 border-yellow-300">
+                          <div className="flex justify-between items-start mb-2">
+                            <div className="flex-1">
+                              <h4 className="font-black text-lg text-yellow-700">{d.type}</h4>
+                              <p className="text-sm text-gray-600">{eq?.immat} {acc ? `- ${acc.nom}` : ''}</p>
+                            </div>
+                            <button onClick={() => setDefautSelectionne(d)} className="bg-blue-600 text-white px-3 py-1 rounded font-bold text-sm">👁️ Détails</button>
+                          </div>
+                          <p className="text-sm mb-3">{d.description}</p>
+                          <p className="text-xs text-gray-500 mb-2">Signalé par <strong>{d.operateur}</strong> le {d.dateConstatation}</p>
+                          <div className="flex gap-2">
+                            <button onClick={() => creerInterventionDepuisDefaut(d)} className="flex-1 bg-orange-600 text-white px-3 py-2 rounded font-bold text-sm">🔧 Créer intervention</button>
+                            <button onClick={() => resoudreDefaut(d.id)} className="flex-1 bg-green-600 text-white px-3 py-2 rounded font-bold text-sm">✓ Résolu</button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {defautsATraiter.length === 0 && (
+                <div className="bg-green-50 border-4 border-green-500 p-6 rounded-lg text-center">
+                  <p className="text-2xl font-black text-green-700">✅ AUCUN DÉFAUT À TRAITER</p>
+                </div>
+              )}
+            </div>
+
+            {/* DÉFAUTS ARCHIVÉS */}
+            {defautsArchives.length > 0 && (
+              <div className="bg-green-50 border-2 border-green-300 p-4 rounded-lg">
+                <h3 className="text-xl font-black text-green-700 mb-3">✅ DÉFAUTS RÉSOLUS ({defautsArchives.length})</h3>
+                <div className="space-y-2">
+                  {defautsArchives.map(d => {
+                    const eq = equipements.find(e => e.id === d.equipementId);
+                    const acc = d.accessoireId ? Object.values(accessoiresEquipement).flat().find(a => a.id === d.accessoireId) : null;
+                    return (
+                      <div key={d.id} className="bg-white rounded p-3 border-l-4 border-green-500 flex justify-between items-center">
+                        <div>
+                          <p className="font-semibold">{d.type} - {eq?.immat}</p>
+                          <p className="text-xs text-gray-500">Résolu le {d.dateArchivage}</p>
+                        </div>
+                        <button onClick={() => setDefautSelectionne(d)} className="bg-gray-600 text-white px-3 py-1 rounded font-bold text-sm">👁️ Voir</button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* MODAL DÉTAILS DÉFAUT */}
+        {defautSelectionne && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl shadow-2xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="flex justify-between items-start mb-4">
+                <h2 className="text-2xl font-black">📋 DÉTAILS DÉFAUT</h2>
+                <button onClick={() => setDefautSelectionne(null)} className="text-2xl">✕</button>
+              </div>
+
+              <div className="space-y-4">
+                <div className="bg-gray-50 p-4 rounded-lg border-2">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-xs text-gray-500 font-bold">TYPE</p>
+                      <p className="text-lg font-black">{defautSelectionne.type}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 font-bold">SÉVÉRITÉ</p>
+                      <p className="text-lg font-black">{defautSelectionne.severite === 'critique' ? '🔴' : defautSelectionne.severite === 'moyen' ? '🟠' : '🟡'} {defautSelectionne.severite.toUpperCase()}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 font-bold">ÉQUIPEMENT</p>
+                      <p className="font-semibold">{equipements.find(e => e.id === defautSelectionne.equipementId)?.immat}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 font-bold">OPÉRATEUR</p>
+                      <p className="font-semibold">{defautSelectionne.operateur}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-xs text-gray-500 font-bold mb-1">DESCRIPTION</p>
+                  <p className="bg-blue-50 border-2 border-blue-300 p-3 rounded font-semibold">{defautSelectionne.description}</p>
+                </div>
+
+                <div>
+                  <p className="text-xs text-gray-500 font-bold mb-1">LOCALISATION</p>
+                  <p className="font-semibold">{defautSelectionne.localisation || 'Non spécifiée'}</p>
+                </div>
+
+                {defautSelectionne.remarques && (
+                  <div>
+                    <p className="text-xs text-gray-500 font-bold mb-1">REMARQUES</p>
+                    <p className="bg-yellow-50 border-2 border-yellow-300 p-3 rounded">{defautSelectionne.remarques}</p>
+                  </div>
+                )}
+
+                {defautSelectionne.photos && defautSelectionne.photos.length > 0 && (
+                  <div>
+                    <p className="text-xs text-gray-500 font-bold mb-2">📸 PHOTOS ({defautSelectionne.photos.length})</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {defautSelectionne.photos.map((photo, idx) => (
+                        <div key={idx} className="bg-gray-100 p-2 rounded border-2 border-gray-300">
+                          <p className="text-sm text-center font-semibold text-gray-700">{photo}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="bg-gray-100 p-3 rounded text-sm">
+                  <p><strong>Date constatation:</strong> {defautSelectionne.dateConstatation}</p>
+                  <p><strong>Statut:</strong> {defautSelectionne.statut === 'a_traiter' ? '⏳ À traiter' : '✅ Résolu'}</p>
+                  {defautSelectionne.dateArchivage && <p><strong>Date résolution:</strong> {defautSelectionne.dateArchivage}</p>}
+                </div>
+
+                <button onClick={() => setDefautSelectionne(null)} className="w-full bg-gray-600 text-white px-4 py-3 rounded-lg font-black">Fermer</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {ongletActif === 'alertes' && (
+          <div className="bg-blue-50 border-4 border-blue-500 p-6 rounded-lg">
+            <h2 className="text-3xl font-black text-blue-700 mb-4">🚨 ALERTES STOCKS</h2>
+            <p className="text-lg text-blue-600 font-semibold">Fonctionnalité en développement pour V1.4.1</p>
+            <p className="text-gray-600 mt-2">Système d'alertes intelligentes multi-niveaux + actions rapides</p>
+            <div className="mt-4 p-4 bg-white rounded border-2 border-blue-300">
+              <p className="font-semibold">À venir:</p>
+              <ul className="list-disc ml-5 mt-2 text-sm text-gray-700">
+                <li>Dashboard alertes en temps réel</li>
+                <li>Tri par sévérité (Critique/Attention/Vigilance)</li>
+                <li>Actions rapides (Commander/Transférer)</li>
+                <li>Estimation rupture stock</li>
+              </ul>
+            </div>
+          </div>
+        )}
+
+        {ongletActif === 'statistiques' && (
+          <div className="bg-purple-50 border-4 border-purple-500 p-6 rounded-lg">
+            <h2 className="text-3xl font-black text-purple-700 mb-4">📈 STATISTIQUES AVANCÉES</h2>
+            <p className="text-lg text-purple-600 font-semibold">Fonctionnalité en développement pour V1.4.2</p>
+            <p className="text-gray-600 mt-2">Dashboard complet: Stocks, Interventions, Équipements, Fournisseurs</p>
+            <div className="mt-4 p-4 bg-white rounded border-2 border-purple-300">
+              <p className="font-semibold">À venir:</p>
+              <ul className="list-disc ml-5 mt-2 text-sm text-gray-700">
+                <li>Graphiques stocks (évolution 30j)</li>
+                <li>TOP articles consommés/chers</li>
+                <li>Mouvements par dépôt</li>
+                <li>Coûts interventions par équipement</li>
+                <li>Analyses fournisseurs</li>
+                <li>Export PDF/CSV</li>
+              </ul>
+            </div>
+          </div>
         )}
       </div>
     </div>
