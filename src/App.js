@@ -19,31 +19,31 @@ export default function SolaireNettoyageFlotte() {
   const [articleEnDetailsAlerte, setArticleEnDetailsAlerte] = useState(null);
   const [articleEnTransfertAlerte, setArticleEnTransfertAlerte] = useState(null);
   const [articleEnHistoriqueAlerte, setArticleEnHistoriqueAlerte] = useState(null);
-  const [transfertRapideData, setTransfertRapideData] = useState({ depotSource: 'Atelier', depotDestination: 'Véhicule 1', quantite: '' });
+  const [transfertRapideData, setTransfertRapideData] = useState({ depotSource: 'Atelier', depotDestination: 'Porteur 26 T', quantite: '' });
 
   const operateurs = ['Axel', 'Jérôme', 'Sébastien', 'Joffrey', 'Fabien', 'Angelo'];
-  const depots = ['Atelier', 'Véhicule 1', 'Véhicule 2', 'Véhicule 3'];
+  const depots = ['Atelier', 'Porteur 26 T', 'Porteur 32 T', 'Semi Remorque'];
   
   const [articles, setArticles] = useState([
-    { id: 1, code: 'BAC5X5', description: 'Barre pour clavette en acier 5x5', fournisseur: 'LE BON ROULEMENT', prixUnitaire: 5.05, stockParDepot: { 'Atelier': 3, 'Véhicule 1': 0, 'Véhicule 2': 0, 'Véhicule 3': 0 }, stockMin: 2, equipementsAffectes: [] },
-    { id: 2, code: 'BAC8X7', description: 'Barre pour clavette en acier 8x7', fournisseur: 'LE BON ROULEMENT', prixUnitaire: 9.07, stockParDepot: { 'Atelier': 3, 'Véhicule 1': 0, 'Véhicule 2': 0, 'Véhicule 3': 0 }, stockMin: 2, equipementsAffectes: [] },
-    { id: 3, code: '388518', description: 'Bague support pont avant', fournisseur: 'RURAL MASTER', prixUnitaire: 12.41, stockParDepot: { 'Atelier': 1, 'Véhicule 1': 0, 'Véhicule 2': 0, 'Véhicule 3': 0 }, stockMin: 1, equipementsAffectes: [] },
-    { id: 4, code: '605670', description: 'Washer 48.0x4.0 thrust', fournisseur: 'RURAL MASTER', prixUnitaire: 5.68, stockParDepot: { 'Atelier': 1, 'Véhicule 1': 0, 'Véhicule 2': 0, 'Véhicule 3': 0 }, stockMin: 1, equipementsAffectes: [] },
-    { id: 5, code: '606540', description: 'Nut M10x1.508 hex', fournisseur: 'RURAL MASTER', prixUnitaire: 2.06, stockParDepot: { 'Atelier': 1, 'Véhicule 1': 0, 'Véhicule 2': 0, 'Véhicule 3': 0 }, stockMin: 1, equipementsAffectes: [] },
-    { id: 6, code: '605669', description: 'Seal O ring 2.62x55.0', fournisseur: 'RURAL MASTER', prixUnitaire: 2.76, stockParDepot: { 'Atelier': 1, 'Véhicule 1': 0, 'Véhicule 2': 0, 'Véhicule 3': 0 }, stockMin: 1, equipementsAffectes: [] },
-    { id: 7, code: '606858', description: 'Grease nipple B M6', fournisseur: 'RURAL MASTER', prixUnitaire: 2.20, stockParDepot: { 'Atelier': 1, 'Véhicule 1': 0, 'Véhicule 2': 0, 'Véhicule 3': 0 }, stockMin: 1, equipementsAffectes: [] },
-    { id: 8, code: '605668', description: 'Dowel bush pillow block', fournisseur: 'RURAL MASTER', prixUnitaire: 3.59, stockParDepot: { 'Atelier': 2, 'Véhicule 1': 0, 'Véhicule 2': 0, 'Véhicule 3': 0 }, stockMin: 1, equipementsAffectes: [] },
-    { id: 9, code: '606739', description: 'Bolt M10x1.50x356.6P hex head', fournisseur: 'RURAL MASTER', prixUnitaire: 2.62, stockParDepot: { 'Atelier': 1, 'Véhicule 1': 0, 'Véhicule 2': 0, 'Véhicule 3': 0 }, stockMin: 1, equipementsAffectes: [] },
-    { id: 10, code: '388497', description: 'Support pont avant', fournisseur: 'RURAL MASTER', prixUnitaire: 53.02, stockParDepot: { 'Atelier': 1, 'Véhicule 1': 0, 'Véhicule 2': 0, 'Véhicule 3': 0 }, stockMin: 1, equipementsAffectes: [] },
-    { id: 11, code: '764617', description: 'Chambre à air 20x108 STI', fournisseur: 'RURAL MASTER', prixUnitaire: 44.30, stockParDepot: { 'Atelier': 3, 'Véhicule 1': 0, 'Véhicule 2': 0, 'Véhicule 3': 0 }, stockMin: 2, equipementsAffectes: [] },
-    { id: 12, code: 'HIFSO 8055', description: 'Filtre à huile', fournisseur: 'V6 AUTOPRO', prixUnitaire: 40.80, stockParDepot: { 'Atelier': 2, 'Véhicule 1': 0, 'Véhicule 2': 0, 'Véhicule 3': 0 }, stockMin: 1, equipementsAffectes: [1] },
-    { id: 13, code: 'HIFSN 916020', description: 'Filtre à gasoil séparateur d\'eau', fournisseur: 'V6 AUTOPRO', prixUnitaire: 34.12, stockParDepot: { 'Atelier': 2, 'Véhicule 1': 0, 'Véhicule 2': 0, 'Véhicule 3': 0 }, stockMin: 1, equipementsAffectes: [1] },
-    { id: 14, code: 'WY119802-55710', description: 'Séparateur d\'eau', fournisseur: 'CLAAS LAGARRIGUE', prixUnitaire: 15.05, stockParDepot: { 'Atelier': 1, 'Véhicule 1': 0, 'Véhicule 2': 0, 'Véhicule 3': 0 }, stockMin: 1, equipementsAffectes: [6] },
-    { id: 15, code: 'WY123907-55810', description: 'Filtre combustible', fournisseur: 'CLAAS LAGARRIGUE', prixUnitaire: 36.88, stockParDepot: { 'Atelier': 1, 'Véhicule 1': 0, 'Véhicule 2': 0, 'Véhicule 3': 0 }, stockMin: 1, equipementsAffectes: [6] },
-    { id: 16, code: 'WY129150-35170', description: 'Filtre à huile', fournisseur: 'CLAAS LAGARRIGUE', prixUnitaire: 14.17, stockParDepot: { 'Atelier': 1, 'Véhicule 1': 0, 'Véhicule 2': 0, 'Véhicule 3': 0 }, stockMin: 1, equipementsAffectes: [6] },
-    { id: 17, code: '44524021', description: 'Filtre TRANS (TTR/TRH 9800) PONT AV', fournisseur: 'CLAAS LAGARRIGUE', prixUnitaire: 31.65, stockParDepot: { 'Atelier': 1, 'Véhicule 1': 0, 'Véhicule 2': 0, 'Véhicule 3': 0 }, stockMin: 1, equipementsAffectes: [6] },
-    { id: 18, code: '44524020', description: 'Filtre HYDRAU PRESSION', fournisseur: 'CLAAS LAGARRIGUE', prixUnitaire: 62.71, stockParDepot: { 'Atelier': 1, 'Véhicule 1': 0, 'Véhicule 2': 0, 'Véhicule 3': 0 }, stockMin: 1, equipementsAffectes: [6] },
-    { id: 19, code: 'BF16', description: 'Huile BF16 (20L)', fournisseur: 'SARL QUIERS', prixUnitaire: 5.07, stockParDepot: { 'Atelier': 40, 'Véhicule 1': 0, 'Véhicule 2': 0, 'Véhicule 3': 0 }, stockMin: 10, equipementsAffectes: [6] },
+    { id: 1, code: 'BAC5X5', description: 'Barre pour clavette en acier 5x5', fournisseur: 'LE BON ROULEMENT', prixUnitaire: 5.05, stockParDepot: { 'Atelier': 3, 'Porteur 26 T': 0, 'Porteur 32 T': 0, 'Semi Remorque': 0 }, stockMin: 2, equipementsAffectes: [] },
+    { id: 2, code: 'BAC8X7', description: 'Barre pour clavette en acier 8x7', fournisseur: 'LE BON ROULEMENT', prixUnitaire: 9.07, stockParDepot: { 'Atelier': 3, 'Porteur 26 T': 0, 'Porteur 32 T': 0, 'Semi Remorque': 0 }, stockMin: 2, equipementsAffectes: [] },
+    { id: 3, code: '388518', description: 'Bague support pont avant', fournisseur: 'RURAL MASTER', prixUnitaire: 12.41, stockParDepot: { 'Atelier': 1, 'Porteur 26 T': 0, 'Porteur 32 T': 0, 'Semi Remorque': 0 }, stockMin: 1, equipementsAffectes: [] },
+    { id: 4, code: '605670', description: 'Washer 48.0x4.0 thrust', fournisseur: 'RURAL MASTER', prixUnitaire: 5.68, stockParDepot: { 'Atelier': 1, 'Porteur 26 T': 0, 'Porteur 32 T': 0, 'Semi Remorque': 0 }, stockMin: 1, equipementsAffectes: [] },
+    { id: 5, code: '606540', description: 'Nut M10x1.508 hex', fournisseur: 'RURAL MASTER', prixUnitaire: 2.06, stockParDepot: { 'Atelier': 1, 'Porteur 26 T': 0, 'Porteur 32 T': 0, 'Semi Remorque': 0 }, stockMin: 1, equipementsAffectes: [] },
+    { id: 6, code: '605669', description: 'Seal O ring 2.62x55.0', fournisseur: 'RURAL MASTER', prixUnitaire: 2.76, stockParDepot: { 'Atelier': 1, 'Porteur 26 T': 0, 'Porteur 32 T': 0, 'Semi Remorque': 0 }, stockMin: 1, equipementsAffectes: [] },
+    { id: 7, code: '606858', description: 'Grease nipple B M6', fournisseur: 'RURAL MASTER', prixUnitaire: 2.20, stockParDepot: { 'Atelier': 1, 'Porteur 26 T': 0, 'Porteur 32 T': 0, 'Semi Remorque': 0 }, stockMin: 1, equipementsAffectes: [] },
+    { id: 8, code: '605668', description: 'Dowel bush pillow block', fournisseur: 'RURAL MASTER', prixUnitaire: 3.59, stockParDepot: { 'Atelier': 2, 'Porteur 26 T': 0, 'Porteur 32 T': 0, 'Semi Remorque': 0 }, stockMin: 1, equipementsAffectes: [] },
+    { id: 9, code: '606739', description: 'Bolt M10x1.50x356.6P hex head', fournisseur: 'RURAL MASTER', prixUnitaire: 2.62, stockParDepot: { 'Atelier': 1, 'Porteur 26 T': 0, 'Porteur 32 T': 0, 'Semi Remorque': 0 }, stockMin: 1, equipementsAffectes: [] },
+    { id: 10, code: '388497', description: 'Support pont avant', fournisseur: 'RURAL MASTER', prixUnitaire: 53.02, stockParDepot: { 'Atelier': 1, 'Porteur 26 T': 0, 'Porteur 32 T': 0, 'Semi Remorque': 0 }, stockMin: 1, equipementsAffectes: [] },
+    { id: 11, code: '764617', description: 'Chambre à air 20x108 STI', fournisseur: 'RURAL MASTER', prixUnitaire: 44.30, stockParDepot: { 'Atelier': 3, 'Porteur 26 T': 0, 'Porteur 32 T': 0, 'Semi Remorque': 0 }, stockMin: 2, equipementsAffectes: [] },
+    { id: 12, code: 'HIFSO 8055', description: 'Filtre à huile', fournisseur: 'V6 AUTOPRO', prixUnitaire: 40.80, stockParDepot: { 'Atelier': 2, 'Porteur 26 T': 0, 'Porteur 32 T': 0, 'Semi Remorque': 0 }, stockMin: 1, equipementsAffectes: [1] },
+    { id: 13, code: 'HIFSN 916020', description: 'Filtre à gasoil séparateur d\'eau', fournisseur: 'V6 AUTOPRO', prixUnitaire: 34.12, stockParDepot: { 'Atelier': 2, 'Porteur 26 T': 0, 'Porteur 32 T': 0, 'Semi Remorque': 0 }, stockMin: 1, equipementsAffectes: [1] },
+    { id: 14, code: 'WY119802-55710', description: 'Séparateur d\'eau', fournisseur: 'CLAAS LAGARRIGUE', prixUnitaire: 15.05, stockParDepot: { 'Atelier': 1, 'Porteur 26 T': 0, 'Porteur 32 T': 0, 'Semi Remorque': 0 }, stockMin: 1, equipementsAffectes: [6] },
+    { id: 15, code: 'WY123907-55810', description: 'Filtre combustible', fournisseur: 'CLAAS LAGARRIGUE', prixUnitaire: 36.88, stockParDepot: { 'Atelier': 1, 'Porteur 26 T': 0, 'Porteur 32 T': 0, 'Semi Remorque': 0 }, stockMin: 1, equipementsAffectes: [6] },
+    { id: 16, code: 'WY129150-35170', description: 'Filtre à huile', fournisseur: 'CLAAS LAGARRIGUE', prixUnitaire: 14.17, stockParDepot: { 'Atelier': 1, 'Porteur 26 T': 0, 'Porteur 32 T': 0, 'Semi Remorque': 0 }, stockMin: 1, equipementsAffectes: [6] },
+    { id: 17, code: '44524021', description: 'Filtre TRANS (TTR/TRH 9800) PONT AV', fournisseur: 'CLAAS LAGARRIGUE', prixUnitaire: 31.65, stockParDepot: { 'Atelier': 1, 'Porteur 26 T': 0, 'Porteur 32 T': 0, 'Semi Remorque': 0 }, stockMin: 1, equipementsAffectes: [6] },
+    { id: 18, code: '44524020', description: 'Filtre HYDRAU PRESSION', fournisseur: 'CLAAS LAGARRIGUE', prixUnitaire: 62.71, stockParDepot: { 'Atelier': 1, 'Porteur 26 T': 0, 'Porteur 32 T': 0, 'Semi Remorque': 0 }, stockMin: 1, equipementsAffectes: [6] },
+    { id: 19, code: 'BF16', description: 'Huile BF16 (20L)', fournisseur: 'SARL QUIERS', prixUnitaire: 5.07, stockParDepot: { 'Atelier': 40, 'Porteur 26 T': 0, 'Porteur 32 T': 0, 'Semi Remorque': 0 }, stockMin: 10, equipementsAffectes: [6] },
   ]);
 
   const [mouvementsStock, setMouvementsStock] = useState([
@@ -126,7 +126,7 @@ export default function SolaireNettoyageFlotte() {
 
   const [nouvelleEntreeStock, setNouvelleEntreeStock] = useState({ articleId: '', quantite: '', prixUnitaire: '', raison: '', date: new Date().toISOString().split('T')[0], depot: 'Atelier' });
   const [nouveauMouvementSortie, setNouveauMouvementSortie] = useState({ articleId: '', quantite: '', raison: '', date: new Date().toISOString().split('T')[0], depot: 'Atelier' });
-  const [nouveauTransfert, setNouveauTransfert] = useState({ articleId: '', quantite: '', depotSource: 'Atelier', depotDestination: 'Véhicule 1', raison: '', date: new Date().toISOString().split('T')[0] });
+  const [nouveauTransfert, setNouveauTransfert] = useState({ articleId: '', quantite: '', depotSource: 'Atelier', depotDestination: 'Porteur 26 T', raison: '', date: new Date().toISOString().split('T')[0] });
   const [nouvelleIntervention, setNouvelleIntervention] = useState({ equipementId: '', type: '', date: new Date().toISOString().split('T')[0], km: '', heures: '', description: '', articlesPrevu: [], depotPrelevement: 'Atelier' });
   const [nouvelArticleIntervention, setNouvelArticleIntervention] = useState({ articleId: '', quantite: '' });
   const [nouvelAccessoire, setNouvelAccessoire] = useState({ nom: '', valeur: '', description: '', dateAjout: new Date().toISOString().split('T')[0] });
@@ -139,7 +139,7 @@ export default function SolaireNettoyageFlotte() {
   const [actionScan, setActionScan] = useState(null);
   const [formScanEntree, setFormScanEntree] = useState({ quantite: '', prixUnitaire: '', raison: '', date: new Date().toISOString().split('T')[0], depot: 'Atelier' });
   const [formScanSortie, setFormScanSortie] = useState({ quantite: '', raison: '', date: new Date().toISOString().split('T')[0], depot: 'Atelier' });
-  const [formScanTransfert, setFormScanTransfert] = useState({ quantite: '', depotSource: 'Atelier', depotDestination: 'Véhicule 1' });
+  const [formScanTransfert, setFormScanTransfert] = useState({ quantite: '', depotSource: 'Atelier', depotDestination: 'Porteur 26 T' });
   const [afficherScannerIntervention, setAfficherScannerIntervention] = useState(false);
   const [scanResultatIntervention, setScanResultatIntervention] = useState(null);
   const [quantiteScanIntervention, setQuantiteScanIntervention] = useState('');
@@ -690,7 +690,7 @@ export default function SolaireNettoyageFlotte() {
     setMouvementsStock([...mouvementsStock, { id: mouvementsStock.length + 1, articleId: articleEnTransfertAlerte.id, type: 'transfer', quantite, date: new Date().toISOString().split('T')[0], raison: `Transfert rapide alerte`, coutTotal: 0, depotSource: transfertRapideData.depotSource, depotDestination: transfertRapideData.depotDestination }]);
     alert(`✅ ${quantite} ${articleEnTransfertAlerte.code} transférés!`);
     setArticleEnTransfertAlerte(null);
-    setTransfertRapideData({ depotSource: 'Atelier', depotDestination: 'Véhicule 1', quantite: '' });
+    setTransfertRapideData({ depotSource: 'Atelier', depotDestination: 'Porteur 26 T', quantite: '' });
   };
 
   const ajouterArticlePrevuScan = () => {
