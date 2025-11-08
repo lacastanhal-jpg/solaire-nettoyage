@@ -504,9 +504,10 @@ export default function SolaireNettoyageFlotte() {
         if (acc.actif) {
           const parentEq = equipements.find(e => e.id === parseInt(eqId));
           liste.push({
-            id: 999,
+            id: parseInt(eqId),
             nom: `${acc.nom} (sur ${parentEq?.immat})`,
-            type: 'accessoire'
+            type: 'accessoire',
+            accessoireId: acc.id
           });
         }
       });
