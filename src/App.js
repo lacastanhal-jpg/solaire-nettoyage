@@ -12,6 +12,11 @@ export default function SolaireNettoyageFlotte() {
   const scanningIntervention = useRef(false);
   const fileInputRef = useRef(null);
   
+  const [filtreAlerteSeverite, setFiltreAlerteSeverite] = useState('');
+  const [filtreAlerteFournisseur, setFiltreAlerteFournisseur] = useState('');
+  const [filtreAlerteDepot, setFiltreAlerteDepot] = useState('');
+  const [triAlertes, setTriAlertes] = useState('severite');
+
   const operateurs = ['Axel', 'Jérôme', 'Sébastien', 'Joffrey', 'Fabien', 'Angelo'];
   const depots = ['Atelier', 'Véhicule 1', 'Véhicule 2', 'Véhicule 3'];
   
@@ -142,6 +147,10 @@ export default function SolaireNettoyageFlotte() {
     const newPhotos = photosSelectionnees.filter((_, i) => i !== index);
     setPhotosSelectionnees(newPhotos);
     setNouveauDefaut(prev => ({ ...prev, photosNoms: newPhotos }));
+  };
+
+  const getStockTotal = (article) => {
+    return depots.reduce((sum, depot) => sum + (article.stockParDepot[depot] || 0), 0);
   };
 
   const declareDefaut = () => {
@@ -307,9 +316,71 @@ export default function SolaireNettoyageFlotte() {
     };
   }, [afficherScannerIntervention, scanResultatIntervention, traiterScanQRIntervention]);
 
-  const getStockTotal = (article) => {
-    return depots.reduce((sum, depot) => sum + (article.stockParDepot[depot] || 0), 0);
+  const calculerAlertes = () => {
+    const alertes = articles.map(article => {
+      const total = getStockTotal(article);
+      let severite = null;
+
+      // Niveau CRITIQUE: stock total = stock min exactement
+      if (total === article.stockMin) {
+        severite = 'critique';
+      }
+      // Niveau ATTENTION: stock total < stock min × 1.5
+      else if (total < article.stockMin * 1.5) {
+        severite = 'attention';
+      }
+      // Niveau VIGILANCE: un dépôt à 0
+      else if (depots.some(depot => article.stockParDepot[depot] === 0)) {
+        severite = 'vigilance';
+      }
+
+      if (severite) {
+        return {
+          ...article,
+          severite,
+          depotsVides: depots.filter(d => article.stockParDepot[d] === 0),
+          total
+        };
+      }
+      return null;
+    }).filter(a => a !== null);
+
+    return alertes;
   };
+
+  const appliquerFiltresAlertes = (alertes) => {
+    let filtrées = alertes;
+
+    if (filtreAlerteSeverite) {
+      filtrées = filtrées.filter(a => a.severite === filtreAlerteSeverite);
+    }
+    if (filtreAlerteFournisseur) {
+      filtrées = filtrées.filter(a => a.fournisseur === filtreAlerteFournisseur);
+    }
+    if (filtreAlerteDepot) {
+      filtrées = filtrées.filter(a => a.depotsVides.includes(filtreAlerteDepot));
+    }
+
+    // Tri
+    if (triAlertes === 'severite') {
+      filtrées.sort((a, b) => {
+        const ordre = { 'critique': 0, 'attention': 1, 'vigilance': 2 };
+        return ordre[a.severite] - ordre[b.severite];
+      });
+    } else if (triAlertes === 'stock') {
+      filtrées.sort((a, b) => a.total - b.total);
+    } else if (triAlertes === 'nom') {
+      filtrées.sort((a, b) => a.code.localeCompare(b.code));
+    }
+
+    return filtrées;
+  };
+
+  const alertesTotales = calculerAlertes();
+  const alertesCritiques = alertesTotales.filter(a => a.severite === 'critique');
+  const alertesAttention = alertesTotales.filter(a => a.severite === 'attention');
+  const alertesVigilance = alertesTotales.filter(a => a.severite === 'vigilance');
+  const alertesFiltrees = appliquerFiltresAlertes(alertesTotales);
 
   const ajouterArticlePrevuScan = () => {
     if (!quantiteScanIntervention) {
@@ -775,59 +846,6 @@ export default function SolaireNettoyageFlotte() {
 
     alert('✅ CSV téléchargé!');
   };
-
-  // ALERTES STOCKS
-  const [filtreAlerteSeverite, setFiltreAlerteSeverite] = useState('tous');
-  const [filtreAlerteFournisseur, setFiltreAlerteFournisseur] = useState('tous');
-  const [filtreAlerteDepot, setFiltreAlerteDepot] = useState('tous');
-  const [triAlerte, setTriAlerte] = useState('severite');
-
-  const calculerNiveauAlerte = (article) => {
-    const total = getStockTotal(article);
-    if (total <= article.stockMin) return 'critique';
-    if (total < article.stockMin * 1.5) return 'attention';
-    
-    // Vigilance: vérifier si un dépôt est à 0
-    for (let depot of depots) {
-      if ((article.stockParDepot[depot] || 0) === 0 && total > 0) {
-        return 'vigilance';
-      }
-    }
-    return null;
-  };
-
-  const articlesEnAlerte = articles.filter(a => calculerNiveauAlerte(a) !== null).map(a => ({
-    ...a,
-    niveauAlerte: calculerNiveauAlerte(a)
-  }));
-
-  const alertesCritiques = articlesEnAlerte.filter(a => a.niveauAlerte === 'critique');
-  const alertesAttention = articlesEnAlerte.filter(a => a.niveauAlerte === 'attention');
-  const alertesVigilance = articlesEnAlerte.filter(a => a.niveauAlerte === 'vigilance');
-
-  const articlesFournisseurs = [...new Set(articles.map(a => a.fournisseur))];
-
-  let alertesFiltrees = articlesEnAlerte;
-  if (filtreAlerteSeverite !== 'tous') {
-    alertesFiltrees = alertesFiltrees.filter(a => a.niveauAlerte === filtreAlerteSeverite);
-  }
-  if (filtreAlerteFournisseur !== 'tous') {
-    alertesFiltrees = alertesFiltrees.filter(a => a.fournisseur === filtreAlerteFournisseur);
-  }
-  if (filtreAlerteDepot !== 'tous') {
-    alertesFiltrees = alertesFiltrees.filter(a => (a.stockParDepot[filtreAlerteDepot] || 0) === 0);
-  }
-
-  if (triAlerte === 'severite') {
-    alertesFiltrees = alertesFiltrees.sort((a, b) => {
-      const ordre = { 'critique': 0, 'attention': 1, 'vigilance': 2 };
-      return ordre[a.niveauAlerte] - ordre[b.niveauAlerte];
-    });
-  } else if (triAlerte === 'stock') {
-    alertesFiltrees = alertesFiltrees.sort((a, b) => getStockTotal(a) - getStockTotal(b));
-  } else if (triAlerte === 'alpha') {
-    alertesFiltrees = alertesFiltrees.sort((a, b) => a.code.localeCompare(b.code));
-  }
 
   const valeurStockTotal = articles.reduce((sum, a) => sum + (getStockTotal(a) * a.prixUnitaire), 0);
   const interventionsEnCours = interventions.filter(i => i.statut === 'en_cours');
@@ -1426,33 +1444,33 @@ export default function SolaireNettoyageFlotte() {
           <div className="space-y-6">
             <h2 className="text-3xl font-black text-red-700">🚨 ALERTES STOCKS INTELLIGENTES</h2>
 
-            {/* RÉSUMÉ CARTES */}
+            {/* DASHBOARD RÉSUMÉ */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-red-100 border-4 border-red-600 p-4 rounded-lg cursor-pointer hover:bg-red-150" onClick={() => setFiltreAlerteSeverite(filtreAlerteSeverite === 'critique' ? 'tous' : 'critique')}>
-                <p className="text-xl font-black text-red-700">🔴 CRITIQUES</p>
-                <p className="text-3xl font-black text-red-600">{alertesCritiques.length}</p>
-                <p className="text-sm text-red-600 font-semibold">Action: COMMANDE IMMÉDIATE</p>
+              <div className="bg-red-50 border-4 border-red-600 p-6 rounded-xl cursor-pointer hover:shadow-lg transition" onClick={() => { setFiltreAlerteSeverite('critique'); setFiltreAlerteFournisseur(''); setFiltreAlerteDepot(''); }}>
+                <p className="text-xs text-red-600 font-bold">🔴 CRITIQUES</p>
+                <p className="text-5xl font-black text-red-600 mt-2">{alertesCritiques.length}</p>
+                <p className="text-sm text-red-700 mt-2">⚡ Action immédiate!</p>
               </div>
-              <div className="bg-orange-100 border-4 border-orange-500 p-4 rounded-lg cursor-pointer hover:bg-orange-150" onClick={() => setFiltreAlerteSeverite(filtreAlerteSeverite === 'attention' ? 'tous' : 'attention')}>
-                <p className="text-xl font-black text-orange-700">🟠 ATTENTION</p>
-                <p className="text-3xl font-black text-orange-600">{alertesAttention.length}</p>
-                <p className="text-sm text-orange-600 font-semibold">Action: COMMANDE À COURT TERME</p>
+              <div className="bg-orange-50 border-4 border-orange-500 p-6 rounded-xl cursor-pointer hover:shadow-lg transition" onClick={() => { setFiltreAlerteSeverite('attention'); setFiltreAlerteFournisseur(''); setFiltreAlerteDepot(''); }}>
+                <p className="text-xs text-orange-600 font-bold">🟠 ATTENTION</p>
+                <p className="text-5xl font-black text-orange-600 mt-2">{alertesAttention.length}</p>
+                <p className="text-sm text-orange-700 mt-2">⏳ À court terme</p>
               </div>
-              <div className="bg-yellow-100 border-4 border-yellow-500 p-4 rounded-lg cursor-pointer hover:bg-yellow-150" onClick={() => setFiltreAlerteSeverite(filtreAlerteSeverite === 'vigilance' ? 'tous' : 'vigilance')}>
-                <p className="text-xl font-black text-yellow-700">🟡 VIGILANCE</p>
-                <p className="text-3xl font-black text-yellow-600">{alertesVigilance.length}</p>
-                <p className="text-sm text-yellow-600 font-semibold">Action: RÉÉQUILIBRER</p>
+              <div className="bg-yellow-50 border-4 border-yellow-500 p-6 rounded-xl cursor-pointer hover:shadow-lg transition" onClick={() => { setFiltreAlerteSeverite('vigilance'); setFiltreAlerteFournisseur(''); setFiltreAlerteDepot(''); }}>
+                <p className="text-xs text-yellow-600 font-bold">🟡 VIGILANCE</p>
+                <p className="text-5xl font-black text-yellow-600 mt-2">{alertesVigilance.length}</p>
+                <p className="text-sm text-yellow-700 mt-2">👁️ À surveiller</p>
               </div>
             </div>
 
             {/* FILTRES */}
-            <div className="bg-white border-2 border-gray-300 p-4 rounded-lg">
+            <div className="bg-blue-50 border-2 border-blue-300 p-4 rounded-lg">
               <h3 className="font-bold mb-3">🔍 FILTRES & TRI</h3>
               <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
                 <div>
                   <label className="text-xs font-bold text-gray-700">Sévérité</label>
-                  <select value={filtreAlerteSeverite} onChange={(e) => setFiltreAlerteSeverite(e.target.value)} className="w-full border-2 rounded px-2 py-1 font-semibold text-sm">
-                    <option value="tous">Tous</option>
+                  <select value={filtreAlerteSeverite} onChange={(e) => setFiltreAlerteSeverite(e.target.value)} className="w-full border-2 rounded px-2 py-1 text-sm">
+                    <option value="">Tous</option>
                     <option value="critique">🔴 Critique</option>
                     <option value="attention">🟠 Attention</option>
                     <option value="vigilance">🟡 Vigilance</option>
@@ -1460,93 +1478,104 @@ export default function SolaireNettoyageFlotte() {
                 </div>
                 <div>
                   <label className="text-xs font-bold text-gray-700">Fournisseur</label>
-                  <select value={filtreAlerteFournisseur} onChange={(e) => setFiltreAlerteFournisseur(e.target.value)} className="w-full border-2 rounded px-2 py-1 font-semibold text-sm">
-                    <option value="tous">Tous</option>
-                    {articlesFournisseurs.map(f => <option key={f} value={f}>{f}</option>)}
+                  <select value={filtreAlerteFournisseur} onChange={(e) => setFiltreAlerteFournisseur(e.target.value)} className="w-full border-2 rounded px-2 py-1 text-sm">
+                    <option value="">Tous</option>
+                    {[...new Set(articles.map(a => a.fournisseur))].map(f => (
+                      <option key={f} value={f}>{f}</option>
+                    ))}
                   </select>
                 </div>
                 <div>
                   <label className="text-xs font-bold text-gray-700">Dépôt vide</label>
-                  <select value={filtreAlerteDepot} onChange={(e) => setFiltreAlerteDepot(e.target.value)} className="w-full border-2 rounded px-2 py-1 font-semibold text-sm">
-                    <option value="tous">Tous</option>
-                    {depots.map(d => <option key={d} value={d}>{d}</option>)}
+                  <select value={filtreAlerteDepot} onChange={(e) => setFiltreAlerteDepot(e.target.value)} className="w-full border-2 rounded px-2 py-1 text-sm">
+                    <option value="">Tous</option>
+                    {depots.map(d => (
+                      <option key={d} value={d}>{d}</option>
+                    ))}
                   </select>
                 </div>
                 <div>
                   <label className="text-xs font-bold text-gray-700">Tri</label>
-                  <select value={triAlerte} onChange={(e) => setTriAlerte(e.target.value)} className="w-full border-2 rounded px-2 py-1 font-semibold text-sm">
+                  <select value={triAlertes} onChange={(e) => setTriAlertes(e.target.value)} className="w-full border-2 rounded px-2 py-1 text-sm">
                     <option value="severite">Par sévérité</option>
                     <option value="stock">Stock faible</option>
-                    <option value="alpha">Alphabétique</option>
+                    <option value="nom">Alphabétique</option>
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-gray-700">&nbsp;</label>
-                  <button onClick={() => {setFiltreAlerteSeverite('tous'); setFiltreAlerteFournisseur('tous'); setFiltreAlerteDepot('tous');}} className="w-full bg-gray-600 text-white rounded px-2 py-1 font-bold text-sm">Réinitialiser</button>
+                  <button onClick={() => { setFiltreAlerteSeverite(''); setFiltreAlerteFournisseur(''); setFiltreAlerteDepot(''); }} className="w-full bg-blue-600 text-white px-3 py-1 rounded font-bold text-sm mt-5 hover:bg-blue-700">Réinitialiser</button>
                 </div>
               </div>
             </div>
 
             {/* ARTICLES EN ALERTE */}
             {alertesFiltrees.length === 0 ? (
-              <div className="bg-green-100 border-4 border-green-500 p-6 rounded-lg text-center">
+              <div className="bg-green-50 border-4 border-green-500 p-6 rounded-lg text-center">
                 <p className="text-2xl font-black text-green-700">✅ AUCUNE ALERTE!</p>
-                <p className="text-green-600">Tous les stocks sont OK</p>
+                <p className="text-green-600 mt-2">Tous les stocks sont corrects 🎉</p>
               </div>
             ) : (
-              <div className="space-y-4">
-                {alertesFiltrees.map(article => (
-                  <div key={article.id} className={`border-4 p-4 rounded-lg ${article.niveauAlerte === 'critique' ? 'bg-red-50 border-red-600' : article.niveauAlerte === 'attention' ? 'bg-orange-50 border-orange-500' : 'bg-yellow-50 border-yellow-500'}`}>
-                    <div className="flex justify-between items-start mb-3">
-                      <div>
-                        <p className="text-lg font-black">{article.niveauAlerte === 'critique' ? '🔴' : article.niveauAlerte === 'attention' ? '🟠' : '🟡'} {article.code}</p>
-                        <p className="text-sm font-semibold">{article.description}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-2xl font-black">{getStockTotal(article)}/{article.stockMin}</p>
-                        <p className="text-xs text-gray-600">Stock/Min</p>
-                      </div>
-                    </div>
+              <div className="space-y-3">
+                {alertesFiltrees.map(article => {
+                  const barrePourcent = (article.total / article.stockMin) * 100;
+                  const couleurSeverite = article.severite === 'critique' ? 'border-red-500 bg-red-50' : article.severite === 'attention' ? 'border-orange-500 bg-orange-50' : 'border-yellow-500 bg-yellow-50';
+                  const icone = article.severite === 'critique' ? '🔴' : article.severite === 'attention' ? '🟠' : '🟡';
 
-                    {/* STOCKS PAR DÉPÔT */}
-                    <div className="grid grid-cols-4 gap-2 mb-3">
-                      {depots.map(depot => (
-                        <div key={depot} className={`p-2 rounded text-center text-sm font-bold ${(article.stockParDepot[depot] || 0) === 0 ? 'bg-red-200 text-red-700' : 'bg-white text-gray-700'}`}>
-                          <p className="text-xs text-gray-600">{depot}</p>
-                          <p className="text-lg">{article.stockParDepot[depot] || 0}</p>
+                  return (
+                    <div key={article.id} className={`border-l-4 ${couleurSeverite} p-4 rounded-lg`}>
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-3">
+                        <div>
+                          <p className="font-bold text-lg">{article.code}</p>
+                          <p className="text-sm text-gray-600">{article.description}</p>
                         </div>
-                      ))}
-                    </div>
+                        <div>
+                          <p className="text-xs font-bold text-gray-600 mb-1">STOCK GLOBAL</p>
+                          <div className="flex items-center gap-2">
+                            <div className="flex-1 bg-gray-300 rounded-full h-3 overflow-hidden">
+                              <div 
+                                style={{width: `${Math.min(barrePourcent, 100)}%`}} 
+                                className={`h-full ${article.severite === 'critique' ? 'bg-red-600' : article.severite === 'attention' ? 'bg-orange-600' : 'bg-yellow-600'}`}
+                              />
+                            </div>
+                            <p className="font-black text-sm">{article.total}/{article.stockMin}</p>
+                          </div>
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-gray-600 mb-1">DÉPÔTS</p>
+                          <div className="grid grid-cols-2 gap-1 text-xs">
+                            {depots.map(d => (
+                              <p key={d} className={`${article.stockParDepot[d] === 0 ? 'text-red-600 font-bold' : 'text-gray-700'}`}>
+                                {d.substring(0, 3)}: {article.stockParDepot[d] || 0}
+                              </p>
+                            ))}
+                          </div>
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-gray-600 mb-1">INFOS</p>
+                          <p className="text-sm"><strong>{article.fournisseur}</strong></p>
+                          <p className="text-sm">{article.prixUnitaire}€ u.</p>
+                          <p className="font-bold mt-1">{icone} {article.severite.toUpperCase()}</p>
+                        </div>
+                      </div>
 
-                    {/* INFOS ARTICLE */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3 text-sm">
-                      <div className="bg-white p-2 rounded border">
-                        <p className="text-xs text-gray-600 font-bold">FOURNISSEUR</p>
-                        <p className="font-semibold">{article.fournisseur}</p>
-                      </div>
-                      <div className="bg-white p-2 rounded border">
-                        <p className="text-xs text-gray-600 font-bold">PRIX UNIT.</p>
-                        <p className="font-semibold">{article.prixUnitaire}€</p>
-                      </div>
-                      <div className="bg-white p-2 rounded border">
-                        <p className="text-xs text-gray-600 font-bold">VALEUR STOCK</p>
-                        <p className="font-semibold text-green-600">{(getStockTotal(article) * article.prixUnitaire).toFixed(2)}€</p>
-                      </div>
-                      <div className="bg-white p-2 rounded border">
-                        <p className="text-xs text-gray-600 font-bold">STOCK MIN</p>
-                        <p className="font-semibold">{article.stockMin}</p>
+                      {/* ACTIONS */}
+                      <div className="flex flex-wrap gap-2">
+                        <button onClick={() => genererTexteCommande(article)} className="bg-green-600 text-white px-3 py-2 rounded font-bold text-sm hover:bg-green-700">
+                          🛒 Commander
+                        </button>
+                        <button onClick={() => alert('Transfert rapide: À implémenter')} className="bg-blue-600 text-white px-3 py-2 rounded font-bold text-sm hover:bg-blue-700">
+                          🔄 Transférer
+                        </button>
+                        <button onClick={() => alert(`Détails ${article.code}: À implémenter`)} className="bg-gray-600 text-white px-3 py-2 rounded font-bold text-sm hover:bg-gray-700">
+                          👁️ Détails
+                        </button>
+                        <button onClick={() => alert(`Historique ${article.code}: À implémenter`)} className="bg-purple-600 text-white px-3 py-2 rounded font-bold text-sm hover:bg-purple-700">
+                          📊 Historique
+                        </button>
                       </div>
                     </div>
-
-                    {/* ACTIONS */}
-                    <div className="flex gap-2">
-                      <button onClick={() => {genererTexteCommande(article); alert('✅ Ajouté au panier');}} className="flex-1 bg-green-600 text-white px-3 py-2 rounded font-bold text-sm hover:bg-green-700">🛒 Commander</button>
-                      <button onClick={() => setOngletActif('stock')} className="flex-1 bg-blue-600 text-white px-3 py-2 rounded font-bold text-sm hover:bg-blue-700">🔄 Transférer</button>
-                      <button onClick={() => {setOngletActif('inventaire');}} className="flex-1 bg-purple-600 text-white px-3 py-2 rounded font-bold text-sm hover:bg-purple-700">👁️ Détails</button>
-                      <button onClick={() => alert(`📊 Historique ${article.code}:\n- 3 entrées\n- 2 sorties\n- 1 transfert`)} className="flex-1 bg-gray-600 text-white px-3 py-2 rounded font-bold text-sm hover:bg-gray-700">📜 Historique</button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
