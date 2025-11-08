@@ -87,6 +87,16 @@ export default function SolaireNettoyageFlotte() {
   const [afficherFormulaireEquipement, setAfficherFormulaireEquipement] = useState(false);
   const [equipementEnEdition, setEquipementEnEdition] = useState(null);
   const [modeEdition, setModeEdition] = useState(false);
+  const [afficherFormulaireArticle, setAfficherFormulaireArticle] = useState(false);
+  const [articleFormEnEdition, setArticleFormEnEdition] = useState(null);
+  const [modeEditionArticle, setModeEditionArticle] = useState(false);
+  const [nouvelArticleForm, setNouvelArticleForm] = useState({
+    code: '',
+    description: '',
+    fournisseur: '',
+    prixUnitaire: 0,
+    stockMin: 0
+  });
 
   const [accessoiresEquipement, setAccessoiresEquipement] = useState({
     1: [
@@ -319,6 +329,100 @@ export default function SolaireNettoyageFlotte() {
       notes: ''
     });
     setAfficherFormulaireEquipement(false);
+  };
+
+  // ✅ FONCTION CRÉER/MODIFIER ARTICLE
+  const creerOuModifierArticle = () => {
+    if (!nouvelArticleForm.code || !nouvelArticleForm.description) {
+      alert('⚠️ Code et Description sont obligatoires!');
+      return;
+    }
+
+    // Vérifier unicité code (sauf si c'est l'article en édition)
+    const codeExiste = articles.some(a => 
+      a.code === nouvelArticleForm.code && 
+      (!modeEditionArticle || a.id !== articleFormEnEdition.id)
+    );
+    
+    if (codeExiste) {
+      alert('⚠️ Ce code article existe déjà!');
+      return;
+    }
+
+    if (modeEditionArticle) {
+      // MODE ÉDITION: Mettre à jour l'article
+      setArticles(articles.map(a => 
+        a.id === articleFormEnEdition.id ? {
+          id: a.id, // ID inchangé
+          code: nouvelArticleForm.code,
+          description: nouvelArticleForm.description,
+          fournisseur: nouvelArticleForm.fournisseur || '',
+          prixUnitaire: nouvelArticleForm.prixUnitaire ? parseFloat(nouvelArticleForm.prixUnitaire) : 0,
+          stockParDepot: a.stockParDepot, // ← CONSERVÉ
+          stockMin: nouvelArticleForm.stockMin ? parseInt(nouvelArticleForm.stockMin) : 0,
+          equipementsAffectes: a.equipementsAffectes // ← CONSERVÉ
+        } : a
+      ));
+      alert('✅ Article modifié avec succès!');
+    } else {
+      // MODE CRÉATION: Ajouter nouvel article
+      const nouvelId = articles.length > 0 ? Math.max(...articles.map(a => a.id)) + 1 : 1;
+      
+      const article = {
+        id: nouvelId,
+        code: nouvelArticleForm.code,
+        description: nouvelArticleForm.description,
+        fournisseur: nouvelArticleForm.fournisseur || '',
+        prixUnitaire: nouvelArticleForm.prixUnitaire ? parseFloat(nouvelArticleForm.prixUnitaire) : 0,
+        stockParDepot: { 'Atelier': 0, 'Véhicule 1': 0, 'Véhicule 2': 0, 'Véhicule 3': 0 },
+        stockMin: nouvelArticleForm.stockMin ? parseInt(nouvelArticleForm.stockMin) : 0,
+        equipementsAffectes: []
+      };
+
+      setArticles([...articles, article]);
+      alert('✅ Article créé avec succès!');
+    }
+
+    // Réinitialiser formulaire et fermer
+    setNouvelArticleForm({
+      code: '',
+      description: '',
+      fournisseur: '',
+      prixUnitaire: 0,
+      stockMin: 0
+    });
+
+    setArticleFormEnEdition(null);
+    setModeEditionArticle(false);
+    setAfficherFormulaireArticle(false);
+  };
+
+  // ✅ FONCTION OUVRIR ÉDITION ARTICLE
+  const ouvrirEditionArticle = (article) => {
+    setArticleFormEnEdition(article);
+    setModeEditionArticle(true);
+    setNouvelArticleForm({
+      code: article.code,
+      description: article.description,
+      fournisseur: article.fournisseur,
+      prixUnitaire: article.prixUnitaire,
+      stockMin: article.stockMin
+    });
+    setAfficherFormulaireArticle(true);
+  };
+
+  // ✅ FONCTION ANNULER ÉDITION ARTICLE
+  const annulerEditionArticle = () => {
+    setArticleFormEnEdition(null);
+    setModeEditionArticle(false);
+    setNouvelArticleForm({
+      code: '',
+      description: '',
+      fournisseur: '',
+      prixUnitaire: 0,
+      stockMin: 0
+    });
+    setAfficherFormulaireArticle(false);
   };
 
   const gererSelectionPhotos = (e) => {
@@ -1109,7 +1213,149 @@ export default function SolaireNettoyageFlotte() {
         )}
 
         {ongletActif === 'articles' && (
-          <div className="bg-white p-4 rounded border"><h2 className="font-bold mb-3">Articles ({articles.length})</h2><button onClick={genererQRCodesPDF} className="mb-4 bg-purple-600 text-white px-4 py-2 rounded font-bold hover:bg-purple-700">📋 Générer QR Codes PDF</button><div className="space-y-2">{articles.map(a => (<div key={a.id} className="flex justify-between p-2 bg-gray-50 rounded"><div><strong>{a.code}</strong> - {a.description}</div><div className="text-right"><span className={getStockTotal(a) <= 2 ? 'text-red-600 font-bold' : 'text-green-600 font-bold'}>{getStockTotal(a)}</span> × {a.prixUnitaire}€</div></div>))}</div></div>
+          <div className="space-y-6">
+            {/* FORMULAIRE CRÉATION/ÉDITION ARTICLE */}
+            <div className="bg-gradient-to-r from-purple-50 to-pink-50 border-4 border-purple-400 p-6 rounded-xl">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-2xl font-black text-purple-700">
+                  {modeEditionArticle ? `✏️ MODIFIER ARTICLE - ${articleFormEnEdition?.code}` : '📦 CRÉER NOUVEL ARTICLE'}
+                </h3>
+                <button 
+                  onClick={() => modeEditionArticle ? annulerEditionArticle() : setAfficherFormulaireArticle(!afficherFormulaireArticle)}
+                  className={`px-4 py-2 rounded font-bold text-white ${afficherFormulaireArticle ? 'bg-red-600' : 'bg-purple-600'}`}
+                >
+                  {afficherFormulaireArticle ? '✕ Fermer' : '➕ Ouvrir'}
+                </button>
+              </div>
+
+              {afficherFormulaireArticle && (
+                <div className="bg-white p-6 rounded-lg space-y-4">
+                  
+                  {/* SECTION 1 - INFO DE BASE */}
+                  <div className="bg-purple-50 p-4 rounded-lg border-2 border-purple-300">
+                    <h4 className="font-bold text-purple-700 mb-3">📋 INFO DE BASE</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-xs font-bold text-gray-700">Code article *</label>
+                        <input 
+                          type="text" 
+                          placeholder="Ex: BAC5X5" 
+                          value={nouvelArticleForm.code}
+                          onChange={(e) => setNouvelArticleForm({...nouvelArticleForm, code: e.target.value})}
+                          className="w-full border-2 border-purple-300 rounded px-3 py-2 mt-1 font-bold"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-bold text-gray-700">Description *</label>
+                        <input 
+                          type="text" 
+                          placeholder="Ex: Barre pour clavette..." 
+                          value={nouvelArticleForm.description}
+                          onChange={(e) => setNouvelArticleForm({...nouvelArticleForm, description: e.target.value})}
+                          className="w-full border-2 border-purple-300 rounded px-3 py-2 mt-1"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* SECTION 2 - INFOS COMMERCIALES */}
+                  <div className="bg-blue-50 p-4 rounded-lg border-2 border-blue-300">
+                    <h4 className="font-bold text-blue-700 mb-3">💰 INFOS COMMERCIALES</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-xs font-bold text-gray-700">Fournisseur</label>
+                        <input 
+                          type="text" 
+                          placeholder="Ex: LE BON ROULEMENT" 
+                          value={nouvelArticleForm.fournisseur}
+                          onChange={(e) => setNouvelArticleForm({...nouvelArticleForm, fournisseur: e.target.value})}
+                          className="w-full border-2 border-blue-300 rounded px-3 py-2 mt-1"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-bold text-gray-700">Prix unitaire (€)</label>
+                        <input 
+                          type="number" 
+                          step="0.01"
+                          placeholder="0" 
+                          value={nouvelArticleForm.prixUnitaire}
+                          onChange={(e) => setNouvelArticleForm({...nouvelArticleForm, prixUnitaire: e.target.value})}
+                          className="w-full border-2 border-blue-300 rounded px-3 py-2 mt-1"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* SECTION 3 - STOCK */}
+                  <div className="bg-green-50 p-4 rounded-lg border-2 border-green-300">
+                    <h4 className="font-bold text-green-700 mb-3">📊 STOCK</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-1 gap-3">
+                      <div>
+                        <label className="text-xs font-bold text-gray-700">Stock minimum</label>
+                        <input 
+                          type="number" 
+                          placeholder="0" 
+                          value={nouvelArticleForm.stockMin}
+                          onChange={(e) => setNouvelArticleForm({...nouvelArticleForm, stockMin: e.target.value})}
+                          className="w-full border-2 border-green-300 rounded px-3 py-2 mt-1"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* BOUTONS CRÉER/SAUVEGARDER */}
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={creerOuModifierArticle}
+                      className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-4 rounded-lg font-black text-lg hover:from-purple-700 hover:to-pink-700 transition"
+                    >
+                      {modeEditionArticle ? '💾 SAUVEGARDER MODIFICATIONS' : '✅ CRÉER ARTICLE'}
+                    </button>
+                    {modeEditionArticle && (
+                      <button 
+                        onClick={annulerEditionArticle}
+                        className="flex-1 bg-gray-500 text-white px-6 py-4 rounded-lg font-black text-lg hover:bg-gray-600 transition"
+                      >
+                        ❌ ANNULER
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* LISTE DES ARTICLES */}
+            <div className="bg-white p-4 rounded border">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="font-black text-xl">📦 Articles ({articles.length})</h2>
+                <button onClick={genererQRCodesPDF} className="bg-purple-600 text-white px-4 py-2 rounded font-bold hover:bg-purple-700 text-sm">📋 QR Codes PDF</button>
+              </div>
+              <div className="space-y-2">
+                {articles.map(a => (
+                  <div key={a.id} className="flex justify-between items-center p-3 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg border-2 border-purple-200 hover:shadow-md transition">
+                    <div className="flex-1">
+                      <div className="font-bold text-purple-700">{a.code}</div>
+                      <div className="text-sm text-gray-600">{a.description}</div>
+                      <div className="text-xs text-gray-500 mt-1">
+                        {a.fournisseur && <span>📍 {a.fournisseur} • </span>}
+                        <span>💰 {a.prixUnitaire}€ • </span>
+                        <span>📊 Min: {a.stockMin} • </span>
+                        <span className={getStockTotal(a) <= 2 ? 'text-red-600 font-bold' : 'text-green-600 font-bold'}>{getStockTotal(a)} pièces</span>
+                      </div>
+                    </div>
+                    <div className="flex gap-2 ml-2">
+                      <button 
+                        onClick={() => ouvrirEditionArticle(a)}
+                        className="bg-blue-600 text-white px-3 py-2 rounded font-bold text-sm hover:bg-blue-700 whitespace-nowrap"
+                      >
+                        ✏️ Éditer
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         )}
 
         {ongletActif === 'inventaire' && (
