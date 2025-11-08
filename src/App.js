@@ -65,10 +65,11 @@ export default function SolaireNettoyageFlotte() {
     { id: 1, equipementId: 3, type: 'Révision/Maintenance', date: '2023-10-31', km: 363392, heures: 0, description: 'Entretien atelier', articles: [], statut: 'effectue', coutTotal: 7635.12, depotPrelevement: 'Atelier' }
   ]);
   
-  const [planMaintenance] = useState([
-    { id: 1, equipementId: 1, type: 'Vidange moteur', seuil: 15000, unite: 'km', prochaine: 15000 },
-    { id: 2, equipementId: 1, type: 'Révision complète', seuil: 60000, unite: 'km', prochaine: 60000 },
-  ]);
+  // Plan de maintenance (structure pour futures évolutions)
+  // const [planMaintenance] = useState([
+  //   { id: 1, equipementId: 1, type: 'Vidange moteur', seuil: 15000, unite: 'km', prochaine: 15000 },
+  //   { id: 2, equipementId: 1, type: 'Révision complète', seuil: 60000, unite: 'km', prochaine: 60000 },
+  // ]);
 
   // NOUVEAU: Défauts signalés
   const [defauts, setDefauts] = useState([
@@ -1029,7 +1030,6 @@ export default function SolaireNettoyageFlotte() {
                 <div className="space-y-2">
                   {defautsArchives.map(d => {
                     const eq = equipements.find(e => e.id === d.equipementId);
-                    const acc = d.accessoireId ? Object.values(accessoiresEquipement).flat().find(a => a.id === d.accessoireId) : null;
                     return (
                       <div key={d.id} className="bg-white rounded p-3 border-l-4 border-green-500 flex justify-between items-center">
                         <div>
