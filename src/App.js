@@ -1284,13 +1284,17 @@ export default function SolaireNettoyageFlotte() {
                           className="w-full border-2 border-blue-300 rounded px-3 py-2 mt-1"
                         >
                           <option value="">Sélectionner type</option>
-                          <option value="Camion Citerne">Camion Citerne</option>
                           <option value="Tracteur Routier">Tracteur Routier</option>
                           <option value="Semi-Remorque">Semi-Remorque</option>
                           <option value="Micro-tracteur">Micro-tracteur</option>
                           <option value="Tracteur">Tracteur</option>
-                          <option value="Camion Plateau">Camion Plateau</option>
                           <option value="Remorque">Remorque</option>
+                          <option value="Camion Porteur">Camion Porteur</option>
+                          <option value="Nacelle">Nacelle</option>
+                          <option value="Groupe électrogène">Groupe électrogène</option>
+                          <option value="Osmoseur">Osmoseur</option>
+                          <option value="Robot nettoyage">Robot nettoyage</option>
+                          <option value="Accessoire">Accessoire</option>
                           <option value="Autre">Autre</option>
                         </select>
                       </div>
