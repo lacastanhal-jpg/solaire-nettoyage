@@ -1058,77 +1058,144 @@ export default function SolaireNettoyageFlotte() {
           </div>
         )}
 
-        {/* MODAL DÉTAILS DÉFAUT */}
+        {/* MODAL DÉTAILS (DÉFAUT OU INTERVENTION) */}
         {defautSelectionne && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-xl shadow-2xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
               <div className="flex justify-between items-start mb-4">
-                <h2 className="text-2xl font-black">📋 DÉTAILS DÉFAUT</h2>
+                <h2 className="text-2xl font-black">{defautSelectionne.isIntervention ? '🔧 DÉTAILS INTERVENTION' : '📋 DÉTAILS DÉFAUT'}</h2>
                 <button onClick={() => setDefautSelectionne(null)} className="text-2xl">✕</button>
               </div>
 
               <div className="space-y-4">
-                <div className="bg-gray-50 p-4 rounded-lg border-2">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-xs text-gray-500 font-bold">TYPE</p>
-                      <p className="text-lg font-black">{defautSelectionne.type}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500 font-bold">SÉVÉRITÉ</p>
-                      <p className="text-lg font-black">{defautSelectionne.severite === 'critique' ? '🔴' : defautSelectionne.severite === 'moyen' ? '🟠' : '🟡'} {defautSelectionne.severite.toUpperCase()}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500 font-bold">ÉQUIPEMENT</p>
-                      <p className="font-semibold">{equipements.find(e => e.id === defautSelectionne.equipementId)?.immat}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500 font-bold">OPÉRATEUR</p>
-                      <p className="font-semibold">{defautSelectionne.operateur}</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <p className="text-xs text-gray-500 font-bold mb-1">DESCRIPTION</p>
-                  <p className="bg-blue-50 border-2 border-blue-300 p-3 rounded font-semibold">{defautSelectionne.description}</p>
-                </div>
-
-                <div>
-                  <p className="text-xs text-gray-500 font-bold mb-1">LOCALISATION</p>
-                  <p className="font-semibold">{defautSelectionne.localisation || 'Non spécifiée'}</p>
-                </div>
-
-                {defautSelectionne.remarques && (
-                  <div>
-                    <p className="text-xs text-gray-500 font-bold mb-1">REMARQUES</p>
-                    <p className="bg-yellow-50 border-2 border-yellow-300 p-3 rounded">{defautSelectionne.remarques}</p>
-                  </div>
-                )}
-
-                {defautSelectionne.photos && defautSelectionne.photos.length > 0 && (
-                  <div>
-                    <p className="text-xs text-gray-500 font-bold mb-2">📸 PHOTOS ({defautSelectionne.photos.length})</p>
-                    <div className="grid grid-cols-2 gap-3">
-                      {defautSelectionne.photos.map((photo, idx) => (
-                        <div key={idx} className="border-2 border-gray-300 rounded-lg overflow-hidden">
-                          <img 
-                            src={photo.base64} 
-                            alt={photo.nom} 
-                            className="w-full h-auto object-cover"
-                          />
-                          <p className="text-xs text-center font-semibold text-gray-700 p-1 bg-gray-100">{photo.nom}</p>
+                {defautSelectionne.isIntervention ? (
+                  <>
+                    {/* INTERVENTION */}
+                    <div className="bg-orange-50 p-4 rounded-lg border-2 border-orange-300">
+                      <div className="grid grid-cols-2 gap-4 mb-3">
+                        <div>
+                          <p className="text-xs text-gray-500 font-bold">TYPE</p>
+                          <p className="text-lg font-black text-orange-700">{defautSelectionne.type}</p>
                         </div>
-                      ))}
+                        <div>
+                          <p className="text-xs text-gray-500 font-bold">DATE</p>
+                          <p className="font-semibold">{defautSelectionne.date}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500 font-bold">STATUT</p>
+                          <p className="font-bold">{defautSelectionne.statut === 'effectue' ? '✅ Effectuée' : '⏳ En cours'}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500 font-bold">COÛT TOTAL</p>
+                          <p className="text-xl font-black text-orange-600">{defautSelectionne.coutTotal}€</p>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                )}
 
-                <div className="bg-gray-100 p-3 rounded text-sm">
-                  <p><strong>Date constatation:</strong> {defautSelectionne.dateConstatation}</p>
-                  <p><strong>Statut:</strong> {defautSelectionne.statut === 'a_traiter' ? '⏳ À traiter' : '✅ Résolu'}</p>
-                  {defautSelectionne.dateArchivage && <p><strong>Date résolution:</strong> {defautSelectionne.dateArchivage}</p>}
-                </div>
+                    <div>
+                      <p className="text-xs text-gray-500 font-bold mb-1">DESCRIPTION</p>
+                      <p className="bg-blue-50 border-2 border-blue-300 p-3 rounded">{defautSelectionne.description}</p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <p className="text-xs text-gray-500 font-bold mb-1">KM</p>
+                        <p className="font-semibold">{defautSelectionne.km} km</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500 font-bold mb-1">HEURES</p>
+                        <p className="font-semibold">{defautSelectionne.heures}h</p>
+                      </div>
+                    </div>
+
+                    {defautSelectionne.articles && defautSelectionne.articles.length > 0 && (
+                      <div>
+                        <p className="text-xs text-gray-500 font-bold mb-2">📦 ARTICLES UTILISÉS ({defautSelectionne.articles.length})</p>
+                        <div className="space-y-2">
+                          {defautSelectionne.articles.map((art, idx) => (
+                            <div key={idx} className="bg-blue-50 p-2 rounded border border-blue-300">
+                              <div className="flex justify-between">
+                                <div>
+                                  <p className="font-bold text-blue-700">{art.code}</p>
+                                  <p className="text-xs text-gray-600">{art.description}</p>
+                                </div>
+                                <div className="text-right">
+                                  <p className="font-bold text-blue-600">{art.quantite}x</p>
+                                  <p className="text-sm text-green-600">{(art.quantite * art.prixUnitaire).toFixed(2)}€</p>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    {/* DÉFAUT */}
+                    <div className="bg-gray-50 p-4 rounded-lg border-2">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-xs text-gray-500 font-bold">TYPE</p>
+                          <p className="text-lg font-black">{defautSelectionne.type}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500 font-bold">SÉVÉRITÉ</p>
+                          <p className="text-lg font-black">{defautSelectionne.severite === 'critique' ? '🔴' : defautSelectionne.severite === 'moyen' ? '🟠' : '🟡'} {defautSelectionne.severite.toUpperCase()}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500 font-bold">ÉQUIPEMENT</p>
+                          <p className="font-semibold">{equipements.find(e => e.id === defautSelectionne.equipementId)?.immat}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500 font-bold">OPÉRATEUR</p>
+                          <p className="font-semibold">{defautSelectionne.operateur}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <p className="text-xs text-gray-500 font-bold mb-1">DESCRIPTION</p>
+                      <p className="bg-blue-50 border-2 border-blue-300 p-3 rounded font-semibold">{defautSelectionne.description}</p>
+                    </div>
+
+                    <div>
+                      <p className="text-xs text-gray-500 font-bold mb-1">LOCALISATION</p>
+                      <p className="font-semibold">{defautSelectionne.localisation || 'Non spécifiée'}</p>
+                    </div>
+
+                    {defautSelectionne.remarques && (
+                      <div>
+                        <p className="text-xs text-gray-500 font-bold mb-1">REMARQUES</p>
+                        <p className="bg-yellow-50 border-2 border-yellow-300 p-3 rounded">{defautSelectionne.remarques}</p>
+                      </div>
+                    )}
+
+                    {defautSelectionne.photos && defautSelectionne.photos.length > 0 && (
+                      <div>
+                        <p className="text-xs text-gray-500 font-bold mb-2">📸 PHOTOS ({defautSelectionne.photos.length})</p>
+                        <div className="grid grid-cols-2 gap-3">
+                          {defautSelectionne.photos.map((photo, idx) => (
+                            <div key={idx} className="border-2 border-gray-300 rounded-lg overflow-hidden">
+                              <img 
+                                src={photo.base64} 
+                                alt={photo.nom} 
+                                className="w-full h-auto object-cover"
+                              />
+                              <p className="text-xs text-center font-semibold text-gray-700 p-1 bg-gray-100">{photo.nom}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="bg-gray-100 p-3 rounded text-sm">
+                      <p><strong>Date constatation:</strong> {defautSelectionne.dateConstatation}</p>
+                      <p><strong>Statut:</strong> {defautSelectionne.statut === 'a_traiter' ? '⏳ À traiter' : '✅ Résolu'}</p>
+                      {defautSelectionne.dateArchivage && <p><strong>Date résolution:</strong> {defautSelectionne.dateArchivage}</p>}
+                    </div>
+                  </>
+                )}
 
                 <button onClick={() => setDefautSelectionne(null)} className="w-full bg-gray-600 text-white px-4 py-3 rounded-lg font-black">Fermer</button>
               </div>
@@ -1154,21 +1221,156 @@ export default function SolaireNettoyageFlotte() {
         )}
 
         {ongletActif === 'statistiques' && (
-          <div className="bg-purple-50 border-4 border-purple-500 p-6 rounded-lg">
-            <h2 className="text-3xl font-black text-purple-700 mb-4">📈 STATISTIQUES AVANCÉES</h2>
-            <p className="text-lg text-purple-600 font-semibold">Fonctionnalité en développement pour V1.4.2</p>
-            <p className="text-gray-600 mt-2">Dashboard complet: Stocks, Interventions, Équipements, Fournisseurs</p>
-            <div className="mt-4 p-4 bg-white rounded border-2 border-purple-300">
-              <p className="font-semibold">À venir:</p>
-              <ul className="list-disc ml-5 mt-2 text-sm text-gray-700">
-                <li>Graphiques stocks (évolution 30j)</li>
-                <li>TOP articles consommés/chers</li>
-                <li>Mouvements par dépôt</li>
-                <li>Coûts interventions par équipement</li>
-                <li>Analyses fournisseurs</li>
-                <li>Export PDF/CSV</li>
-              </ul>
+          <div className="space-y-6">
+            <h2 className="text-3xl font-black text-purple-700">📈 STATISTIQUES ÉQUIPEMENTS</h2>
+
+            {/* SÉLECTION ÉQUIPEMENT */}
+            <div className="bg-white p-4 rounded border-2 border-purple-300">
+              <label className="block text-sm font-bold text-gray-700 mb-2">Sélectionner équipement</label>
+              <select 
+                value={equipementSelectionne} 
+                onChange={(e) => setEquipementSelectionne(parseInt(e.target.value))}
+                className="w-full border-2 border-purple-400 rounded px-3 py-2 font-bold text-lg"
+              >
+                {equipements.map(eq => (
+                  <option key={eq.id} value={eq.id}>
+                    {eq.immat} - {eq.marque} {eq.modele}
+                  </option>
+                ))}
+              </select>
             </div>
+
+            {equipSelectionne && (
+              <div className="space-y-6">
+                {/* CARTE RÉSUMÉ */}
+                <div className="bg-gradient-to-r from-purple-100 to-indigo-100 border-4 border-purple-500 p-6 rounded-xl">
+                  <h3 className="text-2xl font-black text-purple-700 mb-4">📊 RÉSUMÉ - {equipSelectionne.immat}</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="bg-white p-4 rounded-lg border-2 border-purple-300">
+                      <p className="text-xs text-gray-600 font-bold">INTERVENTIONS</p>
+                      <p className="text-3xl font-black text-purple-600">{interventions.filter(i => i.equipementId === equipSelectionne.id).length}</p>
+                      <p className="text-sm text-gray-700">{interventions.filter(i => i.equipementId === equipSelectionne.id && i.statut === 'effectue').length} effectuées</p>
+                    </div>
+                    <div className="bg-white p-4 rounded-lg border-2 border-red-300">
+                      <p className="text-xs text-gray-600 font-bold">DÉFAUTS</p>
+                      <p className="text-3xl font-black text-red-600">{defauts.filter(d => d.equipementId === equipSelectionne.id).length}</p>
+                      <p className="text-sm text-gray-700">{defauts.filter(d => d.equipementId === equipSelectionne.id && d.statut === 'resolu').length} résolus</p>
+                    </div>
+                    <div className="bg-white p-4 rounded-lg border-2 border-green-300">
+                      <p className="text-xs text-gray-600 font-bold">ACCESSOIRES</p>
+                      <p className="text-3xl font-black text-green-600">{(accessoiresEquipement[equipSelectionne.id] || []).length}</p>
+                      <p className="text-sm text-gray-700">{accessoiresTotal.toFixed(0)}€ total</p>
+                    </div>
+                    <div className="bg-white p-4 rounded-lg border-2 border-blue-300">
+                      <p className="text-xs text-gray-600 font-bold">COÛT INTERVENTIONS</p>
+                      <p className="text-3xl font-black text-blue-600">{interventions.filter(i => i.equipementId === equipSelectionne.id && i.statut === 'effectue').reduce((sum, i) => sum + (i.coutTotal || 0), 0).toFixed(0)}€</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* RECHERCHE INTELLIGENTE */}
+                <div className="bg-blue-50 border-2 border-blue-300 p-4 rounded-lg">
+                  <h3 className="font-bold mb-3">🔍 RECHERCHE AVANCÉE</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                    <div>
+                      <label className="text-xs font-bold text-gray-700">Date départ</label>
+                      <input type="date" className="w-full border rounded px-2 py-1 text-sm" />
+                    </div>
+                    <div>
+                      <label className="text-xs font-bold text-gray-700">Date fin</label>
+                      <input type="date" className="w-full border rounded px-2 py-1 text-sm" />
+                    </div>
+                    <div>
+                      <label className="text-xs font-bold text-gray-700">Type</label>
+                      <select className="w-full border rounded px-2 py-1 text-sm">
+                        <option value="">Tous</option>
+                        <option value="intervention">Interventions</option>
+                        <option value="defaut">Défauts</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-xs font-bold text-gray-700">Sévérité</label>
+                      <select className="w-full border rounded px-2 py-1 text-sm">
+                        <option value="">Tous</option>
+                        <option value="critique">Critique</option>
+                        <option value="moyen">Moyen</option>
+                        <option value="mineur">Mineur</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* INTERVENTIONS */}
+                <div className="bg-white p-4 rounded-lg border-2 border-orange-300">
+                  <h3 className="text-xl font-black text-orange-700 mb-3">🔧 INTERVENTIONS ({interventions.filter(i => i.equipementId === equipSelectionne.id).length})</h3>
+                  <div className="space-y-2">
+                    {interventions.filter(i => i.equipementId === equipSelectionne.id).length === 0 ? (
+                      <p className="text-gray-500 italic">Aucune intervention</p>
+                    ) : (
+                      interventions.filter(i => i.equipementId === equipSelectionne.id).map(i => (
+                        <div key={i.id} className="bg-orange-50 p-3 rounded border-l-4 border-orange-500 flex justify-between items-center">
+                          <div>
+                            <p className="font-bold text-orange-700">{i.type}</p>
+                            <p className="text-xs text-gray-600">{i.date} • {i.coutTotal}€ • {i.statut === 'effectue' ? '✅ Effectuée' : '⏳ En cours'}</p>
+                          </div>
+                          <button onClick={() => setDefautSelectionne({ ...i, isIntervention: true })} className="bg-blue-600 text-white px-3 py-1 rounded text-sm font-bold">Détails</button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+
+                {/* DÉFAUTS */}
+                <div className="bg-white p-4 rounded-lg border-2 border-red-300">
+                  <h3 className="text-xl font-black text-red-700 mb-3">🚨 DÉFAUTS ({defauts.filter(d => d.equipementId === equipSelectionne.id).length})</h3>
+                  <div className="space-y-2">
+                    {defauts.filter(d => d.equipementId === equipSelectionne.id).length === 0 ? (
+                      <p className="text-gray-500 italic">Aucun défaut</p>
+                    ) : (
+                      defauts.filter(d => d.equipementId === equipSelectionne.id).map(d => (
+                        <div key={d.id} className={`p-3 rounded border-l-4 flex justify-between items-center ${d.severite === 'critique' ? 'bg-red-50 border-red-500' : d.severite === 'moyen' ? 'bg-orange-50 border-orange-500' : 'bg-yellow-50 border-yellow-500'}`}>
+                          <div>
+                            <p className="font-bold">{d.type} {d.severite === 'critique' ? '🔴' : d.severite === 'moyen' ? '🟠' : '🟡'}</p>
+                            <p className="text-xs text-gray-600">{d.dateConstatation} • {d.operateur} • {d.statut === 'resolu' ? '✅ Résolu' : '⏳ À traiter'}</p>
+                          </div>
+                          <button onClick={() => setDefautSelectionne(d)} className="bg-blue-600 text-white px-3 py-1 rounded text-sm font-bold">Détails</button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+
+                {/* ACCESSOIRES */}
+                <div className="bg-white p-4 rounded-lg border-2 border-green-300">
+                  <h3 className="text-xl font-black text-green-700 mb-3">🎨 ACCESSOIRES ({(accessoiresEquipement[equipSelectionne.id] || []).length})</h3>
+                  <div className="space-y-2">
+                    {(accessoiresEquipement[equipSelectionne.id] || []).length === 0 ? (
+                      <p className="text-gray-500 italic">Aucun accessoire</p>
+                    ) : (
+                      (accessoiresEquipement[equipSelectionne.id] || []).map(acc => (
+                        <div key={acc.id} className="bg-green-50 p-3 rounded border-l-4 border-green-500 flex justify-between">
+                          <div>
+                            <p className="font-bold text-green-700">{acc.nom}</p>
+                            <p className="text-xs text-gray-600">{acc.dateAjout} • {acc.actif ? '✅ Actif' : '❌ Inactif'}</p>
+                          </div>
+                          <p className="font-bold text-green-600">{acc.valeur.toFixed(2)}€</p>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+
+                {/* EXPORT */}
+                <div className="flex gap-2">
+                  <button onClick={() => alert('📥 Export PDF en développement')} className="flex-1 bg-red-600 text-white px-4 py-3 rounded-lg font-black hover:bg-red-700">
+                    📄 Exporter PDF
+                  </button>
+                  <button onClick={() => alert('📊 Export CSV en développement')} className="flex-1 bg-green-600 text-white px-4 py-3 rounded-lg font-black hover:bg-green-700">
+                    📊 Exporter CSV
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
