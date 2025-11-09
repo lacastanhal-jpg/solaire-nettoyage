@@ -50,6 +50,7 @@ export default function SolaireNettoyageV22() {
   const [activiteLog, setActiviteLog] = useState([]);
 
   // États UI
+  const [equipementSelectionne] = useState(1);
   const [chargementEnCours, setChargementEnCours] = useState(true);
   const [statusSync, setStatusSync] = useState('Connexion...');
 
