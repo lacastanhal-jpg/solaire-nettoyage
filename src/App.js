@@ -47,15 +47,13 @@ export default function SolaireNettoyageV22() {
   const [equipements, setEquipements] = useState([]);
   const [interventions, setInterventions] = useState([]);
   const [defauts, setDefauts] = useState([]);
-  const [mouvementsStock, setMouvementsStock] = useState([]);
   const [activiteLog, setActiviteLog] = useState([]);
 
   // États UI
-  const [equipementSelectionne, setEquipementSelectionne] = useState(1);
   const [chargementEnCours, setChargementEnCours] = useState(true);
   const [statusSync, setStatusSync] = useState('Connexion...');
 
-  const depots = ['Atelier', 'Porteur 26 T', 'Porteur 32 T', 'Semi Remorque'];
+  const depots = React.useMemo(() => ['Atelier', 'Porteur 26 T', 'Porteur 32 T', 'Semi Remorque'], []);
 
   // ============================================
   // CHARGER OPÉRATEURS AU DÉMARRAGE
@@ -102,9 +100,6 @@ export default function SolaireNettoyageV22() {
       const equipData = await apiSupabase('equipements', 'GET', null, '?select=*');
       if (equipData) {
         setEquipements(equipData);
-        if (equipData.length > 0) {
-          setEquipementSelectionne(equipData[0].id);
-        }
       }
 
       // Charger interventions
@@ -114,10 +109,6 @@ export default function SolaireNettoyageV22() {
       // Charger défauts
       const defautData = await apiSupabase('defauts', 'GET', null, '?select=*');
       setDefauts(defautData || []);
-
-      // Charger mouvements stock
-      const mouvData = await apiSupabase('mouvements_stock', 'GET', null, '?select=*');
-      setMouvementsStock(mouvData || []);
 
       // Charger historique activité
       const activiteData = await apiSupabase('activite_log', 'GET', null, '?select=*&order=created_at.desc&limit=50');
