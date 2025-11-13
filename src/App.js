@@ -1,1668 +1,2203 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Camera, Package, Wrench, Home, FileText, Settings, AlertTriangle, Plus, Edit2, Trash2, ChevronDown, ChevronRight, Search, Filter, Calendar, Save, X, Upload, ShoppingCart, Fuel, ClipboardList, BarChart3, Bell, TrendingUp, Users, MapPin, Clock, CheckCircle, XCircle, AlertCircle, Image, Star, DollarSign, Percent, Activity, Hammer, Truck, Cpu, Droplet, Bot, Package2 } from 'lucide-react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { createClient } from '@supabase/supabase-js';
+const supabase = createClient('https://dxzzwxjgsifivlqqlwuz.supabase.co','eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR4enp3eGpnc2lmaXZscXFsd3V6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI3MDE5NjksImV4cCI6MjA3ODI3Nzk2OX0.UFER1C0Hud0JUuBfBLRHzIj-C2UHE0_o3ES3-D8L-XE');
 
-// Configuration Supabase 
-const supabaseUrl = 'https://nnxqphqoavkqjqyovdpl.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5ueHFwaHFvYXZrcWpxeW92ZHBsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzYzNjU4MjQsImV4cCI6MjA1MTk0MTgyNH0.HBqnle6yusr0edHFp3vYQBXe1t7nVZVW-fXLW2N2xPc';
-const supabase = createClient(supabaseUrl, supabaseKey);
+export default function SolaireNettoyageFlotte() {
+  const [ongletActif, setOngletActif] = useState('accueil');
+  const [equipementSelectionne, setEquipementSelectionne] = useState(1);
+  const canvasRef = useRef(null);
+  const videoRef = useRef(null);
+  const scanningRef = useRef(false);
+  const jsQRRef = useRef(null);
+  const videoIntervention = useRef(null);
+  const canvasIntervention = useRef(null);
+  const scanningIntervention = useRef(false);
+  const fileInputRef = useRef(null);
+  
+  const [filtreAlerteSeverite, setFiltreAlerteSeverite] = useState('');
+  const [filtreAlerteFournisseur, setFiltreAlerteFournisseur] = useState('');
+  const [filtreAlerteDepot, setFiltreAlerteDepot] = useState('');
+  const [triAlertes, setTriAlertes] = useState('severite');
+  const [articleEnDetailsAlerte, setArticleEnDetailsAlerte] = useState(null);
+  const [articleEnTransfertAlerte, setArticleEnTransfertAlerte] = useState(null);
+  const [articleEnHistoriqueAlerte, setArticleEnHistoriqueAlerte] = useState(null);
+  const [transfertRapideData, setTransfertRapideData] = useState({ depotSource: 'Atelier', depotDestination: 'Porteur 26 T', quantite: '' });
 
-// Données initiales
-const articlesInitiaux = [
-  { id: '1', code: 'ROUE001', description: 'Roue de rechange nacelle', stockMin: 2, prix: 450, fournisseur: 'RURAL MASTER', stocks: { 'Atelier': 3, 'Porteur 26T': 1, 'Porteur 32T': 0, 'Semi Remorque': 1 } },
-  { id: '2', code: 'BATT001', description: 'Batterie 12V nacelle', stockMin: 4, prix: 280, fournisseur: 'V6 AUTOPRO', stocks: { 'Atelier': 5, 'Porteur 26T': 2, 'Porteur 32T': 1, 'Semi Remorque': 2 } },
-  { id: '3', code: 'HUIL001', description: 'Huile hydraulique 5L', stockMin: 10, prix: 85, fournisseur: 'LE BON ROULEMENT', stocks: { 'Atelier': 12, 'Porteur 26T': 3, 'Porteur 32T': 2, 'Semi Remorque': 3 } },
-  { id: '4', code: 'FILTR001', description: 'Filtre hydraulique', stockMin: 5, prix: 120, fournisseur: 'CLAAS LAGARRIGUE', stocks: { 'Atelier': 8, 'Porteur 26T': 1, 'Porteur 32T': 1, 'Semi Remorque': 1 } },
-  { id: '5', code: 'COURR001', description: 'Courroie de transmission', stockMin: 3, prix: 195, fournisseur: 'SARL QUIERS', stocks: { 'Atelier': 4, 'Porteur 26T': 1, 'Porteur 32T': 0, 'Semi Remorque': 1 } },
-  { id: '6', code: 'ROUL001', description: 'Roulement à billes 60x90', stockMin: 6, prix: 75, fournisseur: 'LE BON ROULEMENT', stocks: { 'Atelier': 7, 'Porteur 26T': 2, 'Porteur 32T': 1, 'Semi Remorque': 2 } },
-  { id: '7', code: 'JOINT001', description: 'Joint torique hydraulique', stockMin: 20, prix: 15, fournisseur: 'V6 AUTOPRO', stocks: { 'Atelier': 25, 'Porteur 26T': 5, 'Porteur 32T': 5, 'Semi Remorque': 5 } },
-  { id: '8', code: 'LAMP001', description: 'Lampe LED travail', stockMin: 8, prix: 65, fournisseur: 'RURAL MASTER', stocks: { 'Atelier': 10, 'Porteur 26T': 2, 'Porteur 32T': 2, 'Semi Remorque': 2 } },
-  { id: '9', code: 'FLEX001', description: 'Flexible hydraulique 2m', stockMin: 4, prix: 145, fournisseur: 'CLAAS LAGARRIGUE', stocks: { 'Atelier': 5, 'Porteur 26T': 1, 'Porteur 32T': 1, 'Semi Remorque': 1 } },
-  { id: '10', code: 'GRAISS001', description: 'Graisse multifonction 1kg', stockMin: 12, prix: 25, fournisseur: 'SARL QUIERS', stocks: { 'Atelier': 15, 'Porteur 26T': 3, 'Porteur 32T': 3, 'Semi Remorque': 3 } },
-  { id: '11', code: 'PNEU001', description: 'Pneu tracteur avant', stockMin: 2, prix: 680, fournisseur: 'RURAL MASTER', stocks: { 'Atelier': 3, 'Porteur 26T': 0, 'Porteur 32T': 0, 'Semi Remorque': 1 } },
-  { id: '12', code: 'CHAIN001', description: 'Chaîne de sécurité', stockMin: 6, prix: 55, fournisseur: 'LE BON ROULEMENT', stocks: { 'Atelier': 8, 'Porteur 26T': 2, 'Porteur 32T': 2, 'Semi Remorque': 2 } },
-  { id: '13', code: 'FUSIB001', description: 'Boîte de fusibles assortis', stockMin: 3, prix: 35, fournisseur: 'V6 AUTOPRO', stocks: { 'Atelier': 4, 'Porteur 26T': 1, 'Porteur 32T': 1, 'Semi Remorque': 1 } },
-  { id: '14', code: 'ANTIF001', description: 'Antigel circuit 5L', stockMin: 8, prix: 42, fournisseur: 'SARL QUIERS', stocks: { 'Atelier': 10, 'Porteur 26T': 2, 'Porteur 32T': 2, 'Semi Remorque': 2 } },
-  { id: '15', code: 'BACHE001', description: 'Bâche de protection 4x6m', stockMin: 4, prix: 125, fournisseur: 'RURAL MASTER', stocks: { 'Atelier': 5, 'Porteur 26T': 1, 'Porteur 32T': 1, 'Semi Remorque': 1 } },
-  { id: '16', code: 'SANG001', description: 'Sangle arrimage 5T', stockMin: 10, prix: 38, fournisseur: 'CLAAS LAGARRIGUE', stocks: { 'Atelier': 12, 'Porteur 26T': 3, 'Porteur 32T': 3, 'Semi Remorque': 4 } },
-  { id: '17', code: 'COFF001', description: 'Coffret outillage complet', stockMin: 2, prix: 450, fournisseur: 'LE BON ROULEMENT', stocks: { 'Atelier': 3, 'Porteur 26T': 1, 'Porteur 32T': 1, 'Semi Remorque': 0 } },
-  { id: '18', code: 'NETT001', description: 'Produit nettoyage panneaux 20L', stockMin: 15, prix: 95, fournisseur: 'V6 AUTOPRO', stocks: { 'Atelier': 20, 'Porteur 26T': 5, 'Porteur 32T': 5, 'Semi Remorque': 5 } },
-  { id: '19', code: 'BROSS001', description: 'Brosse rotative rechange', stockMin: 4, prix: 220, fournisseur: 'SARL QUIERS', stocks: { 'Atelier': 5, 'Porteur 26T': 1, 'Porteur 32T': 1, 'Semi Remorque': 1 } }
-];
+  const operateurs = ['Axel', 'Jérôme', 'Sébastien', 'Joffrey', 'Fabien', 'Angelo'];
+  const depots = ['Atelier', 'Porteur 26 T', 'Porteur 32 T', 'Semi Remorque'];
+  
+  const [articles, setArticles] = useState([]);
+  const [equipements, setEquipements] = useState([]);
+  const [interventions, setInterventions] = useState([]);
+  const [defauts, setDefauts] = useState([]);
+  const [mouvementsStock, setMouvementsStock] = useState([]);
+  const [accessoiresEquipement, setAccessoiresEquipement] = useState({});
 
-const equipmentsInitiaux = [
-  { id: '1', nom: 'Camion IVECO 26T', type: 'Camion Porteur', immatriculation: 'AB-123-CD', statut: 'Actif', derniereRevision: '2024-10-15', prochaineRevision: '2025-01-15', kilometrage: 45000 },
-  { id: '2', nom: 'Camion IVECO 32T', type: 'Camion Porteur', immatriculation: 'EF-456-GH', statut: 'Actif', derniereRevision: '2024-09-20', prochaineRevision: '2024-12-20', kilometrage: 52000 },
-  { id: '3', nom: 'Nacelle Spider 30m', type: 'Nacelle', immatriculation: 'NAC-001', statut: 'Actif', heuresService: 1250, derniereRevision: '2024-11-01', prochaineRevision: '2025-02-01' },
-  { id: '4', nom: 'Groupe Électrogène 50kVA', type: 'Groupe électrogène', immatriculation: 'GE-001', statut: 'Maintenance', heuresService: 850, derniereRevision: '2024-08-15', prochaineRevision: '2024-11-15' },
-  { id: '5', nom: 'Osmoseur Mobile 1000L', type: 'Osmoseur', immatriculation: 'OSM-001', statut: 'Actif', capacite: '1000L/h', derniereRevision: '2024-10-01', prochaineRevision: '2025-01-01' },
-  { id: '6', nom: 'Robot Nettoyage RB-2000', type: 'Robot nettoyage', immatriculation: 'ROB-001', statut: 'Actif', heuresService: 450, derniereRevision: '2024-11-10', prochaineRevision: '2025-02-10' }
-];
-
-// Hook personnalisé pour Supabase avec fallback localStorage
-const useSupabaseData = (table, localStorageKey, initialData = []) => {
-  const [data, setData] = useState(() => {
-    const localData = localStorage.getItem(localStorageKey);
-    return localData ? JSON.parse(localData) : initialData;
-  });
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [isOnline, setIsOnline] = useState(true);
-
-  // Charger depuis Supabase
-  const fetchData = useCallback(async () => {
-    try {
-      setLoading(true);
-      const { data: supabaseData, error } = await supabase
-        .from(table)
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-
-      setData(supabaseData || initialData);
-      localStorage.setItem(localStorageKey, JSON.stringify(supabaseData || initialData));
-      setIsOnline(true);
-    } catch (err) {
-      console.error(`Erreur chargement ${table}:`, err);
-      setError(err.message);
-      setIsOnline(false);
-      // Utiliser localStorage en fallback
-    } finally {
-      setLoading(false);
-    }
-  }, [table, localStorageKey, initialData]);
-
-  // Ajouter un élément
-  const addItem = async (item) => {
-    const newItem = { ...item, id: Date.now().toString(), created_at: new Date().toISOString() };
-    
-    try {
-      const { data: insertedData, error } = await supabase
-        .from(table)
-        .insert([newItem])
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      setData(prev => [insertedData, ...prev]);
-      localStorage.setItem(localStorageKey, JSON.stringify([insertedData, ...data]));
-      return insertedData;
-    } catch (err) {
-      console.error('Erreur ajout:', err);
-      // Fallback localStorage
-      setData(prev => [newItem, ...prev]);
-      localStorage.setItem(localStorageKey, JSON.stringify([newItem, ...data]));
-      return newItem;
-    }
-  };
-
-  // Mettre à jour un élément
-  const updateItem = async (id, updates) => {
-    try {
-      const { data: updatedData, error } = await supabase
-        .from(table)
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      setData(prev => prev.map(item => item.id === id ? updatedData : item));
-      localStorage.setItem(localStorageKey, JSON.stringify(
-        data.map(item => item.id === id ? updatedData : item)
-      ));
-      return updatedData;
-    } catch (err) {
-      console.error('Erreur mise à jour:', err);
-      // Fallback localStorage
-      const updated = { ...data.find(item => item.id === id), ...updates };
-      setData(prev => prev.map(item => item.id === id ? updated : item));
-      localStorage.setItem(localStorageKey, JSON.stringify(
-        data.map(item => item.id === id ? updated : item)
-      ));
-      return updated;
-    }
-  };
-
-  // Supprimer un élément
-  const deleteItem = async (id) => {
-    try {
-      const { error } = await supabase
-        .from(table)
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
-
-      setData(prev => prev.filter(item => item.id !== id));
-      localStorage.setItem(localStorageKey, JSON.stringify(
-        data.filter(item => item.id !== id)
-      ));
-    } catch (err) {
-      console.error('Erreur suppression:', err);
-      // Fallback localStorage
-      setData(prev => prev.filter(item => item.id !== id));
-      localStorage.setItem(localStorageKey, JSON.stringify(
-        data.filter(item => item.id !== id)
-      ));
-    }
-  };
-
-  // Synchronisation au montage
+  // CHARGER TOUT DEPUIS SUPABASE AU DÉMARRAGE
   useEffect(() => {
-    fetchData();
-    
-    // Écouter les changements temps réel
-    const subscription = supabase
-      .channel(`${table}_changes`)
-      .on('postgres_changes', { event: '*', schema: 'public', table }, (payload) => {
-        if (payload.eventType === 'INSERT') {
-          setData(prev => [payload.new, ...prev]);
-        } else if (payload.eventType === 'UPDATE') {
-          setData(prev => prev.map(item => 
-            item.id === payload.new.id ? payload.new : item
-          ));
-        } else if (payload.eventType === 'DELETE') {
-          setData(prev => prev.filter(item => item.id !== payload.old.id));
-        }
+    const chargerDonnees = async () => {
+      // Charger articles
+      const { data: articlesData } = await supabase.from('articles').select('*');
+      if (articlesData && articlesData.length > 0) {
+        setArticles(articlesData.map(a => ({
+          id: a.id,
+          code: a.code,
+          description: a.description,
+          fournisseur: a.fournisseur || '',
+          prixUnitaire: parseFloat(a.prix_unitaire) || 0,
+          stockParDepot: a.stock_par_depot || {'Atelier':0,'Porteur 26 T':0,'Porteur 32 T':0,'Semi Remorque':0},
+          stockMin: a.stock_min || 1,
+          equipementsAffectes: a.equipements_affectes || []
+        })));
+      } else {
+        // Données par défaut si vide
+        setArticles([
+          {id:1,code:'BAC5X5',description:'Barre pour clavette en acier 5x5',fournisseur:'LE BON ROULEMENT',prixUnitaire:5.05,stockParDepot:{'Atelier':3,'Porteur 26 T':0,'Porteur 32 T':0,'Semi Remorque':0},stockMin:2,equipementsAffectes:[]},
+          {id:2,code:'BAC8X7',description:'Barre pour clavette en acier 8x7',fournisseur:'LE BON ROULEMENT',prixUnitaire:9.07,stockParDepot:{'Atelier':3,'Porteur 26 T':0,'Porteur 32 T':0,'Semi Remorque':0},stockMin:2,equipementsAffectes:[]},
+          {id:3,code:'388518',description:'Bague support pont avant',fournisseur:'RURAL MASTER',prixUnitaire:12.41,stockParDepot:{'Atelier':1,'Porteur 26 T':0,'Porteur 32 T':0,'Semi Remorque':0},stockMin:1,equipementsAffectes:[]},
+          {id:4,code:'605670',description:'Washer 48.0x4.0 thrust',fournisseur:'RURAL MASTER',prixUnitaire:5.68,stockParDepot:{'Atelier':1,'Porteur 26 T':0,'Porteur 32 T':0,'Semi Remorque':0},stockMin:1,equipementsAffectes:[]},
+          {id:5,code:'606540',description:'Nut M10x1.508 hex',fournisseur:'RURAL MASTER',prixUnitaire:2.06,stockParDepot:{'Atelier':1,'Porteur 26 T':0,'Porteur 32 T':0,'Semi Remorque':0},stockMin:1,equipementsAffectes:[]},
+          {id:6,code:'605669',description:'Seal O ring 2.62x55.0',fournisseur:'RURAL MASTER',prixUnitaire:2.76,stockParDepot:{'Atelier':1,'Porteur 26 T':0,'Porteur 32 T':0,'Semi Remorque':0},stockMin:1,equipementsAffectes:[]},
+          {id:7,code:'606858',description:'Grease nipple B M6',fournisseur:'RURAL MASTER',prixUnitaire:2.20,stockParDepot:{'Atelier':1,'Porteur 26 T':0,'Porteur 32 T':0,'Semi Remorque':0},stockMin:1,equipementsAffectes:[]},
+          {id:8,code:'605668',description:'Dowel bush pillow block',fournisseur:'RURAL MASTER',prixUnitaire:3.59,stockParDepot:{'Atelier':2,'Porteur 26 T':0,'Porteur 32 T':0,'Semi Remorque':0},stockMin:1,equipementsAffectes:[]},
+          {id:9,code:'606739',description:'Bolt M10x1.50x356.6P hex head',fournisseur:'RURAL MASTER',prixUnitaire:2.62,stockParDepot:{'Atelier':1,'Porteur 26 T':0,'Porteur 32 T':0,'Semi Remorque':0},stockMin:1,equipementsAffectes:[]},
+          {id:10,code:'388497',description:'Support pont avant',fournisseur:'RURAL MASTER',prixUnitaire:53.02,stockParDepot:{'Atelier':1,'Porteur 26 T':0,'Porteur 32 T':0,'Semi Remorque':0},stockMin:1,equipementsAffectes:[]},
+          {id:11,code:'764617',description:'Chambre à air 20x108 STI',fournisseur:'RURAL MASTER',prixUnitaire:44.30,stockParDepot:{'Atelier':3,'Porteur 26 T':0,'Porteur 32 T':0,'Semi Remorque':0},stockMin:2,equipementsAffectes:[]},
+          {id:12,code:'HIFSO 8055',description:'Filtre à huile',fournisseur:'V6 AUTOPRO',prixUnitaire:40.80,stockParDepot:{'Atelier':2,'Porteur 26 T':0,'Porteur 32 T':0,'Semi Remorque':0},stockMin:1,equipementsAffectes:[1]},
+          {id:13,code:'HIFSN 916020',description:'Filtre à gasoil séparateur d\'eau',fournisseur:'V6 AUTOPRO',prixUnitaire:34.12,stockParDepot:{'Atelier':2,'Porteur 26 T':0,'Porteur 32 T':0,'Semi Remorque':0},stockMin:1,equipementsAffectes:[1]},
+          {id:14,code:'WY119802-55710',description:'Séparateur d\'eau',fournisseur:'CLAAS LAGARRIGUE',prixUnitaire:15.05,stockParDepot:{'Atelier':1,'Porteur 26 T':0,'Porteur 32 T':0,'Semi Remorque':0},stockMin:1,equipementsAffectes:[6]},
+          {id:15,code:'WY123907-55810',description:'Filtre combustible',fournisseur:'CLAAS LAGARRIGUE',prixUnitaire:36.88,stockParDepot:{'Atelier':1,'Porteur 26 T':0,'Porteur 32 T':0,'Semi Remorque':0},stockMin:1,equipementsAffectes:[6]},
+          {id:16,code:'WY129150-35170',description:'Filtre à huile',fournisseur:'CLAAS LAGARRIGUE',prixUnitaire:14.17,stockParDepot:{'Atelier':1,'Porteur 26 T':0,'Porteur 32 T':0,'Semi Remorque':0},stockMin:1,equipementsAffectes:[6]},
+          {id:17,code:'44524021',description:'Filtre TRANS (TTR/TRH 9800) PONT AV',fournisseur:'CLAAS LAGARRIGUE',prixUnitaire:31.65,stockParDepot:{'Atelier':1,'Porteur 26 T':0,'Porteur 32 T':0,'Semi Remorque':0},stockMin:1,equipementsAffectes:[6]},
+          {id:18,code:'44524020',description:'Filtre HYDRAU PRESSION',fournisseur:'CLAAS LAGARRIGUE',prixUnitaire:62.71,stockParDepot:{'Atelier':1,'Porteur 26 T':0,'Porteur 32 T':0,'Semi Remorque':0},stockMin:1,equipementsAffectes:[6]},
+          {id:19,code:'BF16',description:'Huile BF16 (20L)',fournisseur:'SARL QUIERS',prixUnitaire:5.07,stockParDepot:{'Atelier':40,'Porteur 26 T':0,'Porteur 32 T':0,'Semi Remorque':0},stockMin:10,equipementsAffectes:[6]}
+        ]);
+      }
+
+      // Charger équipements
+      const { data: equipementsData } = await supabase.from('equipements').select('*');
+      if (equipementsData && equipementsData.length > 0) {
+        setEquipements(equipementsData);
+      } else {
+        setEquipements([
+          {id:1,immat:'GT-316-FG',type:'Camion Citerne',marque:'IVECO',modele:'S-WAY',annee:2023,km:0,heures:0,carburant:'Diesel',vin:'ZCFCE62RU00C519482',ptac:26000,poids:13190,proprietaire:'SOLAIRE NETTOYAGE',valeurAchat:0,valeurActuelle:133500,typeFinancement:'Location',coutMensuel:2104,dateDebut:'2023-12-22',dateFin:'2029-12-22',assurance:80.10,dateContracteTechnique:'2024-12-22',notes:'Contrat de location A1M75094 001'},
+          {id:2,immat:'DX-780-QN',type:'Tracteur Routier',marque:'IVECO',modele:'STRALIS 560',annee:2015,km:293992,heures:0,carburant:'Diesel',vin:'WJMS2NWH60C329019',ptac:26000,poids:8518,proprietaire:'SOLAIRE NETTOYAGE',valeurAchat:45000,valeurActuelle:42000,typeFinancement:'Achat',coutMensuel:0,dateDebut:'2020-09-18',dateFin:'',assurance:85.00,dateContracteTechnique:'2020-10-17',notes:'STRALIS 560 • Type 6x2'},
+          {id:3,immat:'CZ-022-DP',type:'Semi-Remorque',marque:'NICOLAS',modele:'B3207C',annee:2002,km:0,heures:0,carburant:'N/A',vin:'VF9B3207C02058032',ptac:34000,poids:12550,proprietaire:'SOLAIRE NETTOYAGE',valeurAchat:15000,valeurActuelle:14000,typeFinancement:'Achat',coutMensuel:0,dateDebut:'2018-06-29',dateFin:'',assurance:120.00,dateContracteTechnique:'2019-08-22',notes:'Semi-Remorque NICOLAS B3207C'},
+          {id:4,immat:'G3-415-BW',type:'Micro-tracteur',marque:'FARMTRAC',modele:'F26VHE14HMNDWF',annee:2022,km:0,heures:0,carburant:'Essence',vin:'M6SH09RLANF585383',ptac:1800,poids:1057,proprietaire:'SOLAIRE NETTOYAGE',valeurAchat:12325.00,valeurActuelle:12325.00,typeFinancement:'Achat',coutMensuel:0,dateDebut:'2022-08-25',dateFin:'',assurance:0,dateContracteTechnique:'2022-08-25',notes:'TRACTEUR FARMTRAC - Immatriculation 25/08/2022'},
+          {id:5,immat:'GM-843-SW',type:'Micro-tracteur',marque:'FARMTRAC',modele:'F26VHE14HMNDWL',annee:2023,km:0,heures:0,carburant:'Essence',vin:'M6SH09RLDNF610727',ptac:1800,poids:1057,proprietaire:'SOLAIRE NETTOYAGE',valeurAchat:12325.00,valeurActuelle:12325.00,typeFinancement:'Achat',coutMensuel:0,dateDebut:'2023-03-16',dateFin:'',assurance:0,dateContracteTechnique:'2023-03-16',notes:'TRACTEUR FARMTRAC - Immatriculation 16/03/2023'},
+          {id:6,immat:'DZ-609-JX',type:'Tracteur',marque:'ANTONIO CARRARO',modele:'ERGIT-ST2088965A2',annee:2016,km:0,heures:3170,carburant:'Agricole',vin:'T20ACATA000P471',ptac:4800,poids:2650,proprietaire:'SOLAIRE NETTOYAGE',valeurAchat:42000.00,valeurActuelle:42000.00,typeFinancement:'Achat',coutMensuel:0,dateDebut:'2025-05-27',dateFin:'',assurance:0,dateContracteTechnique:'2025-05-27',notes:'TRACTEUR ANTONIO CARRARO MACH 4 CHENILLES'}
+        ]);
+      }
+
+      // Charger interventions
+      const { data: interventionsData } = await supabase.from('interventions').select('*');
+      if (interventionsData) setInterventions(interventionsData);
+
+      // Charger défauts
+      const { data: defautsData } = await supabase.from('defauts').select('*');
+      if (defautsData) setDefauts(defautsData);
+
+      // Charger mouvements
+      const { data: mouvementsData } = await supabase.from('mouvements_stock').select('*');
+      if (mouvementsData) setMouvementsStock(mouvementsData);
+
+      // Charger accessoires
+      const { data: accessoiresData } = await supabase.from('accessoires').select('*');
+      if (accessoiresData) {
+        const acc = {};
+        accessoiresData.forEach(a => {
+          if (!acc[a.equipement_id]) acc[a.equipement_id] = [];
+          acc[a.equipement_id].push(a);
+        });
+        setAccessoiresEquipement(acc);
+      }
+    };
+    chargerDonnees();
+  }, []);
+
+  // Synchronisation temps réel
+  useEffect(() => {
+    const articlesSubscription = supabase
+      .channel('articles-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'articles' }, () => {
+        chargerArticles();
+      })
+      .subscribe();
+
+    const equipementsSubscription = supabase
+      .channel('equipements-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'equipements' }, () => {
+        chargerEquipements();
       })
       .subscribe();
 
     return () => {
-      subscription.unsubscribe();
+      articlesSubscription.unsubscribe();
+      equipementsSubscription.unsubscribe();
     };
-  }, [fetchData, table]);
+  }, []);
 
-  return {
-    data,
-    loading,
-    error,
-    isOnline,
-    addItem,
-    updateItem,
-    deleteItem,
-    refreshData: fetchData
+  const chargerArticles = async () => {
+    const { data } = await supabase.from('articles').select('*');
+    if (data) setArticles(data.map(a => ({
+      id: a.id,
+      code: a.code,
+      description: a.description,
+      fournisseur: a.fournisseur || '',
+      prixUnitaire: parseFloat(a.prix_unitaire) || 0,
+      stockParDepot: a.stock_par_depot || {'Atelier':0,'Porteur 26 T':0,'Porteur 32 T':0,'Semi Remorque':0},
+      stockMin: a.stock_min || 1,
+      equipementsAffectes: a.equipements_affectes || []
+    })));
   };
-};
 
-// Composant principal
-export default function App() {
-  // États pour la navigation
-  const [activeTab, setActiveTab] = useState('accueil');
-  const [expandedSections, setExpandedSections] = useState({});
-  
-  // Référence pour le scanner QR
-  const videoRef = useRef(null);
-  const canvasRef = useRef(null);
-  const [scanning, setScanning] = useState(false);
-  const [scanResult, setScanResult] = useState('');
-  
-  // États pour les modaux
-  const [showArticleModal, setShowArticleModal] = useState(false);
-  const [showEquipmentModal, setShowEquipmentModal] = useState(false);
-  const [showInterventionModal, setShowInterventionModal] = useState(false);
-  const [showMaintenanceModal, setShowMaintenanceModal] = useState(false);
-  const [showDefautModal, setShowDefautModal] = useState(false);
-  const [showFuelModal, setShowFuelModal] = useState(false);
-  
-  // États pour l'édition
-  const [editingArticle, setEditingArticle] = useState(null);
-  const [editingEquipment, setEditingEquipment] = useState(null);
-  const [editingIntervention, setEditingIntervention] = useState(null);
-  const [editingMaintenance, setEditingMaintenance] = useState(null);
-  
-  // États pour les filtres et recherche
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedDepot, setSelectedDepot] = useState('tous');
-  const [selectedEquipmentType, setSelectedEquipmentType] = useState('tous');
-  const [dateFilter, setDateFilter] = useState('');
-  
-  // Hooks Supabase pour chaque table
-  // NOUVEAU (correspondant à vos tables Supabase)
-const articlesHook = useSupabaseData('articles', 'articles', articlesInitiaux);
-const equipmentsHook = useSupabaseData('equipements', 'equipements', equipmentsInitiaux);
-const interventionsHook = useSupabaseData('interventions', 'interventions', []);
-const maintenancesHook = useSupabaseData('maintenance_prevue', 'maintenances', []); // ← votre table
-const defautsHook = useSupabaseData('defauts', 'defauts', []);
-const ravitaillementsHook = useSupabaseData('ravitaillements', 'ravitaillements', []);
-const mouvementsStockHook = useSupabaseData('mouvements_stock', 'mouvementsStock', []);
-  
-  // Panier de commande
-  const [panier, setPanier] = useState(() => {
-    const saved = localStorage.getItem('panierCommande');
-    return saved ? JSON.parse(saved) : [];
+  const chargerEquipements = async () => {
+    const { data } = await supabase.from('equipements').select('*');
+    if (data) setEquipements(data);
+  };
+
+  const sauverArticle = async (article) => {
+    await supabase.from('articles').upsert({
+      id: article.id,
+      code: article.code,
+      description: article.description,
+      fournisseur: article.fournisseur,
+      prix_unitaire: article.prixUnitaire,
+      stock_par_depot: article.stockParDepot,
+      stock_min: article.stockMin,
+      equipements_affectes: article.equipementsAffectes
+    });
+  };
+
+  const sauverEquipement = async (equipement) => {
+    await supabase.from('equipements').upsert(equipement);
+  };
+
+  const sauverIntervention = async (intervention) => {
+    await supabase.from('interventions').upsert(intervention);
+  };
+
+  const sauverDefaut = async (defaut) => {
+    await supabase.from('defauts').upsert(defaut);
+  };
+
+  const sauverMouvement = async (mouvement) => {
+    await supabase.from('mouvements_stock').insert(mouvement);
+  };
+
+  const [nouvelEquipement, setNouvelEquipement] = useState({
+    immat:'',type:'',marque:'',modele:'',annee:'',km:0,heures:0,carburant:'',vin:'',ptac:0,poids:0,
+    proprietaire:'SOLAIRE NETTOYAGE',valeurAchat:0,valeurActuelle:0,typeFinancement:'',coutMensuel:0,
+    dateDebut:new Date().toISOString().split('T')[0],dateFin:'',assurance:0,dateContracteTechnique:'',notes:''
   });
 
-  // Dépôts disponibles
-  const depots = ['Atelier', 'Porteur 26T', 'Porteur 32T', 'Semi Remorque'];
+  const [afficherFormulaireEquipement, setAfficherFormulaireEquipement] = useState(false);
+  const [equipementEnEdition, setEquipementEnEdition] = useState(null);
+  const [modeEdition, setModeEdition] = useState(false);
+  const [afficherFormulaireArticle, setAfficherFormulaireArticle] = useState(false);
+  const [articleFormEnEdition, setArticleFormEnEdition] = useState(null);
+  const [modeEditionArticle, setModeEditionArticle] = useState(false);
+  const [nouvelArticleForm, setNouvelArticleForm] = useState({code:'',description:'',fournisseur:'',prixUnitaire:0,stockMin:0});
+  const [nouveauDefaut, setNouveauDefaut] = useState({
+    equipementId:'',accessoireId:'',type:'Fuite',severite:'moyen',description:'',localisation:'',
+    dateConstatation:new Date().toISOString().split('T')[0],operateur:'Axel',remarques:'',photosNoms:[]
+  });
+  const [defautSelectionne, setDefautSelectionne] = useState(null);
+  const [photosSelectionnees, setPhotosSelectionnees] = useState([]);
+  const [nouvelleEntreeStock, setNouvelleEntreeStock] = useState({articleId:'',quantite:'',prixUnitaire:'',raison:'',date:new Date().toISOString().split('T')[0],depot:'Atelier'});
+  const [nouveauMouvementSortie, setNouveauMouvementSortie] = useState({articleId:'',quantite:'',raison:'',date:new Date().toISOString().split('T')[0],depot:'Atelier'});
+  const [nouveauTransfert, setNouveauTransfert] = useState({articleId:'',quantite:'',depotSource:'Atelier',depotDestination:'Porteur 26 T',raison:'',date:new Date().toISOString().split('T')[0]});
+  const [nouvelleIntervention, setNouvelleIntervention] = useState({equipementId:'',type:'',date:new Date().toISOString().split('T')[0],km:'',heures:'',description:'',articlesPrevu:[],depotPrelevement:'Atelier'});
+  const [nouvelArticleIntervention, setNouvelArticleIntervention] = useState({articleId:'',quantite:''});
+  const [nouvelAccessoire, setNouvelAccessoire] = useState({nom:'',valeur:'',description:'',dateAjout:new Date().toISOString().split('T')[0]});
+  const [articleEnEdition, setArticleEnEdition] = useState(null);
+  const [panierCommande, setPanierCommande] = useState([]);
+  const [afficherArticlesEquipement, setAfficherArticlesEquipement] = useState(false);
+  const [afficherScannerQR, setAfficherScannerQR] = useState(false);
+  const [videoStream, setVideoStream] = useState(null);
+  const [scanResultat, setScanResultat] = useState(null);
+  const [actionScan, setActionScan] = useState(null);
+  const [formScanEntree, setFormScanEntree] = useState({quantite:'',prixUnitaire:'',raison:'',date:new Date().toISOString().split('T')[0],depot:'Atelier'});
+  const [formScanSortie, setFormScanSortie] = useState({quantite:'',raison:'',date:new Date().toISOString().split('T')[0],depot:'Atelier'});
+  const [formScanTransfert, setFormScanTransfert] = useState({quantite:'',depotSource:'Atelier',depotDestination:'Porteur 26 T'});
+  const [afficherScannerIntervention, setAfficherScannerIntervention] = useState(false);
+  const [scanResultatIntervention, setScanResultatIntervention] = useState(null);
+  const [quantiteScanIntervention, setQuantiteScanIntervention] = useState('');
   
-  // Types d'équipements
-  const typesEquipements = [
-    'Camion Porteur', 'Nacelle', 'Groupe électrogène', 
-    'Osmoseur', 'Robot nettoyage', 'Accessoire',
-    'Remorque', 'Tracteur', 'Citerne', 'Karcher',
-    'Aspirateur', 'Outillage'
-  ];
-  
-  // Opérateurs
-  const operateurs = ['Axel', 'Jérôme', 'Sébastien', 'Joffrey', 'Fabien', 'Angelo'];
+  const typesIntervention = ['Vidange moteur','Révision complète','Changement pneus','Nettoyage','Maintenance','Contrôle hydraulique','Réparation','Autre'];
 
-  // Données de formulaires
-  const [articleForm, setArticleForm] = useState({
-    code: '', description: '', stockMin: '', prix: '', fournisseur: ''
-  });
-  
-  const [equipmentForm, setEquipmentForm] = useState({
-    nom: '', type: '', immatriculation: '', statut: 'Actif', 
-    kilometrage: '', heuresService: '', derniereRevision: '', prochaineRevision: ''
-  });
-  
-  const [interventionForm, setInterventionForm] = useState({
-    titre: '', description: '', date: new Date().toISOString().split('T')[0],
-    equipementId: '', operateur: '', duree: '', statut: 'En cours', articlesUtilises: []
-  });
-  
-  const [fuelForm, setFuelForm] = useState({
-    date: new Date().toISOString().slice(0, 16), equipementId: '', 
-    litres: '', kilometrageActuel: '', kilometresParcourus: '', 
-    cout: '', lieu: '', operateur: ''
-  });
-  
-  const [defautForm, setDefautForm] = useState({
-    titre: '', description: '', equipementId: '', severite: '', operateur: ''
-  });
+  useEffect(() => {
+    if (window.jsQR) {
+      jsQRRef.current = window.jsQR;
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js';
+    script.async = true;
+    script.onload = () => {
+      jsQRRef.current = window.jsQR;
+    };
+    document.head.appendChild(script);
+  }, []);
 
-  // Fonctions de gestion du panier
-  const ajouterAuPanier = (article) => {
-    const newPanier = [...panier];
-    const existing = newPanier.find(item => item.id === article.id);
-    
-    if (existing) {
-      existing.quantiteCommande = (existing.quantiteCommande || 0) + 1;
+  const creerOuModifierEquipement = async () => {
+    if (!nouvelEquipement.immat || !nouvelEquipement.type) {
+      alert('⚠️ Immatriculation et Type sont obligatoires!');
+      return;
+    }
+    const immatExiste = equipements.some(e => 
+      e.immat === nouvelEquipement.immat && 
+      (!modeEdition || e.id !== equipementEnEdition.id)
+    );
+    if (immatExiste) {
+      alert('⚠️ Cette immatriculation existe déjà!');
+      return;
+    }
+    if (modeEdition) {
+      const updated = equipements.map(e => 
+        e.id === equipementEnEdition.id ? {
+          id: e.id,
+          immat: nouvelEquipement.immat,
+          type: nouvelEquipement.type,
+          marque: nouvelEquipement.marque || '',
+          modele: nouvelEquipement.modele || '',
+          annee: nouvelEquipement.annee ? parseInt(nouvelEquipement.annee) : 0,
+          km: nouvelEquipement.km ? parseInt(nouvelEquipement.km) : 0,
+          heures: nouvelEquipement.heures ? parseInt(nouvelEquipement.heures) : 0,
+          carburant: nouvelEquipement.carburant || '',
+          vin: nouvelEquipement.vin || '',
+          ptac: nouvelEquipement.ptac ? parseInt(nouvelEquipement.ptac) : 0,
+          poids: nouvelEquipement.poids ? parseInt(nouvelEquipement.poids) : 0,
+          proprietaire: nouvelEquipement.proprietaire || 'SOLAIRE NETTOYAGE',
+          valeurAchat: nouvelEquipement.valeurAchat ? parseFloat(nouvelEquipement.valeurAchat) : 0,
+          valeurActuelle: nouvelEquipement.valeurActuelle ? parseFloat(nouvelEquipement.valeurActuelle) : 0,
+          typeFinancement: nouvelEquipement.typeFinancement || '',
+          coutMensuel: nouvelEquipement.coutMensuel ? parseFloat(nouvelEquipement.coutMensuel) : 0,
+          dateDebut: nouvelEquipement.dateDebut || new Date().toISOString().split('T')[0],
+          dateFin: nouvelEquipement.dateFin || '',
+          assurance: nouvelEquipement.assurance ? parseFloat(nouvelEquipement.assurance) : 0,
+          dateContracteTechnique: nouvelEquipement.dateContracteTechnique || '',
+          notes: nouvelEquipement.notes || ''
+        } : e
+      );
+      setEquipements(updated);
+      await sauverEquipement(updated.find(e => e.id === equipementEnEdition.id));
+      alert('✅ Équipement modifié avec succès!');
     } else {
-      newPanier.push({
-        ...article,
-        quantiteCommande: 1
-      });
+      const nouvelId = equipements.length > 0 ? Math.max(...equipements.map(e => e.id)) + 1 : 1;
+      const equipement = {
+        id: nouvelId,
+        immat: nouvelEquipement.immat,
+        type: nouvelEquipement.type,
+        marque: nouvelEquipement.marque || '',
+        modele: nouvelEquipement.modele || '',
+        annee: nouvelEquipement.annee ? parseInt(nouvelEquipement.annee) : 0,
+        km: nouvelEquipement.km ? parseInt(nouvelEquipement.km) : 0,
+        heures: nouvelEquipement.heures ? parseInt(nouvelEquipement.heures) : 0,
+        carburant: nouvelEquipement.carburant || '',
+        vin: nouvelEquipement.vin || '',
+        ptac: nouvelEquipement.ptac ? parseInt(nouvelEquipement.ptac) : 0,
+        poids: nouvelEquipement.poids ? parseInt(nouvelEquipement.poids) : 0,
+        proprietaire: nouvelEquipement.proprietaire || 'SOLAIRE NETTOYAGE',
+        valeurAchat: nouvelEquipement.valeurAchat ? parseFloat(nouvelEquipement.valeurAchat) : 0,
+        valeurActuelle: nouvelEquipement.valeurActuelle ? parseFloat(nouvelEquipement.valeurActuelle) : 0,
+        typeFinancement: nouvelEquipement.typeFinancement || '',
+        coutMensuel: nouvelEquipement.coutMensuel ? parseFloat(nouvelEquipement.coutMensuel) : 0,
+        dateDebut: nouvelEquipement.dateDebut || new Date().toISOString().split('T')[0],
+        dateFin: nouvelEquipement.dateFin || '',
+        assurance: nouvelEquipement.assurance ? parseFloat(nouvelEquipement.assurance) : 0,
+        dateContracteTechnique: nouvelEquipement.dateContracteTechnique || '',
+        notes: nouvelEquipement.notes || ''
+      };
+      const newEquipements = [...equipements, equipement];
+      setEquipements(newEquipements);
+      setAccessoiresEquipement({...accessoiresEquipement, [nouvelId]: []});
+      await sauverEquipement(equipement);
+      alert('✅ Équipement créé avec succès!');
     }
-    
-    setPanier(newPanier);
-    localStorage.setItem('panierCommande', JSON.stringify(newPanier));
+    setNouvelEquipement({
+      immat:'',type:'',marque:'',modele:'',annee:'',km:0,heures:0,carburant:'',vin:'',ptac:0,poids:0,
+      proprietaire:'SOLAIRE NETTOYAGE',valeurAchat:0,valeurActuelle:0,typeFinancement:'',coutMensuel:0,
+      dateDebut:new Date().toISOString().split('T')[0],dateFin:'',assurance:0,dateContracteTechnique:'',notes:''
+    });
+    setEquipementEnEdition(null);
+    setModeEdition(false);
+    setAfficherFormulaireEquipement(false);
   };
 
-  const viderPanier = () => {
-    setPanier([]);
-    localStorage.removeItem('panierCommande');
+  const ouvrirEditionEquipement = (equipement) => {
+    setEquipementEnEdition(equipement);
+    setModeEdition(true);
+    setNouvelEquipement({
+      immat:equipement.immat,type:equipement.type,marque:equipement.marque,modele:equipement.modele,
+      annee:equipement.annee,km:equipement.km,heures:equipement.heures,carburant:equipement.carburant,
+      vin:equipement.vin,ptac:equipement.ptac,poids:equipement.poids,proprietaire:equipement.proprietaire,
+      valeurAchat:equipement.valeurAchat,valeurActuelle:equipement.valeurActuelle,
+      typeFinancement:equipement.typeFinancement,coutMensuel:equipement.coutMensuel,
+      dateDebut:equipement.dateDebut,dateFin:equipement.dateFin,assurance:equipement.assurance,
+      dateContracteTechnique:equipement.dateContracteTechnique,notes:equipement.notes
+    });
+    setAfficherFormulaireEquipement(true);
   };
 
-  const genererCommande = () => {
-    const commande = panier.map(item => ({
-      code: item.code,
-      description: item.description,
-      quantite: item.quantiteCommande,
-      fournisseur: item.fournisseur,
-      prix: item.prix
-    }));
-    
-    const blob = new Blob([JSON.stringify(commande, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `commande_${new Date().toISOString().split('T')[0]}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-    
-    viderPanier();
-    alert('Commande générée avec succès !');
+  const annulerEditionEquipement = () => {
+    setEquipementEnEdition(null);
+    setModeEdition(false);
+    setNouvelEquipement({
+      immat:'',type:'',marque:'',modele:'',annee:'',km:0,heures:0,carburant:'',vin:'',ptac:0,poids:0,
+      proprietaire:'SOLAIRE NETTOYAGE',valeurAchat:0,valeurActuelle:0,typeFinancement:'',coutMensuel:0,
+      dateDebut:new Date().toISOString().split('T')[0],dateFin:'',assurance:0,dateContracteTechnique:'',notes:''
+    });
+    setAfficherFormulaireEquipement(false);
   };
 
-  // Fonction de scan QR
-  const startQRScan = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: 'environment' } 
-      });
-      
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        setScanning(true);
-        scanQRCode();
+  const creerOuModifierArticle = async () => {
+    if (!nouvelArticleForm.code || !nouvelArticleForm.description) {
+      alert('⚠️ Code et Description sont obligatoires!');
+      return;
+    }
+    const codeExiste = articles.some(a => 
+      a.code === nouvelArticleForm.code && 
+      (!modeEditionArticle || a.id !== articleFormEnEdition.id)
+    );
+    if (codeExiste) {
+      alert('⚠️ Ce code article existe déjà!');
+      return;
+    }
+    if (modeEditionArticle) {
+      const updated = articles.map(a => 
+        a.id === articleFormEnEdition.id ? {
+          id: a.id,
+          code: nouvelArticleForm.code,
+          description: nouvelArticleForm.description,
+          fournisseur: nouvelArticleForm.fournisseur || '',
+          prixUnitaire: nouvelArticleForm.prixUnitaire ? parseFloat(nouvelArticleForm.prixUnitaire) : 0,
+          stockParDepot: a.stockParDepot,
+          stockMin: nouvelArticleForm.stockMin ? parseInt(nouvelArticleForm.stockMin) : 0,
+          equipementsAffectes: a.equipementsAffectes
+        } : a
+      );
+      setArticles(updated);
+      await sauverArticle(updated.find(a => a.id === articleFormEnEdition.id));
+      alert('✅ Article modifié avec succès!');
+    } else {
+      const nouvelId = articles.length > 0 ? Math.max(...articles.map(a => a.id)) + 1 : 1;
+      const article = {
+        id: nouvelId,
+        code: nouvelArticleForm.code,
+        description: nouvelArticleForm.description,
+        fournisseur: nouvelArticleForm.fournisseur || '',
+        prixUnitaire: nouvelArticleForm.prixUnitaire ? parseFloat(nouvelArticleForm.prixUnitaire) : 0,
+        stockParDepot: {'Atelier':0,'Porteur 26 T':0,'Porteur 32 T':0,'Semi Remorque':0},
+        stockMin: nouvelArticleForm.stockMin ? parseInt(nouvelArticleForm.stockMin) : 0,
+        equipementsAffectes: []
+      };
+      const newArticles = [...articles, article];
+      setArticles(newArticles);
+      await sauverArticle(article);
+      alert('✅ Article créé avec succès!');
+    }
+    setNouvelArticleForm({code:'',description:'',fournisseur:'',prixUnitaire:0,stockMin:0});
+    setArticleFormEnEdition(null);
+    setModeEditionArticle(false);
+    setAfficherFormulaireArticle(false);
+  };
+
+  const ouvrirEditionArticle = (article) => {
+    setArticleFormEnEdition(article);
+    setModeEditionArticle(true);
+    setNouvelArticleForm({
+      code:article.code,
+      description:article.description,
+      fournisseur:article.fournisseur,
+      prixUnitaire:article.prixUnitaire,
+      stockMin:article.stockMin
+    });
+    setAfficherFormulaireArticle(true);
+  };
+
+  const annulerEditionArticle = () => {
+    setArticleFormEnEdition(null);
+    setModeEditionArticle(false);
+    setNouvelArticleForm({code:'',description:'',fournisseur:'',prixUnitaire:0,stockMin:0});
+    setAfficherFormulaireArticle(false);
+  };
+
+  const gererSelectionPhotos = (e) => {
+    const files = Array.from(e.target.files || []);
+    files.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const base64 = event.target.result;
+        setPhotosSelectionnees(prev => [...prev, {nom:file.name,base64}]);
+        setNouveauDefaut(prev => ({...prev,photosNoms:[...prev.photosNoms,{nom:file.name,base64}]}));
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const supprimerPhotoSelectionnee = (index) => {
+    const newPhotos = photosSelectionnees.filter((_,i) => i !== index);
+    setPhotosSelectionnees(newPhotos);
+    setNouveauDefaut(prev => ({...prev,photosNoms:newPhotos}));
+  };
+
+  const getStockTotal = (article) => {
+    return depots.reduce((sum,depot) => sum + (article.stockParDepot[depot] || 0), 0);
+  };
+
+  const declareDefaut = async () => {
+    if (!nouveauDefaut.equipementId || !nouveauDefaut.type || !nouveauDefaut.description) {
+      alert('Équipement, type et description requis');
+      return;
+    }
+    const newDefaut = {
+      id: defauts.length > 0 ? Math.max(...defauts.map(d => d.id)) + 1 : 1,
+      equipementId: parseInt(nouveauDefaut.equipementId),
+      accessoireId: nouveauDefaut.accessoireId ? parseInt(nouveauDefaut.accessoireId) : null,
+      type: nouveauDefaut.type,
+      severite: nouveauDefaut.severite,
+      description: nouveauDefaut.description,
+      localisation: nouveauDefaut.localisation,
+      dateConstatation: nouveauDefaut.dateConstatation,
+      operateur: nouveauDefaut.operateur,
+      remarques: nouveauDefaut.remarques,
+      photos: photosSelectionnees,
+      statut: 'a_traiter',
+      interventionLieeId: null,
+      dateArchivage: null
+    };
+    const newDefauts = [...defauts, newDefaut];
+    setDefauts(newDefauts);
+    await sauverDefaut(newDefaut);
+    setNouveauDefaut({equipementId:'',accessoireId:'',type:'Fuite',severite:'moyen',description:'',localisation:'',dateConstatation:new Date().toISOString().split('T')[0],operateur:'Axel',remarques:'',photosNoms:[]});
+    setPhotosSelectionnees([]);
+    alert('✅ Défaut signalé!');
+  };
+
+  const resoudreDefaut = async (defautId) => {
+    const updated = defauts.map(d => d.id === defautId ? {...d,statut:'resolu',dateArchivage:new Date().toISOString().split('T')[0]} : d);
+    setDefauts(updated);
+    await sauverDefaut(updated.find(d => d.id === defautId));
+  };
+
+  const creerInterventionDepuisDefaut = (defaut) => {
+    setNouvelleIntervention({
+      equipementId:defaut.accessoireId ? '999' : defaut.equipementId.toString(),
+      type:'Réparation',
+      date:new Date().toISOString().split('T')[0],
+      km:'',
+      heures:'',
+      description:`Réparation - ${defaut.type}: ${defaut.description}`,
+      articlesPrevu:[],
+      depotPrelevement:'Atelier'
+    });
+    setOngletActif('interventions');
+    alert('✅ Intervention pré-remplie depuis le défaut');
+  };
+
+  const traiterScanQR = useCallback((code) => {
+    const article = articles.find(a => a.code === code);
+    if (article) {
+      setScanResultat({success:true,article,code});
+      setActionScan(null);
+    } else {
+      setScanResultat({success:false,code});
+      setActionScan(null);
+    }
+  }, [articles]);
+
+  const getArticlesDisponiblesCallback = useCallback(() => {
+    if (afficherArticlesEquipement && nouvelleIntervention.equipementId) {
+      const selectedId = parseInt(nouvelleIntervention.equipementId);
+      if (selectedId === 999) {
+        return articles.filter(a => a.equipementsAffectes.includes(6) || a.equipementsAffectes.includes(999));
       }
-    } catch (err) {
-      console.error('Erreur accès caméra:', err);
-      alert('Impossible d\'accéder à la caméra');
+      return articles.filter(a => a.equipementsAffectes.includes(selectedId));
     }
-  };
+    return articles;
+  }, [articles, afficherArticlesEquipement, nouvelleIntervention.equipementId]);
 
-  const stopQRScan = () => {
-    if (videoRef.current && videoRef.current.srcObject) {
-      const tracks = videoRef.current.srcObject.getTracks();
-      tracks.forEach(track => track.stop());
-      videoRef.current.srcObject = null;
+  const traiterScanQRIntervention = useCallback((code) => {
+    const article = getArticlesDisponiblesCallback().find(a => a.code === code);
+    if (article) {
+      setScanResultatIntervention({article,code});
+    } else {
+      alert(`Article non trouvé: ${code}`);
     }
-    setScanning(false);
-    setScanResult('');
-  };
+  }, [getArticlesDisponiblesCallback]);
 
-  const scanQRCode = () => {
-    if (!scanning || !videoRef.current || !canvasRef.current) return;
-
-    const video = videoRef.current;
+  useEffect(() => {
+    if (!afficherScannerQR || !videoRef.current || !canvasRef.current || scanResultat) return;
     const canvas = canvasRef.current;
-    const context = canvas.getContext('2d');
-
-    if (video.readyState === video.HAVE_ENOUGH_DATA) {
-      canvas.height = video.videoHeight;
-      canvas.width = video.videoWidth;
-      context.drawImage(video, 0, 0, canvas.width, canvas.height);
-      
-      const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-      
-      // Simulation du scan QR
-      const simulatedResult = Math.random() > 0.8 ? 'ARTICLE:ROUE001' : null;
-      
-      if (simulatedResult) {
-        setScanResult(simulatedResult);
-        handleQRCodeResult(simulatedResult);
-        stopQRScan();
-      } else {
-        requestAnimationFrame(scanQRCode);
+    const video = videoRef.current;
+    const ctx = canvas.getContext('2d', {willReadFrequently:true});
+    let lastDetectedCode = null;
+    let lastDetectedTime = 0;
+    const tick = () => {
+      try {
+        if (video.readyState === video.HAVE_ENOUGH_DATA) {
+          const videoWidth = video.videoWidth;
+          const videoHeight = video.videoHeight;
+          if (videoWidth > 0 && videoHeight > 0) {
+            canvas.width = videoWidth;
+            canvas.height = videoHeight;
+            ctx.drawImage(video,0,0,videoWidth,videoHeight);
+            const imageData = ctx.getImageData(0,0,videoWidth,videoHeight);
+            const jsQR = jsQRRef.current || window.jsQR;
+            if (jsQR && typeof jsQR === 'function') {
+              const code = jsQR(imageData.data,videoWidth,videoHeight);
+              if (code && code.data) {
+                const now = Date.now();
+                if (code.data !== lastDetectedCode || now - lastDetectedTime > 5000) {
+                  lastDetectedCode = code.data;
+                  lastDetectedTime = now;
+                  traiterScanQR(code.data);
+                }
+              }
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Erreur scan:',err);
       }
-    } else {
-      requestAnimationFrame(scanQRCode);
-    }
+      scanningRef.current = requestAnimationFrame(tick);
+    };
+    scanningRef.current = requestAnimationFrame(tick);
+    return () => {
+      if (scanningRef.current) cancelAnimationFrame(scanningRef.current);
+    };
+  }, [afficherScannerQR, scanResultat, traiterScanQR]);
+
+  useEffect(() => {
+    if (!afficherScannerIntervention || !videoIntervention.current || !canvasIntervention.current || scanResultatIntervention) return;
+    const canvas = canvasIntervention.current;
+    const video = videoIntervention.current;
+    const ctx = canvas.getContext('2d', {willReadFrequently:true});
+    let lastDetectedCode = null;
+    let lastDetectedTime = 0;
+    const tick = () => {
+      try {
+        if (video.readyState === video.HAVE_ENOUGH_DATA) {
+          const videoWidth = video.videoWidth;
+          const videoHeight = video.videoHeight;
+          if (videoWidth > 0 && videoHeight > 0) {
+            canvas.width = videoWidth;
+            canvas.height = videoHeight;
+            ctx.drawImage(video,0,0,videoWidth,videoHeight);
+            const imageData = ctx.getImageData(0,0,videoWidth,videoHeight);
+            const jsQR = jsQRRef.current || window.jsQR;
+            if (jsQR && typeof jsQR === 'function') {
+              const code = jsQR(imageData.data,videoWidth,videoHeight);
+              if (code && code.data) {
+                const now = Date.now();
+                if (code.data !== lastDetectedCode || now - lastDetectedTime > 5000) {
+                  lastDetectedCode = code.data;
+                  lastDetectedTime = now;
+                  traiterScanQRIntervention(code.data);
+                }
+              }
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Erreur scan intervention:',err);
+      }
+      scanningIntervention.current = requestAnimationFrame(tick);
+    };
+    scanningIntervention.current = requestAnimationFrame(tick);
+    return () => {
+      if (scanningIntervention.current) cancelAnimationFrame(scanningIntervention.current);
+    };
+  }, [afficherScannerIntervention, scanResultatIntervention, traiterScanQRIntervention]);
+
+  const calculerAlertes = () => {
+    const alertes = articles.map(article => {
+      const total = getStockTotal(article);
+      let severite = null;
+      if (total === article.stockMin) {
+        severite = 'critique';
+      } else if (total < article.stockMin * 1.5) {
+        severite = 'attention';
+      } else if (depots.some(depot => article.stockParDepot[depot] === 0)) {
+        severite = 'vigilance';
+      }
+      if (severite) {
+        return {
+          ...article,
+          severite,
+          depotsVides: depots.filter(d => article.stockParDepot[d] === 0),
+          total
+        };
+      }
+      return null;
+    }).filter(a => a !== null);
+    return alertes;
   };
 
-  const handleQRCodeResult = (result) => {
-    const parts = result.split(':');
-    if (parts[0] === 'ARTICLE' && parts[1]) {
-      const article = articlesHook.data.find(a => a.code === parts[1]);
-      if (article) {
-        setEditingArticle(article);
-        setShowArticleModal(true);
+  const appliquerFiltresAlertes = (alertes) => {
+    let filtrées = alertes;
+    if (filtreAlerteSeverite) {
+      filtrées = filtrées.filter(a => a.severite === filtreAlerteSeverite);
+    }
+    if (filtreAlerteFournisseur) {
+      filtrées = filtrées.filter(a => a.fournisseur === filtreAlerteFournisseur);
+    }
+    if (filtreAlerteDepot) {
+      filtrées = filtrées.filter(a => a.depotsVides.includes(filtreAlerteDepot));
+    }
+    if (triAlertes === 'severite') {
+      filtrées.sort((a,b) => {
+        const ordre = {'critique':0,'attention':1,'vigilance':2};
+        return ordre[a.severite] - ordre[b.severite];
+      });
+    } else if (triAlertes === 'stock') {
+      filtrées.sort((a,b) => a.total - b.total);
+    } else if (triAlertes === 'nom') {
+      filtrées.sort((a,b) => a.code.localeCompare(b.code));
+    }
+    return filtrées;
+  };
+
+  const alertesTotales = calculerAlertes();
+  const alertesCritiques = alertesTotales.filter(a => a.severite === 'critique');
+  const alertesAttention = alertesTotales.filter(a => a.severite === 'attention');
+  const alertesVigilance = alertesTotales.filter(a => a.severite === 'vigilance');
+  const alertesFiltrees = appliquerFiltresAlertes(alertesTotales);
+
+  const effectuerTransfertRapide = async () => {
+    if (!transfertRapideData.quantite || transfertRapideData.depotSource === transfertRapideData.depotDestination) {
+      alert('Quantité et dépôts différents requis');
+      return;
+    }
+    const quantite = parseInt(transfertRapideData.quantite);
+    if ((articleEnTransfertAlerte.stockParDepot[transfertRapideData.depotSource] || 0) < quantite) {
+      alert('Stock insuffisant!');
+      return;
+    }
+    const updated = articles.map(a => a.id === articleEnTransfertAlerte.id ? {...a,stockParDepot:{...a.stockParDepot,[transfertRapideData.depotSource]:(a.stockParDepot[transfertRapideData.depotSource] || 0) - quantite,[transfertRapideData.depotDestination]:(a.stockParDepot[transfertRapideData.depotDestination] || 0) + quantite}} : a);
+    setArticles(updated);
+    await sauverArticle(updated.find(a => a.id === articleEnTransfertAlerte.id));
+    const mouvement = {id:mouvementsStock.length + 1,articleId:articleEnTransfertAlerte.id,type:'transfer',quantite,date:new Date().toISOString().split('T')[0],raison:`Transfert rapide alerte`,coutTotal:0,depotSource:transfertRapideData.depotSource,depotDestination:transfertRapideData.depotDestination};
+    setMouvementsStock([...mouvementsStock,mouvement]);
+    await sauverMouvement(mouvement);
+    alert(`✅ ${quantite} ${articleEnTransfertAlerte.code} transférés!`);
+    setArticleEnTransfertAlerte(null);
+    setTransfertRapideData({depotSource:'Atelier',depotDestination:'Porteur 26 T',quantite:''});
+  };
+
+  const ajouterArticlePrevuScan = async () => {
+    if (!quantiteScanIntervention) {
+      alert('Quantité requise');
+      return;
+    }
+    const article = scanResultatIntervention.article;
+    const quantite = parseInt(quantiteScanIntervention);
+    const stockDispo = article.stockParDepot[nouvelleIntervention.depotPrelevement] || 0;
+    if (stockDispo < quantite) {
+      alert(`Stock insuffisant! Disponible: ${stockDispo}`);
+      return;
+    }
+    const updated = articles.map(a => a.id === article.id ? {...a,stockParDepot:{...a.stockParDepot,[nouvelleIntervention.depotPrelevement]:stockDispo - quantite}} : a);
+    setArticles(updated);
+    await sauverArticle(updated.find(a => a.id === article.id));
+    setNouvelleIntervention({
+      ...nouvelleIntervention,
+      articlesPrevu:[...nouvelleIntervention.articlesPrevu,{
+        articleId:article.id,
+        quantite,
+        prixUnitaire:article.prixUnitaire,
+        description:article.description,
+        code:article.code,
+        articleScanned:true
+      }]
+    });
+    setScanResultatIntervention(null);
+    setQuantiteScanIntervention('');
+  };
+
+  const toggleScannerIntervention = async () => {
+    if (afficherScannerIntervention) {
+      if (videoIntervention.current && videoIntervention.current.srcObject) {
+        videoIntervention.current.srcObject.getTracks().forEach(track => track.stop());
+      }
+      setAfficherScannerIntervention(false);
+    } else {
+      setAfficherScannerIntervention(true);
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
+        if (videoIntervention.current) {
+          videoIntervention.current.srcObject = stream;
+        }
+      } catch (err) {
+        alert('Caméra non disponible');
+        setAfficherScannerIntervention(false);
       }
     }
   };
 
-  // Calculs des statistiques
-  const calculateStats = () => {
-    const totalArticles = articlesHook.data.length;
-    const totalEquipments = equipmentsHook.data.length;
-    const activeEquipments = equipmentsHook.data.filter(e => e.statut === 'Actif').length;
-    const maintenancesDuMois = maintenancesHook.data.filter(m => {
-      const date = new Date(m.date);
-      const now = new Date();
-      return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
-    }).length;
-    
-    const articlesEnAlerte = articlesHook.data.filter(article => {
-      const stockTotal = Object.values(article.stocks || {}).reduce((a, b) => a + b, 0);
-      return stockTotal < article.stockMin;
-    }).length;
-    
-    const interventionsDuMois = interventionsHook.data.filter(i => {
-      const date = new Date(i.date);
-      const now = new Date();
-      return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
-    }).length;
-
-    return {
-      totalArticles,
-      totalEquipments,
-      activeEquipments,
-      maintenancesDuMois,
-      articlesEnAlerte,
-      interventionsDuMois
-    };
+  const genererTexteCommande = (article) => {
+    const qteACommander = Math.max(0,article.stockMin - getStockTotal(article));
+    const existant = panierCommande.find(item => item.articleId === article.id);
+    if (existant) {alert('Article déjà dans le panier !');return;}
+    setPanierCommande([...panierCommande,{articleId:article.id,qteEditable:qteACommander,article}]);
   };
 
-  const stats = calculateStats();
+  const supprimerDuPanier = (articleId) => {
+    setPanierCommande(panierCommande.filter(item => item.articleId !== articleId));
+  };
 
-  // Handlers pour les formulaires
-  const handleArticleSubmit = () => {
-    const articleData = {
-      ...articleForm,
-      stockMin: parseInt(articleForm.stockMin),
-      prix: parseFloat(articleForm.prix),
-      stocks: editingArticle?.stocks || depots.reduce((acc, depot) => ({...acc, [depot]: 0}), {})
-    };
-    
-    if (editingArticle) {
-      articlesHook.updateItem(editingArticle.id, articleData);
-    } else {
-      articlesHook.addItem(articleData);
+  const mettreAJourQte = (articleId,qte) => {
+    setPanierCommande(panierCommande.map(item => 
+      item.articleId === articleId ? {...item,qteEditable:parseInt(qte) || 0} : item
+    ));
+  };
+
+  const regrouperParFournisseur = () => {
+    const groupes = {};
+    panierCommande.forEach(item => {
+      const fournisseur = item.article.fournisseur;
+      if (!groupes[fournisseur]) groupes[fournisseur] = [];
+      groupes[fournisseur].push(item);
+    });
+    return groupes;
+  };
+
+  const getArticlesDisponibles = () => {
+    if (afficherArticlesEquipement && nouvelleIntervention.equipementId) {
+      const selectedId = parseInt(nouvelleIntervention.equipementId);
+      if (selectedId === 999) {
+        return articles.filter(a => a.equipementsAffectes.includes(6) || a.equipementsAffectes.includes(999));
+      }
+      return articles.filter(a => a.equipementsAffectes.includes(selectedId));
     }
-    
-    setShowArticleModal(false);
-    setEditingArticle(null);
-    setArticleForm({ code: '', description: '', stockMin: '', prix: '', fournisseur: '' });
-  };
-  
-  const handleEquipmentSubmit = () => {
-    const equipmentData = {
-      ...equipmentForm,
-      kilometrage: equipmentForm.kilometrage ? parseInt(equipmentForm.kilometrage) : null,
-      heuresService: equipmentForm.heuresService ? parseInt(equipmentForm.heuresService) : null
-    };
-    
-    if (editingEquipment) {
-      equipmentsHook.updateItem(editingEquipment.id, equipmentData);
-    } else {
-      equipmentsHook.addItem(equipmentData);
-    }
-    
-    setShowEquipmentModal(false);
-    setEditingEquipment(null);
-    setEquipmentForm({
-      nom: '', type: '', immatriculation: '', statut: 'Actif',
-      kilometrage: '', heuresService: '', derniereRevision: '', prochaineRevision: ''
-    });
-  };
-  
-  const handleInterventionSubmit = () => {
-    const equipment = equipmentsHook.data.find(e => e.id === interventionForm.equipementId);
-    const interventionData = {
-      ...interventionForm,
-      equipementNom: equipment?.nom,
-      duree: parseFloat(interventionForm.duree)
-    };
-    
-    interventionsHook.addItem(interventionData);
-    setShowInterventionModal(false);
-    setEditingIntervention(null);
-    setInterventionForm({
-      titre: '', description: '', date: new Date().toISOString().split('T')[0],
-      equipementId: '', operateur: '', duree: '', statut: 'En cours', articlesUtilises: []
-    });
-  };
-  
-  const handleFuelSubmit = () => {
-    const equipment = equipmentsHook.data.find(e => e.id === fuelForm.equipementId);
-    const ravitaillementData = {
-      ...fuelForm,
-      equipementNom: equipment?.nom,
-      litres: parseFloat(fuelForm.litres),
-      kilometrageActuel: parseInt(fuelForm.kilometrageActuel),
-      kilometresParcourus: parseInt(fuelForm.kilometresParcourus),
-      cout: parseFloat(fuelForm.cout)
-    };
-    
-    ravitaillementsHook.addItem(ravitaillementData);
-    setShowFuelModal(false);
-    setFuelForm({
-      date: new Date().toISOString().slice(0, 16), equipementId: '',
-      litres: '', kilometrageActuel: '', kilometresParcourus: '',
-      cout: '', lieu: '', operateur: ''
-    });
-  };
-  
-  const handleDefautSubmit = () => {
-    const equipment = equipmentsHook.data.find(e => e.id === defautForm.equipementId);
-    const defautData = {
-      ...defautForm,
-      date: new Date().toISOString(),
-      equipementNom: equipment?.nom,
-      photos: [],
-      resolu: false
-    };
-    
-    defautsHook.addItem(defautData);
-    setShowDefautModal(false);
-    setDefautForm({ titre: '', description: '', equipementId: '', severite: '', operateur: '' });
+    return articles;
   };
 
-  // Rendu de l'interface
+  const getEquipementsEtSunbrush = () => {
+    const liste = equipements.map(eq => ({
+      id:eq.id,
+      nom:`${eq.immat} - ${eq.marque} ${eq.modele}`,
+      type:'equipement'
+    }));
+    Object.entries(accessoiresEquipement).forEach(([eqId,accs]) => {
+      accs.forEach(acc => {
+        if (acc.actif) {
+          const parentEq = equipements.find(e => e.id === parseInt(eqId));
+          liste.push({
+            id:parseInt(eqId),
+            nom:`${acc.nom} (sur ${parentEq?.immat})`,
+            type:'accessoire',
+            accessoireId:acc.id
+          });
+        }
+      });
+    });
+    return liste;
+  };
+
+  const copierToutCommandes = () => {
+    const groupes = regrouperParFournisseur();
+    const plainTexts = [];
+    Object.keys(groupes).forEach(fournisseur => {
+      const items = groupes[fournisseur];
+      const plainText = `COMMANDE - ${fournisseur}\n${items.map(item => `${item.article.code} | ${item.article.description} | ${item.qteEditable}`).join('\n')}`;
+      plainTexts.push(plainText);
+    });
+    const plainComplet = plainTexts.join('\n\n');
+    navigator.clipboard.writeText(plainComplet).then(() => {
+      alert('✓ Commandes copiées !');
+      setPanierCommande([]);
+    }).catch(() => {
+      alert('Erreur copie');
+    });
+  };
+
+  const ouvrirEditionStockMin = (article) => {
+    setArticleEnEdition({...article,stockMinTemp:article.stockMin});
+  };
+
+  const sauvegarderStockMin = async () => {
+    if (articleEnEdition && articleEnEdition.stockMinTemp >= 0) {
+      const updated = articles.map(a => 
+        a.id === articleEnEdition.id ? {...a,stockMin:parseInt(articleEnEdition.stockMinTemp)} : a
+      );
+      setArticles(updated);
+      await sauverArticle(updated.find(a => a.id === articleEnEdition.id));
+      setArticleEnEdition(null);
+    }
+  };
+
+  const annulerEditionStockMin = () => {
+    setArticleEnEdition(null);
+  };
+
+  const genererQRCodesPDF = () => {
+    const htmlContent = `<html><head><title>QR Codes</title><style>body{font-family:Arial;margin:10mm;}.qr-item{display:inline-block;margin:10px;text-align:center;}.qr-item img{width:150px;height:150px;}.code{font-weight:bold;font-size:12px;}</style></head><body><h1>QR Codes Articles</h1><p>Généré le: ${new Date().toLocaleString('fr-FR')}</p>${articles.map(a => `<div class="qr-item"><img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(a.code)}" alt="QR ${a.code}"><div class="code">${a.code}</div></div>`).join('')}</body></html>`;
+    const newWindow = window.open();
+    newWindow.document.write(htmlContent);
+    newWindow.document.close();
+  };
+
+  const toggleScannerQR = async () => {
+    if (afficherScannerQR) {
+      if (videoStream) {
+        videoStream.getTracks().forEach(track => track.stop());
+        setVideoStream(null);
+      }
+      setAfficherScannerQR(false);
+    } else {
+      setAfficherScannerQR(true);
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+        }
+        setVideoStream(stream);
+      } catch (err) {
+        alert('Caméra non disponible');
+        setAfficherScannerQR(false);
+      }
+    }
+  };
+
+  const enregistrerEntreeStockScan = async () => {
+    if (!formScanEntree.quantite || !formScanEntree.prixUnitaire) {alert('Quantité et prix requis');return;}
+    const quantite = parseInt(formScanEntree.quantite);
+    const coutTotal = parseFloat(formScanEntree.prixUnitaire) * quantite;
+    const updated = articles.map(a => a.id === scanResultat.article.id ? {...a,stockParDepot:{...a.stockParDepot,[formScanEntree.depot]:(a.stockParDepot[formScanEntree.depot] || 0) + quantite}} : a);
+    setArticles(updated);
+    await sauverArticle(updated.find(a => a.id === scanResultat.article.id));
+    const mouvement = {id:mouvementsStock.length + 1,articleId:scanResultat.article.id,type:'entree',quantite,date:formScanEntree.date,raison:formScanEntree.raison,coutTotal,depot:formScanEntree.depot};
+    setMouvementsStock([...mouvementsStock,mouvement]);
+    await sauverMouvement(mouvement);
+    alert(`✅ +${quantite} ${scanResultat.article.code}`);
+    setScanResultat(null);
+    setActionScan(null);
+    setFormScanEntree({quantite:'',prixUnitaire:'',raison:'',date:new Date().toISOString().split('T')[0],depot:'Atelier'});
+  };
+
+  const enregistrerSortieStockScan = async () => {
+    if (!formScanSortie.quantite) {alert('Quantité requise');return;}
+    const quantite = parseInt(formScanSortie.quantite);
+    if ((scanResultat.article.stockParDepot[formScanSortie.depot] || 0) < quantite) {alert('Stock insuffisant!');return;}
+    const updated = articles.map(a => a.id === scanResultat.article.id ? {...a,stockParDepot:{...a.stockParDepot,[formScanSortie.depot]:(a.stockParDepot[formScanSortie.depot] || 0) - quantite}} : a);
+    setArticles(updated);
+    await sauverArticle(updated.find(a => a.id === scanResultat.article.id));
+    const mouvement = {id:mouvementsStock.length + 1,articleId:scanResultat.article.id,type:'sortie',quantite,date:formScanSortie.date,raison:formScanSortie.raison,coutTotal:0,depot:formScanSortie.depot};
+    setMouvementsStock([...mouvementsStock,mouvement]);
+    await sauverMouvement(mouvement);
+    alert(`✅ -${quantite} ${scanResultat.article.code}`);
+    setScanResultat(null);
+    setActionScan(null);
+    setFormScanSortie({quantite:'',raison:'',date:new Date().toISOString().split('T')[0],depot:'Atelier'});
+  };
+
+  const enregistrerTransfertStockScan = async () => {
+    if (!formScanTransfert.quantite || formScanTransfert.depotSource === formScanTransfert.depotDestination) {alert('Quantité et dépôts différents requis');return;}
+    const quantite = parseInt(formScanTransfert.quantite);
+    if ((scanResultat.article.stockParDepot[formScanTransfert.depotSource] || 0) < quantite) {alert('Stock insuffisant!');return;}
+    const updated = articles.map(a => a.id === scanResultat.article.id ? {...a,stockParDepot:{...a.stockParDepot,[formScanTransfert.depotSource]:(a.stockParDepot[formScanTransfert.depotSource] || 0) - quantite,[formScanTransfert.depotDestination]:(a.stockParDepot[formScanTransfert.depotDestination] || 0) + quantite}} : a);
+    setArticles(updated);
+    await sauverArticle(updated.find(a => a.id === scanResultat.article.id));
+    const mouvement = {id:mouvementsStock.length + 1,articleId:scanResultat.article.id,type:'transfer',quantite,date:new Date().toISOString().split('T')[0],raison:`Transfert`,coutTotal:0,depotSource:formScanTransfert.depotSource,depotDestination:formScanTransfert.depotDestination};
+    setMouvementsStock([...mouvementsStock,mouvement]);
+    await sauverMouvement(mouvement);
+    alert(`✅ ${quantite} ${scanResultat.article.code}`);
+    setScanResultat(null);
+    setActionScan(null);
+    setFormScanTransfert({quantite:'',depotSource:'Atelier',depotDestination:'Porteur 26 T'});
+  };
+
+  const enregistrerEntreeStock = async () => {
+    if (nouvelleEntreeStock.articleId && nouvelleEntreeStock.quantite && nouvelleEntreeStock.prixUnitaire) {
+      const quantite = parseInt(nouvelleEntreeStock.quantite);
+      const coutTotal = parseFloat(nouvelleEntreeStock.prixUnitaire) * quantite;
+      const updated = articles.map(a => a.id === parseInt(nouvelleEntreeStock.articleId) ? {...a,stockParDepot:{...a.stockParDepot,[nouvelleEntreeStock.depot]:(a.stockParDepot[nouvelleEntreeStock.depot] || 0) + quantite}} : a);
+      setArticles(updated);
+      await sauverArticle(updated.find(a => a.id === parseInt(nouvelleEntreeStock.articleId)));
+      const mouvement = {id:mouvementsStock.length + 1,articleId:parseInt(nouvelleEntreeStock.articleId),type:'entree',quantite,date:nouvelleEntreeStock.date,raison:nouvelleEntreeStock.raison,coutTotal,depot:nouvelleEntreeStock.depot};
+      setMouvementsStock([...mouvementsStock,mouvement]);
+      await sauverMouvement(mouvement);
+      setNouvelleEntreeStock({articleId:'',quantite:'',prixUnitaire:'',raison:'',date:new Date().toISOString().split('T')[0],depot:'Atelier'});
+    }
+  };
+
+  const enregistrerSortieStock = async () => {
+    if (nouveauMouvementSortie.articleId && nouveauMouvementSortie.quantite) {
+      const article = articles.find(a => a.id === parseInt(nouveauMouvementSortie.articleId));
+      const quantite = parseInt(nouveauMouvementSortie.quantite);
+      if ((article.stockParDepot[nouveauMouvementSortie.depot] || 0) < quantite) {alert('Stock insuffisant!');return;}
+      const updated = articles.map(a => a.id === parseInt(nouveauMouvementSortie.articleId) ? {...a,stockParDepot:{...a.stockParDepot,[nouveauMouvementSortie.depot]:(a.stockParDepot[nouveauMouvementSortie.depot] || 0) - quantite}} : a);
+      setArticles(updated);
+      await sauverArticle(updated.find(a => a.id === parseInt(nouveauMouvementSortie.articleId)));
+      const mouvement = {id:mouvementsStock.length + 1,articleId:parseInt(nouveauMouvementSortie.articleId),type:'sortie',quantite,date:nouveauMouvementSortie.date,raison:nouveauMouvementSortie.raison,coutTotal:0,depot:nouveauMouvementSortie.depot};
+      setMouvementsStock([...mouvementsStock,mouvement]);
+      await sauverMouvement(mouvement);
+      setNouveauMouvementSortie({articleId:'',quantite:'',raison:'',date:new Date().toISOString().split('T')[0],depot:'Atelier'});
+    }
+  };
+
+  const enregistrerTransfertStock = async () => {
+    if (nouveauTransfert.articleId && nouveauTransfert.quantite && nouveauTransfert.depotSource !== nouveauTransfert.depotDestination) {
+      const article = articles.find(a => a.id === parseInt(nouveauTransfert.articleId));
+      const quantite = parseInt(nouveauTransfert.quantite);
+      if ((article.stockParDepot[nouveauTransfert.depotSource] || 0) < quantite) {alert('Stock insuffisant!');return;}
+      const updated = articles.map(a => a.id === parseInt(nouveauTransfert.articleId) ? {...a,stockParDepot:{...a.stockParDepot,[nouveauTransfert.depotSource]:(a.stockParDepot[nouveauTransfert.depotSource] || 0) - quantite,[nouveauTransfert.depotDestination]:(a.stockParDepot[nouveauTransfert.depotDestination] || 0) + quantite}} : a);
+      setArticles(updated);
+      await sauverArticle(updated.find(a => a.id === parseInt(nouveauTransfert.articleId)));
+      const mouvement = {id:mouvementsStock.length + 1,articleId:parseInt(nouveauTransfert.articleId),type:'transfer',quantite,date:nouveauTransfert.date,raison:`Transfert`,coutTotal:0,depotSource:nouveauTransfert.depotSource,depotDestination:nouveauTransfert.depotDestination};
+      setMouvementsStock([...mouvementsStock,mouvement]);
+      await sauverMouvement(mouvement);
+      setNouveauTransfert({articleId:'',quantite:'',depotSource:'Atelier',depotDestination:'Porteur 26 T',raison:'',date:new Date().toISOString().split('T')[0]});
+    }
+  };
+
+  const ajouterArticlePrevu = async () => {
+    if (nouvelArticleIntervention.articleId && nouvelArticleIntervention.quantite) {
+      const article = articles.find(a => a.id === parseInt(nouvelArticleIntervention.articleId));
+      const quantite = parseInt(nouvelArticleIntervention.quantite);
+      if ((article.stockParDepot[nouvelleIntervention.depotPrelevement] || 0) < quantite) {alert('Stock insuffisant');return;}
+      setNouvelleIntervention({...nouvelleIntervention,articlesPrevu:[...nouvelleIntervention.articlesPrevu,{articleId:parseInt(nouvelArticleIntervention.articleId),quantite,prixUnitaire:article.prixUnitaire,description:article.description,code:article.code}]});
+      setNouvelArticleIntervention({articleId:'',quantite:''});
+    }
+  };
+
+  const supprimerArticlePrevu = (index) => {
+    setNouvelleIntervention({...nouvelleIntervention,articlesPrevu:nouvelleIntervention.articlesPrevu.filter((_,i) => i !== index)});
+  };
+
+  const creerIntervention = async () => {
+    if (!nouvelleIntervention.equipementId || !nouvelleIntervention.type) {alert('Veuillez sélectionner un équipement et un type');return;}
+    const interventionId = interventions.length > 0 ? Math.max(...interventions.map(i => i.id)) + 1 : 1;
+    const coutTotal = nouvelleIntervention.articlesPrevu.reduce((sum,art) => sum + (art.quantite * art.prixUnitaire),0);
+    let nouvelStock = articles;
+    nouvelleIntervention.articlesPrevu.forEach(art => {
+      if (!art.articleScanned) {
+        nouvelStock = nouvelStock.map(a => a.id === art.articleId ? {...a,stockParDepot:{...a.stockParDepot,[nouvelleIntervention.depotPrelevement]:(a.stockParDepot[nouvelleIntervention.depotPrelevement] || 0) - art.quantite}} : a);
+      }
+    });
+    setArticles(nouvelStock);
+    for (const a of nouvelStock) {
+      await sauverArticle(a);
+    }
+    const intervention = {id:interventionId,equipementId:parseInt(nouvelleIntervention.equipementId),type:nouvelleIntervention.type,date:nouvelleIntervention.date,km:parseInt(nouvelleIntervention.km) || 0,heures:parseInt(nouvelleIntervention.heures) || 0,description:nouvelleIntervention.description,articles:nouvelleIntervention.articlesPrevu,statut:'en_cours',coutTotal,depotPrelevement:nouvelleIntervention.depotPrelevement};
+    const newInterventions = [...interventions,intervention];
+    setInterventions(newInterventions);
+    await sauverIntervention(intervention);
+    setNouvelleIntervention({equipementId:'',type:'',date:new Date().toISOString().split('T')[0],km:'',heures:'',description:'',articlesPrevu:[],depotPrelevement:'Atelier'});
+  };
+
+  const cloturerIntervention = async (interventionId) => {
+    const updated = interventions.map(i => i.id === interventionId ? {...i,statut:'effectue'} : i);
+    setInterventions(updated);
+    await sauverIntervention(updated.find(i => i.id === interventionId));
+  };
+
+  const ajouterAccessoire = async (equipementId) => {
+    if (nouvelAccessoire.nom && nouvelAccessoire.valeur) {
+      const nouvelId = Date.now();
+      const accessoire = {id:nouvelId,...nouvelAccessoire,valeur:parseFloat(nouvelAccessoire.valeur),equipement_id:equipementId};
+      const nouveauxAccessoires = [...(accessoiresEquipement[equipementId] || []),accessoire];
+      setAccessoiresEquipement({...accessoiresEquipement,[equipementId]:nouveauxAccessoires});
+      await supabase.from('accessoires').insert(accessoire);
+      setNouvelAccessoire({nom:'',valeur:'',description:'',dateAjout:new Date().toISOString().split('T')[0]});
+    }
+  };
+
+  const supprimerAccessoire = async (equipementId,accessoireId) => {
+    setAccessoiresEquipement({...accessoiresEquipement,[equipementId]:(accessoiresEquipement[equipementId] || []).filter(a => a.id !== accessoireId)});
+    await supabase.from('accessoires').delete().eq('id',accessoireId);
+  };
+
+  const affecterArticleEquipement = async (articleId,equipementId) => {
+    const updated = articles.map(a => {
+      if (a.id === articleId) {
+        const eqId = parseInt(equipementId);
+        return a.equipementsAffectes.includes(eqId) 
+          ? {...a,equipementsAffectes:a.equipementsAffectes.filter(e => e !== eqId)}
+          : {...a,equipementsAffectes:[...a.equipementsAffectes,eqId]};
+      }
+      return a;
+    });
+    setArticles(updated);
+    await sauverArticle(updated.find(a => a.id === articleId));
+  };
+
+  const exporterPDF = () => {
+    const eqInterventions = interventions.filter(i => i.equipementId === equipements.find(e => e.id === equipementSelectionne)?.id);
+    const eqDefauts = defauts.filter(d => d.equipementId === equipements.find(e => e.id === equipementSelectionne)?.id);
+    const eqAccessoires = accessoiresEquipement[equipementSelectionne] || [];
+    const coutTotal = eqInterventions.filter(i => i.statut === 'effectue').reduce((sum,i) => sum + (i.coutTotal || 0),0);
+    const equipSelectionne = equipements.find(e => e.id === equipementSelectionne);
+    let html = `<html><head><meta charset="UTF-8"><title>Statistiques ${equipSelectionne?.immat}</title><style>body{font-family:Arial;margin:20px;color:#333;}h1{color:#6B46C1;border-bottom:3px solid #6B46C1;padding-bottom:10px;}h2{color:#7C3AED;margin-top:25px;border-left:5px solid #7C3AED;padding-left:10px;}table{width:100%;border-collapse:collapse;margin:15px 0;}th,td{border:1px solid #ddd;padding:10px;text-align:left;}th{background-color:#7C3AED;color:white;}tr:nth-child(even){background-color:#f9f5ff;}.summary{background-color:#f0e6ff;padding:15px;border-radius:8px;margin:15px 0;}.summary-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:15px;}.summary-box{background:white;padding:10px;border-left:4px solid #7C3AED;}.total{font-weight:bold;color:#6B46C1;}.date{font-size:12px;color:#666;}</style></head><body><h1>📊 STATISTIQUES ÉQUIPEMENT</h1><p><strong>Équipement:</strong> ${equipSelectionne?.immat} - ${equipSelectionne?.marque} ${equipSelectionne?.modele}</p><p><strong>Générée le:</strong> ${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR')}</p><div class="summary"><div class="summary-grid"><div class="summary-box"><p><strong>Interventions:</strong> ${eqInterventions.length}</p><p class="date">${eqInterventions.filter(i => i.statut === 'effectue').length} effectuées</p></div><div class="summary-box"><p><strong>Défauts:</strong> ${eqDefauts.length}</p><p class="date">${eqDefauts.filter(d => d.statut === 'resolu').length} résolus</p></div><div class="summary-box"><p><strong>Accessoires:</strong> ${eqAccessoires.length}</p><p class="date">Valeur: ${eqAccessoires.reduce((s,a) => s + a.valeur,0).toFixed(2)}€</p></div><div class="summary-box"><p class="total">💰 TOTAL INTERVENTIONS: ${coutTotal.toFixed(2)}€</p></div></div></div>${eqInterventions.length > 0 ? `<h2>🔧 INTERVENTIONS (${eqInterventions.length})</h2><table><tr><th>Date</th><th>Type</th><th>KM</th><th>Coût</th><th>Statut</th></tr>${eqInterventions.map(i => `<tr><td>${i.date}</td><td>${i.type}</td><td>${i.km}</td><td>${i.coutTotal}€</td><td>${i.statut === 'effectue' ? '✅ Effectuée' : '⏳ En cours'}</td></tr>`).join('')}</table>` : ''}${eqDefauts.length > 0 ? `<h2>🚨 DÉFAUTS (${eqDefauts.length})</h2><table><tr><th>Date</th><th>Type</th><th>Sévérité</th><th>Opérateur</th><th>Statut</th></tr>${eqDefauts.map(d => `<tr><td>${d.dateConstatation}</td><td>${d.type}</td><td>${d.severite === 'critique' ? '🔴 Critique' : d.severite === 'moyen' ? '🟠 Moyen' : '🟡 Mineur'}</td><td>${d.operateur}</td><td>${d.statut === 'resolu' ? '✅ Résolu' : '⏳ À traiter'}</td></tr>`).join('')}</table>` : ''}${eqAccessoires.length > 0 ? `<h2>🎨 ACCESSOIRES (${eqAccessoires.length})</h2><table><tr><th>Nom</th><th>Valeur</th><th>Date</th><th>Statut</th></tr>${eqAccessoires.map(a => `<tr><td>${a.nom}</td><td>${a.valeur.toFixed(2)}€</td><td>${a.dateAjout}</td><td>${a.actif ? '✅ Actif' : '❌ Inactif'}</td></tr>`).join('')}</table>` : ''}<p style="margin-top:30px;text-align:center;color:#999;font-size:12px;">Document généré par Solaire Nettoyage</p></body></html>`;
+    const printWindow = window.open('','','height=600,width=800');
+    printWindow.document.write(html);
+    printWindow.document.close();
+    setTimeout(() => printWindow.print(),250);
+  };
+
+  const exporterCSV = () => {
+    const equipSelectionne = equipements.find(e => e.id === equipementSelectionne);
+    const eqInterventions = interventions.filter(i => i.equipementId === equipSelectionne?.id);
+    const eqDefauts = defauts.filter(d => d.equipementId === equipSelectionne?.id);
+    let csv = `SOLAIRE NETTOYAGE - EXPORT STATISTIQUES\nÉquipement,${equipSelectionne?.immat} - ${equipSelectionne?.marque} ${equipSelectionne?.modele}\nGénéré le,${new Date().toLocaleDateString('fr-FR')} ${new Date().toLocaleTimeString('fr-FR')}\n\nINTERVENTIONS\nID,Date,Type,KM,Heures,Description,Coût,Statut,Dépôt\n`;
+    eqInterventions.forEach(i => {
+      csv += `${i.id},"${i.date}","${i.type}",${i.km},${i.heures},"${i.description}",${i.coutTotal},"${i.statut}","${i.depotPrelevement}"\n`;
+    });
+    csv += `\n\nDÉFAUTS\nID,Date,Type,Sévérité,Description,Opérateur,Localisation,Statut,Date Résolution\n`;
+    eqDefauts.forEach(d => {
+      csv += `${d.id},"${d.dateConstatation}","${d.type}","${d.severite}","${d.description}","${d.operateur}","${d.localisation}","${d.statut}","${d.dateArchivage || 'N/A'}"\n`;
+    });
+    csv += `\n\nRÉSUMÉ\nInterventions totales,${eqInterventions.length}\nInterventions effectuées,${eqInterventions.filter(i => i.statut === 'effectue').length}\nCoût total interventions,${eqInterventions.filter(i => i.statut === 'effectue').reduce((sum,i) => sum + (i.coutTotal || 0),0).toFixed(2)}€\nDéfauts totaux,${eqDefauts.length}\nDéfauts résolus,${eqDefauts.filter(d => d.statut === 'resolu').length}\n`;
+    const element = document.createElement('a');
+    element.setAttribute('href','data:text/csv;charset=utf-8,' + encodeURIComponent(csv));
+    element.setAttribute('download',`Statistiques_${equipSelectionne?.immat}_${new Date().toISOString().split('T')[0]}.csv`);
+    element.style.display = 'none';
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
+    alert('✅ CSV téléchargé!');
+  };
+
+  const valeurStockTotal = articles.reduce((sum,a) => sum + (getStockTotal(a) * a.prixUnitaire),0);
+  const interventionsEnCours = interventions.filter(i => i.statut === 'en_cours');
+  const equipSelectionne = equipements.find(e => e.id === equipementSelectionne);
+  const accessoiresTotal = (accessoiresEquipement[equipementSelectionne] || []).reduce((sum,a) => sum + a.valeur,0);
+  const valeurEquipementTotal = (equipSelectionne?.valeurActuelle || 0) + accessoiresTotal;
+  const articlesAffectesEquipement = articles.filter(a => a.equipementsAffectes.includes(equipementSelectionne));
+  const defautsATraiter = defauts.filter(d => d.statut === 'a_traiter');
+  const defautsCritiques = defautsATraiter.filter(d => d.severite === 'critique');
+  const defautsAtention = defautsATraiter.filter(d => d.severite === 'moyen');
+  const defautsMineur = defautsATraiter.filter(d => d.severite === 'mineur');
+  const defautsArchives = defauts.filter(d => d.statut === 'resolu');
+
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* En-tête avec statut Supabase */}
-      <header className="bg-blue-600 text-white p-4 shadow-lg">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center space-x-3">
-            <Package className="w-8 h-8" />
-            <div>
-              <h1 className="text-2xl font-bold">Solaire Nettoyage</h1>
-              <p className="text-sm opacity-90">Gestion des Stocks et Équipements</p>
-            </div>
-          </div>
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-2">
-              {articlesHook.isOnline ? (
-                <>
-                  <CheckCircle className="w-5 h-5 text-green-300" />
-                  <span className="text-sm">Connecté Supabase</span>
-                </>
-              ) : (
-                <>
-                  <AlertCircle className="w-5 h-5 text-yellow-300" />
-                  <span className="text-sm">Mode hors ligne</span>
-                </>
-              )}
-            </div>
-            <div className="text-right">
-              <p className="text-sm">{new Date().toLocaleDateString('fr-FR')}</p>
-              <p className="text-xs opacity-75">V2.1 SUPABASE</p>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* Navigation par onglets */}
-      <nav className="bg-white shadow-md sticky top-0 z-40 overflow-x-auto">
-        <div className="flex space-x-1 p-2">
+      <div className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white p-4">
+        <h1 className="text-2xl font-bold">☀️ SOLAIRE NETTOYAGE - V2.0 Supabase</h1>
+        <p className="text-yellow-100 text-sm">Flotte • Stock • Maintenance • Interventions • 100% Cloud</p>
+      </div>
+      <div className="bg-white border-b border-gray-200 sticky top-0 z-10 overflow-x-auto">
+        <div className="flex">
           {[
-            { id: 'accueil', label: 'Accueil', icon: Home },
-            { id: 'fiche', label: 'Fiche', icon: FileText },
-            { id: 'articles', label: 'Articles', icon: Package },
-            { id: 'inventaire', label: 'Inventaire', icon: ClipboardList },
-            { id: 'stock', label: 'Stock', icon: Package2 },
-            { id: 'equipements', label: 'Équipements', icon: Wrench },
-            { id: 'interventions', label: 'Interventions', icon: Hammer },
-            { id: 'maintenance', label: 'Maintenance', icon: Settings }
+            {id:'accueil',label:'📊 Accueil'},
+            {id:'fiche',label:`📋 Fiche (${equipements.length})`},
+            {id:'articles',label:`📦 Articles (${articles.length})`},
+            {id:'inventaire',label:'📊 Inventaire'},
+            {id:'stock',label:'📥 Stock'},
+            {id:'equipements',label:`🚛 Équipements (${equipements.length})`},
+            {id:'interventions',label:`🔧 Interventions (${interventions.length})`},
+            {id:'maintenance',label:`⚙️ Maintenance (${defautsATraiter.length})`},
+            {id:'alertes',label:'🚨 Alertes'},
+            {id:'statistiques',label:'📈 Stats'}
           ].map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors whitespace-nowrap ${
-                activeTab === tab.id
-                  ? 'bg-blue-600 text-white'
-                  : 'text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              <tab.icon className="w-4 h-4" />
-              <span>{tab.label}</span>
+            <button key={tab.id} onClick={() => setOngletActif(tab.id)} className={`px-4 py-3 font-medium text-sm border-b-2 whitespace-nowrap ${ongletActif === tab.id ? 'border-orange-500 text-orange-600' : 'border-transparent text-gray-600'}`}>
+              {tab.label}
             </button>
           ))}
         </div>
-      </nav>
-
-      {/* Contenu principal */}
-      <main className="p-4 pb-20">
-        {/* Onglet Accueil */}
-        {activeTab === 'accueil' && (
+      </div>
+      <div className="p-6 max-w-7xl mx-auto">
+        {ongletActif === 'accueil' && (
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <div className="bg-blue-50 p-4 rounded border border-blue-200"><div className="text-3xl font-bold text-blue-600">{articles.length}</div><div className="text-sm">Articles</div></div>
+            <div className="bg-green-50 p-4 rounded border border-green-200"><div className="text-3xl font-bold text-green-600">{articles.reduce((s,a)=>s+getStockTotal(a),0)}</div><div className="text-sm">Pièces total</div></div>
+            <div className="bg-indigo-50 p-4 rounded border border-indigo-200"><div className="text-2xl font-bold text-indigo-600">{valeurStockTotal.toFixed(0)}€</div><div className="text-sm">Valeur stock</div></div>
+            <div className="bg-purple-50 p-4 rounded border border-purple-200"><div className="text-3xl font-bold text-purple-600">{equipements.length}</div><div className="text-sm">Équipements</div></div>
+            <div className="bg-orange-50 p-4 rounded border border-orange-200"><div className="text-3xl font-bold text-orange-600">{interventionsEnCours.length}</div><div className="text-sm">Interv. en cours</div></div>
+            <div className="bg-red-50 p-4 rounded border border-red-200"><div className="text-3xl font-bold text-red-600">{defautsCritiques.length}</div><div className="text-sm">🔴 Défauts critiques</div></div>
+          </div>
+        )}
+        {ongletActif === 'fiche' && equipSelectionne && (
           <div className="space-y-6">
-            {/* Statistiques */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-              <div className="bg-white p-4 rounded-lg shadow">
-                <div className="flex items-center justify-between mb-2">
-                  <Package className="w-8 h-8 text-blue-500" />
-                  <span className="text-2xl font-bold">{stats.totalArticles}</span>
-                </div>
-                <p className="text-sm text-gray-600">Articles</p>
-              </div>
-              
-              <div className="bg-white p-4 rounded-lg shadow">
-                <div className="flex items-center justify-between mb-2">
-                  <Wrench className="w-8 h-8 text-green-500" />
-                  <span className="text-2xl font-bold">{stats.activeEquipments}</span>
-                </div>
-                <p className="text-sm text-gray-600">Équipements actifs</p>
-              </div>
-              
-              <div className="bg-white p-4 rounded-lg shadow">
-                <div className="flex items-center justify-between mb-2">
-                  <AlertTriangle className="w-8 h-8 text-yellow-500" />
-                  <span className="text-2xl font-bold">{stats.articlesEnAlerte}</span>
-                </div>
-                <p className="text-sm text-gray-600">Alertes stock</p>
-              </div>
-              
-              <div className="bg-white p-4 rounded-lg shadow">
-                <div className="flex items-center justify-between mb-2">
-                  <Hammer className="w-8 h-8 text-purple-500" />
-                  <span className="text-2xl font-bold">{stats.interventionsDuMois}</span>
-                </div>
-                <p className="text-sm text-gray-600">Interv. ce mois</p>
-              </div>
-              
-              <div className="bg-white p-4 rounded-lg shadow">
-                <div className="flex items-center justify-between mb-2">
-                  <Settings className="w-8 h-8 text-red-500" />
-                  <span className="text-2xl font-bold">{stats.maintenancesDuMois}</span>
-                </div>
-                <p className="text-sm text-gray-600">Maint. ce mois</p>
-              </div>
-              
-              <div className="bg-white p-4 rounded-lg shadow">
-                <div className="flex items-center justify-between mb-2">
-                  <Fuel className="w-8 h-8 text-orange-500" />
-                  <span className="text-2xl font-bold">{ravitaillementsHook.data.length}</span>
-                </div>
-                <p className="text-sm text-gray-600">Ravitaillements</p>
-              </div>
+            <div className="sticky top-20 z-20"><div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory" style={{scrollBehavior:'smooth'}}>{equipements.map(eq => (<button key={eq.id} onClick={() => setEquipementSelectionne(eq.id)} className={`px-4 py-4 rounded-lg font-semibold transition whitespace-nowrap snap-center flex-shrink-0 ${equipementSelectionne === eq.id ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg' : 'bg-white text-gray-800 border-2 border-gray-200'}`}><div className="text-lg">{eq.immat}</div><div className="text-sm mt-1">{eq.marque} {eq.modele}</div></button>))}</div></div>
+            <div className="bg-gradient-to-br from-orange-500 to-yellow-400 text-white p-8 rounded-xl shadow-lg"><h2 className="text-5xl font-black mb-2">{equipSelectionne.immat}</h2><p className="text-xl">{equipSelectionne.marque} {equipSelectionne.modele}</p></div>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="bg-white rounded-xl shadow-md p-6 border-t-4 border-blue-500"><div className="text-blue-600 font-bold text-sm">VALEUR D'ACHAT</div><div className="text-3xl font-black text-blue-600 mt-2">{equipSelectionne.valeurAchat}€</div></div>
+              <div className="bg-white rounded-xl shadow-md p-6 border-t-4 border-green-500"><div className="text-green-600 font-bold text-sm">VALEUR ACTUELLE</div><div className="text-3xl font-black text-green-700 mt-2">{equipSelectionne.valeurActuelle}€</div></div>
+              <div className="bg-white rounded-xl shadow-md p-6 border-t-4 border-indigo-500"><div className="text-indigo-600 font-bold text-sm">ACCESSOIRES</div><div className="text-3xl font-black text-indigo-700 mt-2">{Math.round(accessoiresTotal)}€</div></div>
+              <div className="bg-white rounded-xl shadow-md p-6 border-t-4 border-orange-500"><div className="text-orange-600 font-bold text-sm">VALEUR TOTALE</div><div className="text-3xl font-black text-orange-700 mt-2">{Math.round(valeurEquipementTotal)}€</div></div>
             </div>
-
-            {/* Alertes */}
-            <div className="bg-white rounded-lg shadow-md p-4">
-              <h3 className="text-lg font-semibold mb-4 flex items-center">
-                <Bell className="w-5 h-5 mr-2 text-red-500" />
-                Alertes et Notifications
-              </h3>
-              <div className="space-y-2">
-                {articlesHook.data.filter(a => {
-                  const total = Object.values(a.stocks || {}).reduce((acc, val) => acc + val, 0);
-                  return total < a.stockMin;
-                }).map(article => (
-                  <div key={article.id} className="flex items-center p-2 bg-red-50 rounded">
-                    <AlertTriangle className="w-4 h-4 text-red-500 mr-2" />
-                    <span className="text-sm">
-                      Stock faible: {article.description} ({Object.values(article.stocks || {}).reduce((a, b) => a + b, 0)}/{article.stockMin})
-                    </span>
-                  </div>
-                ))}
-                
-                {equipmentsHook.data.filter(e => {
-                  const prochaine = new Date(e.prochaineRevision);
-                  const today = new Date();
-                  const diffDays = Math.ceil((prochaine - today) / (1000 * 60 * 60 * 24));
-                  return diffDays <= 30 && diffDays >= 0;
-                }).map(equipment => (
-                  <div key={equipment.id} className="flex items-center p-2 bg-yellow-50 rounded">
-                    <Clock className="w-4 h-4 text-yellow-500 mr-2" />
-                    <span className="text-sm">
-                      Révision proche: {equipment.nom} ({new Date(equipment.prochaineRevision).toLocaleDateString('fr-FR')})
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Actions rapides */}
-            <div className="bg-white rounded-lg shadow-md p-4">
-              <h3 className="text-lg font-semibold mb-4">Actions Rapides</h3>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <button
-                  onClick={() => setShowInterventionModal(true)}
-                  className="flex flex-col items-center p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
-                >
-                  <Hammer className="w-8 h-8 text-blue-600 mb-2" />
-                  <span className="text-sm">Nouvelle Intervention</span>
-                </button>
-                
-                <button
-                  onClick={startQRScan}
-                  className="flex flex-col items-center p-4 bg-green-50 rounded-lg hover:bg-green-100 transition-colors"
-                >
-                  <Camera className="w-8 h-8 text-green-600 mb-2" />
-                  <span className="text-sm">Scanner QR</span>
-                </button>
-                
-                <button
-                  onClick={() => setShowFuelModal(true)}
-                  className="flex flex-col items-center p-4 bg-orange-50 rounded-lg hover:bg-orange-100 transition-colors"
-                >
-                  <Fuel className="w-8 h-8 text-orange-600 mb-2" />
-                  <span className="text-sm">Ravitaillement</span>
-                </button>
-                
-                <button
-                  onClick={() => setShowDefautModal(true)}
-                  className="flex flex-col items-center p-4 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
-                >
-                  <AlertTriangle className="w-8 h-8 text-red-600 mb-2" />
-                  <span className="text-sm">Signaler Défaut</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Graphiques de suivi */}
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="bg-white rounded-lg shadow-md p-4">
-                <h3 className="text-lg font-semibold mb-4 flex items-center">
-                  <TrendingUp className="w-5 h-5 mr-2 text-green-500" />
-                  Consommation Carburant
-                </h3>
-                <div className="space-y-2">
-                  {equipmentsHook.data.filter(e => e.type === 'Camion Porteur').map(camion => {
-                    const ravitaillements = ravitaillementsHook.data.filter(r => r.equipementId === camion.id);
-                    const totalLitres = ravitaillements.reduce((acc, r) => acc + (r.litres || 0), 0);
-                    const totalKm = ravitaillements.reduce((acc, r) => acc + (r.kilometresParcourus || 0), 0);
-                    const consommation = totalKm > 0 ? ((totalLitres / totalKm) * 100).toFixed(1) : 0;
-                    
-                    return (
-                      <div key={camion.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                        <span className="text-sm font-medium">{camion.nom}</span>
-                        <div className="flex items-center space-x-2">
-                          <span className="text-sm text-gray-600">{consommation} L/100km</span>
-                          <div className="w-24 bg-gray-200 rounded-full h-2">
-                            <div 
-                              className={`h-2 rounded-full ${
-                                consommation > 40 ? 'bg-red-500' : 
-                                consommation > 30 ? 'bg-yellow-500' : 'bg-green-500'
-                              }`}
-                              style={{ width: `${Math.min((consommation / 50) * 100, 100)}%` }}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-              
-              <div className="bg-white rounded-lg shadow-md p-4">
-                <h3 className="text-lg font-semibold mb-4 flex items-center">
-                  <Activity className="w-5 h-5 mr-2 text-purple-500" />
-                  Activité Récente
-                </h3>
-                <div className="space-y-2 max-h-48 overflow-y-auto">
-                  {[...interventionsHook.data, ...maintenancesHook.data]
-                    .sort((a, b) => new Date(b.date) - new Date(a.date))
-                    .slice(0, 5)
-                    .map((item, index) => (
-                      <div key={`${item.type}-${item.id}`} className="flex items-center p-2 bg-gray-50 rounded">
-                        <div className="flex-1">
-                          <p className="text-sm font-medium">{item.description || item.titre}</p>
-                          <p className="text-xs text-gray-500">
-                            {new Date(item.date).toLocaleDateString('fr-FR')} - {item.operateur || 'N/A'}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                </div>
-              </div>
-            </div>
+            <div className="bg-white rounded-xl shadow-md p-6"><h3 className="text-lg font-black text-gray-800 mb-4 pb-3 border-b-3 border-purple-500">📦 ARTICLES AFFECTÉS</h3>{articlesAffectesEquipement.length === 0 ? <p className="text-gray-500 italic">Aucun article affecté</p> : <div className="space-y-2">{articlesAffectesEquipement.map(a => (<div key={a.id} className="flex justify-between p-3 bg-purple-50 rounded-lg border"><div><div className="font-bold text-purple-700">{a.code}</div><div className="text-sm text-gray-600">{a.description}</div></div><div className="text-right"><div className="text-purple-600 font-bold">Total: {getStockTotal(a)}</div><div className="text-sm">{a.prixUnitaire}€ u.</div></div></div>))}</div>}</div>
+            <div className="bg-white rounded-xl shadow-md p-6"><h3 className="text-lg font-black text-gray-800 mb-4 pb-3 border-b-3 border-pink-500">🎨 ACCESSOIRES</h3><div className="bg-pink-50 border-2 border-pink-300 p-4 rounded-lg mb-4"><div className="grid grid-cols-1 md:grid-cols-5 gap-2"><input type="text" placeholder="Nom" value={nouvelAccessoire.nom} onChange={(e) => setNouvelAccessoire({...nouvelAccessoire,nom:e.target.value})} className="border-2 border-pink-300 rounded px-3 py-2"/><input type="number" step="0.01" placeholder="Valeur €" value={nouvelAccessoire.valeur} onChange={(e) => setNouvelAccessoire({...nouvelAccessoire,valeur:e.target.value})} className="border-2 border-pink-300 rounded px-3 py-2"/><input type="text" placeholder="Description" value={nouvelAccessoire.description} onChange={(e) => setNouvelAccessoire({...nouvelAccessoire,description:e.target.value})} className="border-2 border-pink-300 rounded px-3 py-2 col-span-2"/><button onClick={() => ajouterAccessoire(equipementSelectionne)} className="bg-pink-500 text-white px-4 py-2 rounded font-bold">Ajouter</button></div></div>{(accessoiresEquipement[equipementSelectionne] || []).length === 0 ? <p className="text-gray-500">Aucun accessoire</p> : <div className="grid grid-cols-1 md:grid-cols-2 gap-3">{(accessoiresEquipement[equipementSelectionne] || []).map(acc => (<div key={acc.id} className="bg-pink-50 p-4 rounded-lg border-2 border-pink-200"><div className="flex justify-between items-start mb-2"><div className="flex items-center gap-2 flex-1"><input type="checkbox" checked={acc.actif} onChange={() => setAccessoiresEquipement({...accessoiresEquipement,[equipementSelectionne]:(accessoiresEquipement[equipementSelectionne] || []).map(a => a.id === acc.id ? {...a,actif:!a.actif} : a)})} className="w-4 h-4"/><div className="font-bold text-pink-700">{acc.nom}</div></div><div className="text-xl font-black text-green-600">{acc.valeur.toFixed(2)}€</div></div><p className="text-sm text-gray-700 mb-2">{acc.description}</p><button onClick={() => supprimerAccessoire(equipementSelectionne,acc.id)} className="text-red-600 font-bold text-sm">Supprimer</button></div>))}</div>}</div>
           </div>
         )}
-
-        {/* Onglet Fiche */}
-        {activeTab === 'fiche' && (
-          <div className="max-w-4xl mx-auto space-y-6">
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-xl font-semibold mb-4">Informations Entreprise</h2>
-              <div className="grid md:grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-gray-600">Raison sociale</p>
-                  <p className="font-medium">Solaire Nettoyage</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Adresse</p>
-                  <p className="font-medium">Vaureilles, France</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Flotte</p>
-                  <p className="font-medium">6 véhicules</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Opérateurs</p>
-                  <p className="font-medium">6 personnes</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-xl font-semibold mb-4">Dépôts</h2>
-              <div className="grid md:grid-cols-2 gap-4">
-                {depots.map((depot, index) => (
-                  <div key={index} className="flex items-center p-3 bg-gray-50 rounded">
-                    <MapPin className="w-5 h-5 text-blue-500 mr-3" />
-                    <div>
-                      <p className="font-medium">{depot}</p>
-                      <p className="text-sm text-gray-600">
-                        {articlesHook.data.reduce((acc, article) => 
-                          acc + (article.stocks?.[depot] || 0), 0
-                        )} articles en stock
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-xl font-semibold mb-4">Équipe</h2>
-              <div className="grid md:grid-cols-3 gap-3">
-                {operateurs.map((operateur, index) => (
-                  <div key={index} className="flex items-center p-3 bg-gray-50 rounded">
-                    <Users className="w-5 h-5 text-green-500 mr-3" />
-                    <p className="font-medium">{operateur}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Onglet Articles */}
-        {activeTab === 'articles' && (
-          <div className="space-y-4">
-            {/* En-tête avec recherche et actions */}
-            <div className="bg-white rounded-lg shadow-md p-4">
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                <div className="flex items-center space-x-2">
-                  <Search className="w-5 h-5 text-gray-400" />
-                  <input
-                    type="text"
-                    placeholder="Rechercher un article..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="px-3 py-2 border rounded-lg flex-1"
-                  />
-                </div>
-                <div className="flex space-x-2">
-                  <button
-                    onClick={() => setShowArticleModal(true)}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center"
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Nouvel Article
-                  </button>
-                  <button
-                    onClick={startQRScan}
-                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center"
-                  >
-                    <Camera className="w-4 h-4 mr-2" />
-                    Scanner
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Panier de commande */}
-            {panier.length > 0 && (
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="font-semibold flex items-center">
-                    <ShoppingCart className="w-5 h-5 mr-2" />
-                    Panier de commande ({panier.length} articles)
-                  </h3>
-                  <div className="space-x-2">
-                    <button
-                      onClick={genererCommande}
-                      className="px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700"
-                    >
-                      Générer Commande
-                    </button>
-                    <button
-                      onClick={viderPanier}
-                      className="px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700"
-                    >
-                      Vider
-                    </button>
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  {panier.map(item => (
-                    <div key={item.id} className="flex justify-between text-sm">
-                      <span>{item.description}</span>
-                      <span>Qté: {item.quantiteCommande}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Liste des articles */}
-            <div className="grid gap-4">
-              {articlesHook.data
-                .filter(article => 
-                  article.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                  article.code.toLowerCase().includes(searchTerm.toLowerCase())
-                )
-                .map(article => {
-                  const stockTotal = Object.values(article.stocks || {}).reduce((a, b) => a + b, 0);
-                  const isLowStock = stockTotal < article.stockMin;
-                  
-                  return (
-                    <div key={article.id} className="bg-white rounded-lg shadow-md p-4">
-                      <div className="flex justify-between items-start mb-3">
-                        <div>
-                          <h3 className="font-semibold text-lg">{article.code}</h3>
-                          <p className="text-gray-600">{article.description}</p>
-                        </div>
-                        <div className="flex space-x-2">
-                          <button
-                            onClick={() => {
-                              setEditingArticle(article);
-                              setArticleForm({
-                                code: article.code,
-                                description: article.description,
-                                stockMin: article.stockMin.toString(),
-                                prix: article.prix.toString(),
-                                fournisseur: article.fournisseur
-                              });
-                              setShowArticleModal(true);
-                            }}
-                            className="p-2 text-blue-600 hover:bg-blue-50 rounded"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => articlesHook.deleteItem(article.id)}
-                            className="p-2 text-red-600 hover:bg-red-50 rounded"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </div>
-                      
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
-                        <div>
-                          <p className="text-xs text-gray-500">Stock Total</p>
-                          <p className={`font-bold ${isLowStock ? 'text-red-600' : 'text-green-600'}`}>
-                            {stockTotal} / {article.stockMin}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-gray-500">Prix</p>
-                          <p className="font-medium">{article.prix}€</p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-gray-500">Fournisseur</p>
-                          <p className="font-medium">{article.fournisseur}</p>
-                        </div>
-                        <div>
-                          {isLowStock && (
-                            <button
-                              onClick={() => ajouterAuPanier(article)}
-                              className="px-3 py-1 bg-orange-600 text-white rounded text-sm hover:bg-orange-700 flex items-center"
-                            >
-                              <ShoppingCart className="w-3 h-3 mr-1" />
-                              Commander
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                      
-                      {/* Détail des stocks par dépôt */}
-                      <div className="border-t pt-3">
-                        <p className="text-sm font-medium mb-2">Stocks par dépôt:</p>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                          {depots.map(depot => (
-                            <div key={depot} className="text-sm">
-                              <span className="text-gray-600">{depot}:</span>
-                              <span className="ml-2 font-medium">{article.stocks?.[depot] || 0}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-            </div>
-          </div>
-        )}
-
-        {/* Onglet Inventaire */}
-        {activeTab === 'inventaire' && (
-          <div className="space-y-4">
-            <div className="bg-white rounded-lg shadow-md p-4">
-              <h2 className="text-xl font-semibold mb-4">Inventaire Complet</h2>
-              
-              <div className="mb-4">
-                <select
-                  value={selectedDepot}
-                  onChange={(e) => setSelectedDepot(e.target.value)}
-                  className="px-3 py-2 border rounded-lg"
-                >
-                  <option value="tous">Tous les dépôts</option>
-                  {depots.map(depot => (
-                    <option key={depot} value={depot}>{depot}</option>
-                  ))}
-                </select>
-              </div>
-              
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left p-2">Code</th>
-                      <th className="text-left p-2">Description</th>
-                      <th className="text-center p-2">Stock Min</th>
-                      {selectedDepot === 'tous' ? (
-                        <>
-                          {depots.map(depot => (
-                            <th key={depot} className="text-center p-2">{depot}</th>
-                          ))}
-                          <th className="text-center p-2">Total</th>
-                        </>
-                      ) : (
-                        <th className="text-center p-2">Quantité</th>
-                      )}
-                      <th className="text-center p-2">Statut</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {articlesHook.data.map(article => {
-                      const stockTotal = Object.values(article.stocks || {}).reduce((a, b) => a + b, 0);
-                      const isLowStock = stockTotal < article.stockMin;
-                      
-                      return (
-                        <tr key={article.id} className="border-b hover:bg-gray-50">
-                          <td className="p-2 font-medium">{article.code}</td>
-                          <td className="p-2">{article.description}</td>
-                          <td className="p-2 text-center">{article.stockMin}</td>
-                          {selectedDepot === 'tous' ? (
-                            <>
-                              {depots.map(depot => (
-                                <td key={depot} className="p-2 text-center">
-                                  {article.stocks?.[depot] || 0}
-                                </td>
-                              ))}
-                              <td className="p-2 text-center font-bold">{stockTotal}</td>
-                            </>
-                          ) : (
-                            <td className="p-2 text-center">
-                              {article.stocks?.[selectedDepot] || 0}
-                            </td>
-                          )}
-                          <td className="p-2 text-center">
-                            {isLowStock ? (
-                              <span className="px-2 py-1 bg-red-100 text-red-700 rounded text-xs">
-                                Alerte
-                              </span>
-                            ) : (
-                              <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">
-                                OK
-                              </span>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Onglet Stock */}
-        {activeTab === 'stock' && (
-          <div className="space-y-4">
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {/* Entrée de stock */}
-              <div className="bg-white rounded-lg shadow-md p-4">
-                <h3 className="font-semibold mb-3 flex items-center">
-                  <Plus className="w-4 h-4 mr-2 text-green-500" />
-                  Entrée Stock
-                </h3>
-                <div className="space-y-2">
-                  <select className="w-full px-3 py-2 border rounded">
-                    <option>Sélectionner article</option>
-                    {articlesHook.data.map(a => (
-                      <option key={a.id} value={a.id}>{a.description}</option>
-                    ))}
-                  </select>
-                  <select className="w-full px-3 py-2 border rounded">
-                    <option>Sélectionner dépôt</option>
-                    {depots.map(d => (
-                      <option key={d} value={d}>{d}</option>
-                    ))}
-                  </select>
-                  <input type="number" placeholder="Quantité" className="w-full px-3 py-2 border rounded" />
-                  <button className="w-full px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
-                    Valider Entrée
-                  </button>
-                </div>
-              </div>
-              
-              {/* Sortie de stock */}
-              <div className="bg-white rounded-lg shadow-md p-4">
-                <h3 className="font-semibold mb-3 flex items-center">
-                  <X className="w-4 h-4 mr-2 text-red-500" />
-                  Sortie Stock
-                </h3>
-                <div className="space-y-2">
-                  <select className="w-full px-3 py-2 border rounded">
-                    <option>Sélectionner article</option>
-                    {articlesHook.data.map(a => (
-                      <option key={a.id} value={a.id}>{a.description}</option>
-                    ))}
-                  </select>
-                  <select className="w-full px-3 py-2 border rounded">
-                    <option>Sélectionner dépôt</option>
-                    {depots.map(d => (
-                      <option key={d} value={d}>{d}</option>
-                    ))}
-                  </select>
-                  <input type="number" placeholder="Quantité" className="w-full px-3 py-2 border rounded" />
-                  <button className="w-full px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">
-                    Valider Sortie
-                  </button>
-                </div>
-              </div>
-              
-              {/* Transfert entre dépôts */}
-              <div className="bg-white rounded-lg shadow-md p-4">
-                <h3 className="font-semibold mb-3 flex items-center">
-                  <Activity className="w-4 h-4 mr-2 text-blue-500" />
-                  Transfert
-                </h3>
-                <div className="space-y-2">
-                  <select className="w-full px-3 py-2 border rounded">
-                    <option>Article à transférer</option>
-                    {articlesHook.data.map(a => (
-                      <option key={a.id} value={a.id}>{a.description}</option>
-                    ))}
-                  </select>
-                  <select className="w-full px-3 py-2 border rounded">
-                    <option>Dépôt source</option>
-                    {depots.map(d => (
-                      <option key={d} value={d}>{d}</option>
-                    ))}
-                  </select>
-                  <select className="w-full px-3 py-2 border rounded">
-                    <option>Dépôt destination</option>
-                    {depots.map(d => (
-                      <option key={d} value={d}>{d}</option>
-                    ))}
-                  </select>
-                  <input type="number" placeholder="Quantité" className="w-full px-3 py-2 border rounded" />
-                  <button className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-                    Transférer
-                  </button>
-                </div>
-              </div>
-              
-              {/* État des stocks */}
-              <div className="bg-white rounded-lg shadow-md p-4">
-                <h3 className="font-semibold mb-3 flex items-center">
-                  <BarChart3 className="w-4 h-4 mr-2 text-purple-500" />
-                  État Global
-                </h3>
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-sm">Articles total:</span>
-                    <span className="font-medium">{articlesHook.data.length}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm">En alerte:</span>
-                    <span className="font-medium text-red-600">{stats.articlesEnAlerte}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm">Mouvements jour:</span>
-                    <span className="font-medium">{mouvementsStockHook.data.filter(m => {
-                      const date = new Date(m.date);
-                      const today = new Date();
-                      return date.toDateString() === today.toDateString();
-                    }).length}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            {/* Historique des mouvements */}
-            <div className="bg-white rounded-lg shadow-md p-4">
-              <h3 className="font-semibold mb-3">Historique des Mouvements</h3>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left p-2">Date</th>
-                      <th className="text-left p-2">Type</th>
-                      <th className="text-left p-2">Article</th>
-                      <th className="text-left p-2">Dépôt</th>
-                      <th className="text-center p-2">Quantité</th>
-                      <th className="text-left p-2">Opérateur</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {mouvementsStockHook.data.slice(0, 10).map(mouvement => (
-                      <tr key={mouvement.id} className="border-b hover:bg-gray-50">
-                        <td className="p-2">{new Date(mouvement.date).toLocaleDateString('fr-FR')}</td>
-                        <td className="p-2">
-                          <span className={`px-2 py-1 rounded text-xs ${
-                            mouvement.type === 'entree' ? 'bg-green-100 text-green-700' :
-                            mouvement.type === 'sortie' ? 'bg-red-100 text-red-700' :
-                            'bg-blue-100 text-blue-700'
-                          }`}>
-                            {mouvement.type}
-                          </span>
-                        </td>
-                        <td className="p-2">{mouvement.articleNom}</td>
-                        <td className="p-2">{mouvement.depot}</td>
-                        <td className="p-2 text-center">{mouvement.quantite}</td>
-                        <td className="p-2">{mouvement.operateur}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Onglet Équipements */}
-        {activeTab === 'equipements' && (
-          <div className="space-y-4">
-            <div className="bg-white rounded-lg shadow-md p-4">
+        {ongletActif === 'equipements' && (
+          <div className="space-y-6">
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-4 border-blue-400 p-6 rounded-xl">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold">Gestion des Équipements</h2>
-                <button
-                  onClick={() => setShowEquipmentModal(true)}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Nouvel Équipement
-                </button>
+                <h3 className="text-2xl font-black text-blue-700">{modeEdition ? `✏️ MODIFIER ÉQUIPEMENT - ${equipementEnEdition?.immat}` : '🚛 CRÉER NOUVEL ÉQUIPEMENT'}</h3>
+                <button onClick={() => modeEdition ? annulerEditionEquipement() : setAfficherFormulaireEquipement(!afficherFormulaireEquipement)} className={`px-4 py-2 rounded font-bold text-white ${afficherFormulaireEquipement ? 'bg-red-600' : 'bg-blue-600'}`}>{afficherFormulaireEquipement ? '✕ Fermer' : '➕ Ouvrir'}</button>
               </div>
-              
-              <div className="mb-4">
-                <select
-                  value={selectedEquipmentType}
-                  onChange={(e) => setSelectedEquipmentType(e.target.value)}
-                  className="px-3 py-2 border rounded-lg"
-                >
-                  <option value="tous">Tous les types</option>
-                  {typesEquipements.map(type => (
-                    <option key={type} value={type}>{type}</option>
-                  ))}
-                </select>
-              </div>
-              
-              <div className="grid gap-4">
-                {equipmentsHook.data
-                  .filter(eq => selectedEquipmentType === 'tous' || eq.type === selectedEquipmentType)
-                  .map(equipment => {
-                    const getIcon = (type) => {
-                      switch(type) {
-                        case 'Camion Porteur': return Truck;
-                        case 'Nacelle': return Wrench;
-                        case 'Groupe électrogène': return Cpu;
-                        case 'Osmoseur': return Droplet;
-                        case 'Robot nettoyage': return Bot;
-                        default: return Package2;
-                      }
-                    };
-                    const Icon = getIcon(equipment.type);
-                    
-                    return (
-                      <div key={equipment.id} className="bg-white border rounded-lg p-4">
-                        <div className="flex justify-between items-start">
-                          <div className="flex items-start space-x-3">
-                            <Icon className="w-8 h-8 text-blue-500 mt-1" />
-                            <div>
-                              <h3 className="font-semibold text-lg">{equipment.nom}</h3>
-                              <p className="text-gray-600">{equipment.type}</p>
-                              <p className="text-sm text-gray-500">Immat: {equipment.immatriculation}</p>
-                            </div>
-                          </div>
-                          <div className="flex space-x-2">
-                            <span className={`px-2 py-1 rounded text-sm ${
-                              equipment.statut === 'Actif' ? 'bg-green-100 text-green-700' :
-                              equipment.statut === 'Maintenance' ? 'bg-yellow-100 text-yellow-700' :
-                              'bg-red-100 text-red-700'
-                            }`}>
-                              {equipment.statut}
-                            </span>
-                            <button
-                              onClick={() => {
-                                setEditingEquipment(equipment);
-                                setEquipmentForm({
-                                  nom: equipment.nom,
-                                  type: equipment.type,
-                                  immatriculation: equipment.immatriculation,
-                                  statut: equipment.statut,
-                                  kilometrage: equipment.kilometrage?.toString() || '',
-                                  heuresService: equipment.heuresService?.toString() || '',
-                                  derniereRevision: equipment.derniereRevision,
-                                  prochaineRevision: equipment.prochaineRevision
-                                });
-                                setShowEquipmentModal(true);
-                              }}
-                              className="p-2 text-blue-600 hover:bg-blue-50 rounded"
-                            >
-                              <Edit2 className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => equipmentsHook.deleteItem(equipment.id)}
-                              className="p-2 text-red-600 hover:bg-red-50 rounded"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </div>
-                        
-                        <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3">
-                          {equipment.kilometrage && (
-                            <div>
-                              <p className="text-xs text-gray-500">Kilométrage</p>
-                              <p className="font-medium">{equipment.kilometrage} km</p>
-                            </div>
-                          )}
-                          {equipment.heuresService && (
-                            <div>
-                              <p className="text-xs text-gray-500">Heures service</p>
-                              <p className="font-medium">{equipment.heuresService} h</p>
-                            </div>
-                          )}
-                          <div>
-                            <p className="text-xs text-gray-500">Dernière révision</p>
-                            <p className="font-medium">{new Date(equipment.derniereRevision).toLocaleDateString('fr-FR')}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-gray-500">Prochaine révision</p>
-                            <p className={`font-medium ${
-                              new Date(equipment.prochaineRevision) < new Date() ? 'text-red-600' : ''
-                            }`}>
-                              {new Date(equipment.prochaineRevision).toLocaleDateString('fr-FR')}
-                            </p>
-                          </div>
-                        </div>
-                        
-                        <div className="mt-3 flex space-x-2">
-                          <button
-                            onClick={() => {
-                              setEditingIntervention({ equipementId: equipment.id });
-                              setInterventionForm({ ...interventionForm, equipementId: equipment.id });
-                              setShowInterventionModal(true);
-                            }}
-                            className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
-                          >
-                            Intervention
-                          </button>
-                          <button
-                            onClick={() => {
-                              setFuelForm({ ...fuelForm, equipementId: equipment.id });
-                              setShowFuelModal(true);
-                            }}
-                            className="px-3 py-1 bg-orange-600 text-white rounded text-sm hover:bg-orange-700"
-                          >
-                            Ravitaillement
-                          </button>
-                          <button
-                            onClick={() => {
-                              setDefautForm({ ...defautForm, equipementId: equipment.id });
-                              setShowDefautModal(true);
-                            }}
-                            className="px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700"
-                          >
-                            Signaler défaut
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Onglet Interventions */}
-        {activeTab === 'interventions' && (
-          <div className="space-y-4">
-            <div className="bg-white rounded-lg shadow-md p-4">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold">Interventions</h2>
-                <button
-                  onClick={() => setShowInterventionModal(true)}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Nouvelle Intervention
-                </button>
-              </div>
-              
-              <div className="grid gap-4">
-                {interventionsHook.data.map(intervention => (
-                  <div key={intervention.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
-                    <div className="flex justify-between items-start mb-3">
-                      <div>
-                        <h3 className="font-semibold">{intervention.titre}</h3>
-                        <p className="text-gray-600">{intervention.description}</p>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <span className={`px-2 py-1 rounded text-sm ${
-                          intervention.statut === 'Terminé' ? 'bg-green-100 text-green-700' :
-                          intervention.statut === 'En cours' ? 'bg-yellow-100 text-yellow-700' :
-                          'bg-gray-100 text-gray-700'
-                        }`}>
-                          {intervention.statut}
-                        </span>
-                        <button
-                          onClick={() => interventionsHook.deleteItem(intervention.id)}
-                          className="p-1 text-red-600 hover:bg-red-50 rounded"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
-                      <div>
-                        <span className="text-gray-500">Date:</span>
-                        <span className="ml-2">{new Date(intervention.date).toLocaleDateString('fr-FR')}</span>
-                      </div>
-                      <div>
-                        <span className="text-gray-500">Équipement:</span>
-                        <span className="ml-2">{intervention.equipementNom}</span>
-                      </div>
-                      <div>
-                        <span className="text-gray-500">Opérateur:</span>
-                        <span className="ml-2">{intervention.operateur}</span>
-                      </div>
-                      <div>
-                        <span className="text-gray-500">Durée:</span>
-                        <span className="ml-2">{intervention.duree}h</span>
-                      </div>
-                    </div>
-                    
-                    {intervention.articlesUtilises && intervention.articlesUtilises.length > 0 && (
-                      <div className="mt-3 pt-3 border-t">
-                        <p className="text-sm font-medium mb-2">Articles utilisés:</p>
-                        <div className="flex flex-wrap gap-2">
-                          {intervention.articlesUtilises.map((articleId, index) => {
-                            const article = articlesHook.data.find(a => a.id === articleId);
-                            return article ? (
-                              <span key={index} className="px-2 py-1 bg-blue-50 rounded text-xs">
-                                {article.description}
-                              </span>
-                            ) : null;
-                          })}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-            
-            {/* Carburants intégré */}
-            <div className="bg-white rounded-lg shadow-md p-4">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold flex items-center">
-                  <Fuel className="w-6 h-6 mr-2 text-orange-500" />
-                  Carburants
-                </h2>
-                <button
-                  onClick={() => setShowFuelModal(true)}
-                  className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 flex items-center"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Nouveau Ravitaillement
-                </button>
-              </div>
-              
-              <div className="grid md:grid-cols-3 gap-4 mb-4">
-                {equipmentsHook.data.filter(e => e.type === 'Camion Porteur').map(camion => {
-                  const ravitaillements = ravitaillementsHook.data.filter(r => r.equipementId === camion.id);
-                  const totalLitres = ravitaillements.reduce((acc, r) => acc + (r.litres || 0), 0);
-                  const totalKm = ravitaillements.reduce((acc, r) => acc + (r.kilometresParcourus || 0), 0);
-                  const totalCout = ravitaillements.reduce((acc, r) => acc + (r.cout || 0), 0);
-                  const consommation = totalKm > 0 ? ((totalLitres / totalKm) * 100).toFixed(1) : 0;
-                  
-                  return (
-                    <div key={camion.id} className="bg-gray-50 p-3 rounded-lg">
-                      <h4 className="font-medium mb-2">{camion.nom}</h4>
-                      <div className="space-y-1 text-sm">
-                        <div className="flex justify-between">
-                          <span>Consommation:</span>
-                          <span className="font-medium">{consommation} L/100km</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Total carburant:</span>
-                          <span className="font-medium">{totalLitres} L</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Coût total:</span>
-                          <span className="font-medium">{totalCout.toFixed(2)}€</span>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-              
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left p-2">Date</th>
-                      <th className="text-left p-2">Véhicule</th>
-                      <th className="text-center p-2">Litres</th>
-                      <th className="text-center p-2">Kilomètres</th>
-                      <th className="text-center p-2">Coût</th>
-                      <th className="text-left p-2">Opérateur</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {ravitaillementsHook.data.slice(0, 5).map(ravitaillement => (
-                      <tr key={ravitaillement.id} className="border-b hover:bg-gray-50">
-                        <td className="p-2">{new Date(ravitaillement.date).toLocaleDateString('fr-FR')}</td>
-                        <td className="p-2">{ravitaillement.equipementNom}</td>
-                        <td className="p-2 text-center">{ravitaillement.litres} L</td>
-                        <td className="p-2 text-center">{ravitaillement.kilometrageActuel} km</td>
-                        <td className="p-2 text-center">{ravitaillement.cout}€</td>
-                        <td className="p-2">{ravitaillement.operateur}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Onglet Maintenance */}
-        {activeTab === 'maintenance' && (
-          <div className="space-y-4">
-            {/* Plan de maintenance */}
-            <div className="bg-white rounded-lg shadow-md p-4">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold">Plan de Maintenance</h2>
-                <button
-                  onClick={() => setShowMaintenanceModal(true)}
-                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 flex items-center"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Planifier Maintenance
-                </button>
-              </div>
-              
-              <div className="grid gap-4">
-                {maintenancesHook.data.map(maintenance => (
-                  <div key={maintenance.id} className="border rounded-lg p-4">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h3 className="font-semibold">{maintenance.titre}</h3>
-                        <p className="text-gray-600">{maintenance.description}</p>
-                        <div className="mt-2 flex space-x-4 text-sm">
-                          <span>Équipement: {maintenance.equipementNom}</span>
-                          <span>Fréquence: {maintenance.frequence}</span>
-                          <span>Prochaine: {new Date(maintenance.prochaine).toLocaleDateString('fr-FR')}</span>
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => maintenancesHook.deleteItem(maintenance.id)}
-                        className="p-2 text-red-600 hover:bg-red-50 rounded"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+              {afficherFormulaireEquipement && (
+                <div className="bg-white p-6 rounded-lg space-y-4">
+                  <div className="bg-blue-50 p-4 rounded-lg border-2 border-blue-300">
+                    <h4 className="font-bold text-blue-700 mb-3">📋 INFOS DE BASE</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div><label className="text-xs font-bold text-gray-700">Immatriculation *</label><input type="text" placeholder="Ex: GT-316-FG" value={nouvelEquipement.immat} onChange={(e) => setNouvelEquipement({...nouvelEquipement,immat:e.target.value})} className="w-full border-2 border-blue-300 rounded px-3 py-2 mt-1 font-bold"/></div>
+                      <div><label className="text-xs font-bold text-gray-700">Type *</label><select value={nouvelEquipement.type} onChange={(e) => setNouvelEquipement({...nouvelEquipement,type:e.target.value})} className="w-full border-2 border-blue-300 rounded px-3 py-2 mt-1"><option value="">Sélectionner type</option><option value="Tracteur Routier">Tracteur Routier</option><option value="Semi-Remorque">Semi-Remorque</option><option value="Micro-tracteur">Micro-tracteur</option><option value="Tracteur">Tracteur</option><option value="Remorque">Remorque</option><option value="Camion Porteur">Camion Porteur</option><option value="Nacelle">Nacelle</option><option value="Groupe électrogène">Groupe électrogène</option><option value="Osmoseur">Osmoseur</option><option value="Robot nettoyage">Robot nettoyage</option><option value="Accessoire">Accessoire</option><option value="Autre">Autre</option></select></div>
+                      <div><label className="text-xs font-bold text-gray-700">Marque</label><input type="text" placeholder="Ex: IVECO" value={nouvelEquipement.marque} onChange={(e) => setNouvelEquipement({...nouvelEquipement,marque:e.target.value})} className="w-full border-2 border-blue-300 rounded px-3 py-2 mt-1"/></div>
+                      <div><label className="text-xs font-bold text-gray-700">Modèle</label><input type="text" placeholder="Ex: S-WAY" value={nouvelEquipement.modele} onChange={(e) => setNouvelEquipement({...nouvelEquipement,modele:e.target.value})} className="w-full border-2 border-blue-300 rounded px-3 py-2 mt-1"/></div>
+                      <div><label className="text-xs font-bold text-gray-700">Année</label><input type="number" placeholder="Ex: 2023" value={nouvelEquipement.annee} onChange={(e) => setNouvelEquipement({...nouvelEquipement,annee:e.target.value})} className="w-full border-2 border-blue-300 rounded px-3 py-2 mt-1"/></div>
+                      <div><label className="text-xs font-bold text-gray-700">VIN</label><input type="text" placeholder="Numéro VIN" value={nouvelEquipement.vin} onChange={(e) => setNouvelEquipement({...nouvelEquipement,vin:e.target.value})} className="w-full border-2 border-blue-300 rounded px-3 py-2 mt-1"/></div>
                     </div>
                   </div>
-                ))}
-              </div>
-            </div>
-            
-            {/* Défauts signalés */}
-            <div className="bg-white rounded-lg shadow-md p-4">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold flex items-center">
-                  <AlertTriangle className="w-6 h-6 mr-2 text-red-500" />
-                  Défauts Signalés
-                </h2>
-                <button
-                  onClick={() => setShowDefautModal(true)}
-                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Signaler Défaut
-                </button>
-              </div>
-              
-              <div className="grid gap-4">
-                {defautsHook.data.filter(d => !d.resolu).map(defaut => (
-                  <div key={defaut.id} className="border rounded-lg p-4">
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-2 mb-2">
-                          <span className={`px-2 py-1 rounded text-sm ${
-                            defaut.severite === 'Critique' ? 'bg-red-100 text-red-700' :
-                            defaut.severite === 'Majeur' ? 'bg-orange-100 text-orange-700' :
-                            defaut.severite === 'Mineur' ? 'bg-yellow-100 text-yellow-700' :
-                            'bg-gray-100 text-gray-700'
-                          }`}>
-                            {defaut.severite}
-                          </span>
-                          <span className="text-sm text-gray-600">
-                            {new Date(defaut.date).toLocaleDateString('fr-FR')}
-                          </span>
-                        </div>
-                        <h4 className="font-semibold">{defaut.titre}</h4>
-                        <p className="text-gray-600">{defaut.description}</p>
-                        <div className="mt-2 flex space-x-4 text-sm text-gray-500">
-                          <span>Équipement: {defaut.equipementNom}</span>
-                          <span>Signalé par: {defaut.operateur}</span>
-                        </div>
-                        {defaut.photos && defaut.photos.length > 0 && (
-                          <div className="mt-2 flex space-x-2">
-                            {defaut.photos.map((photo, index) => (
-                              <div key={index} className="w-16 h-16 bg-gray-200 rounded flex items-center justify-center">
-                                <Image className="w-6 h-6 text-gray-400" />
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex space-x-2">
-                        <button
-                          onClick={() => defautsHook.updateItem(defaut.id, { resolu: true })}
-                          className="p-2 text-green-600 hover:bg-green-50 rounded"
-                        >
-                          <CheckCircle className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => defautsHook.deleteItem(defaut.id)}
-                          className="p-2 text-red-600 hover:bg-red-50 rounded"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
+                  <div className="bg-green-50 p-4 rounded-lg border-2 border-green-300">
+                    <h4 className="font-bold text-green-700 mb-3">⚙️ TECHNIQUE</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div><label className="text-xs font-bold text-gray-700">Carburant</label><select value={nouvelEquipement.carburant} onChange={(e) => setNouvelEquipement({...nouvelEquipement,carburant:e.target.value})} className="w-full border-2 border-green-300 rounded px-3 py-2 mt-1"><option value="">Sélectionner</option><option value="Diesel">Diesel</option><option value="Essence">Essence</option><option value="Agricole">Agricole</option><option value="N/A">N/A</option></select></div>
+                      <div><label className="text-xs font-bold text-gray-700">PTAC (kg)</label><input type="number" placeholder="26000" value={nouvelEquipement.ptac} onChange={(e) => setNouvelEquipement({...nouvelEquipement,ptac:e.target.value})} className="w-full border-2 border-green-300 rounded px-3 py-2 mt-1"/></div>
+                      <div><label className="text-xs font-bold text-gray-700">Poids (kg)</label><input type="number" placeholder="13190" value={nouvelEquipement.poids} onChange={(e) => setNouvelEquipement({...nouvelEquipement,poids:e.target.value})} className="w-full border-2 border-green-300 rounded px-3 py-2 mt-1"/></div>
+                      <div><label className="text-xs font-bold text-gray-700">Kilométrage initial</label><input type="number" placeholder="0" value={nouvelEquipement.km} onChange={(e) => setNouvelEquipement({...nouvelEquipement,km:e.target.value})} className="w-full border-2 border-green-300 rounded px-3 py-2 mt-1"/></div>
+                      <div><label className="text-xs font-bold text-gray-700">Heures initial</label><input type="number" placeholder="0" value={nouvelEquipement.heures} onChange={(e) => setNouvelEquipement({...nouvelEquipement,heures:e.target.value})} className="w-full border-2 border-green-300 rounded px-3 py-2 mt-1"/></div>
                     </div>
                   </div>
-                ))}
-              </div>
-              
-              {/* Défauts résolus */}
-              {defautsHook.data.filter(d => d.resolu).length > 0 && (
-                <div className="mt-6">
-                  <h3 className="font-semibold mb-3 text-green-600">Défauts Résolus</h3>
-                  <div className="space-y-2">
-                    {defautsHook.data.filter(d => d.resolu).map(defaut => (
-                      <div key={defaut.id} className="bg-green-50 p-3 rounded flex justify-between items-center">
-                        <div>
-                          <span className="font-medium">{defaut.titre}</span>
-                          <span className="text-sm text-gray-600 ml-2">- {defaut.equipementNom}</span>
-                        </div>
-                        <CheckCircle className="w-5 h-5 text-green-600" />
-                      </div>
-                    ))}
+                  <div className="bg-purple-50 p-4 rounded-lg border-2 border-purple-300">
+                    <h4 className="font-bold text-purple-700 mb-3">💰 VALEURS</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div><label className="text-xs font-bold text-gray-700">Valeur achat (€)</label><input type="number" step="0.01" placeholder="0" value={nouvelEquipement.valeurAchat} onChange={(e) => setNouvelEquipement({...nouvelEquipement,valeurAchat:e.target.value})} className="w-full border-2 border-purple-300 rounded px-3 py-2 mt-1"/></div>
+                      <div><label className="text-xs font-bold text-gray-700">Valeur actuelle (€)</label><input type="number" step="0.01" placeholder="0" value={nouvelEquipement.valeurActuelle} onChange={(e) => setNouvelEquipement({...nouvelEquipement,valeurActuelle:e.target.value})} className="w-full border-2 border-purple-300 rounded px-3 py-2 mt-1"/></div>
+                      <div><label className="text-xs font-bold text-gray-700">Assurance (€/mois)</label><input type="number" step="0.01" placeholder="0" value={nouvelEquipement.assurance} onChange={(e) => setNouvelEquipement({...nouvelEquipement,assurance:e.target.value})} className="w-full border-2 border-purple-300 rounded px-3 py-2 mt-1"/></div>
+                    </div>
+                  </div>
+                  <div className="bg-yellow-50 p-4 rounded-lg border-2 border-yellow-400">
+                    <h4 className="font-bold text-yellow-700 mb-3">📝 FINANCEMENT</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div><label className="text-xs font-bold text-gray-700">Type financement</label><select value={nouvelEquipement.typeFinancement} onChange={(e) => setNouvelEquipement({...nouvelEquipement,typeFinancement:e.target.value})} className="w-full border-2 border-yellow-400 rounded px-3 py-2 mt-1"><option value="">Sélectionner</option><option value="Achat">Achat</option><option value="Location">Location</option><option value="Crédit">Crédit</option><option value="Autre">Autre</option></select></div>
+                      <div><label className="text-xs font-bold text-gray-700">Coût mensuel (€)</label><input type="number" step="0.01" placeholder="0" value={nouvelEquipement.coutMensuel} onChange={(e) => setNouvelEquipement({...nouvelEquipement,coutMensuel:e.target.value})} className="w-full border-2 border-yellow-400 rounded px-3 py-2 mt-1"/></div>
+                      <div></div>
+                      <div><label className="text-xs font-bold text-gray-700">Date début</label><input type="date" value={nouvelEquipement.dateDebut} onChange={(e) => setNouvelEquipement({...nouvelEquipement,dateDebut:e.target.value})} className="w-full border-2 border-yellow-400 rounded px-3 py-2 mt-1"/></div>
+                      <div><label className="text-xs font-bold text-gray-700">Date fin</label><input type="date" value={nouvelEquipement.dateFin} onChange={(e) => setNouvelEquipement({...nouvelEquipement,dateFin:e.target.value})} className="w-full border-2 border-yellow-400 rounded px-3 py-2 mt-1"/></div>
+                      <div><label className="text-xs font-bold text-gray-700">Date contrôle technique</label><input type="date" value={nouvelEquipement.dateContracteTechnique} onChange={(e) => setNouvelEquipement({...nouvelEquipement,dateContracteTechnique:e.target.value})} className="w-full border-2 border-yellow-400 rounded px-3 py-2 mt-1"/></div>
+                    </div>
+                  </div>
+                  <div className="bg-orange-50 p-4 rounded-lg border-2 border-orange-400">
+                    <h4 className="font-bold text-orange-700 mb-3">🏢 INFOS OPÉRATIONNELLES</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div><label className="text-xs font-bold text-gray-700">Propriétaire</label><input type="text" placeholder="SOLAIRE NETTOYAGE" value={nouvelEquipement.proprietaire} onChange={(e) => setNouvelEquipement({...nouvelEquipement,proprietaire:e.target.value})} className="w-full border-2 border-orange-400 rounded px-3 py-2 mt-1"/></div>
+                      <div><label className="text-xs font-bold text-gray-700">Notes</label><input type="text" placeholder="Notes..." value={nouvelEquipement.notes} onChange={(e) => setNouvelEquipement({...nouvelEquipement,notes:e.target.value})} className="w-full border-2 border-orange-400 rounded px-3 py-2 mt-1"/></div>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={creerOuModifierEquipement} className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-4 rounded-lg font-black text-lg hover:from-blue-700 hover:to-indigo-700 transition">{modeEdition ? '💾 SAUVEGARDER MODIFICATIONS' : '✅ CRÉER ÉQUIPEMENT'}</button>
+                    {modeEdition && (<button onClick={annulerEditionEquipement} className="flex-1 bg-gray-500 text-white px-6 py-4 rounded-lg font-black text-lg hover:bg-gray-600 transition">❌ ANNULER</button>)}
                   </div>
                 </div>
               )}
             </div>
+            <div className="bg-white p-4 rounded border">
+              <h2 className="font-black text-xl mb-4">🚛 Équipements ({equipements.length})</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {equipements.map(eq => (
+                  <div key={eq.id} className="p-4 bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg border-2 border-gray-300 hover:shadow-lg transition cursor-pointer" onClick={() => {setOngletActif('fiche');setEquipementSelectionne(eq.id);}}>
+                    <div className="flex justify-between items-start mb-2">
+                      <div><div className="text-xl font-black text-orange-600">{eq.immat}</div><div className="text-sm text-gray-700"><strong>{eq.type}</strong></div></div>
+                      <div className="text-right text-sm"><div className="text-gray-600">{eq.marque}</div><div className="text-gray-600">{eq.modele}</div><div className="text-gray-500">({eq.annee})</div></div>
+                    </div>
+                    <div className="border-t pt-2 mt-2 grid grid-cols-2 gap-2 text-xs">
+                      <div className="text-gray-600">💰 <strong>{eq.valeurActuelle}€</strong></div>
+                      <div className="text-gray-600">⛽ {eq.carburant || 'N/A'}</div>
+                      <div className="text-gray-600">📍 {eq.proprietaire}</div>
+                      <div className="text-gray-600">📅 {eq.dateDebut}</div>
+                    </div>
+                    <div className="flex gap-2 mt-3">
+                      <button onClick={(e) => {e.stopPropagation();setOngletActif('fiche');setEquipementSelectionne(eq.id);}} className="flex-1 bg-orange-500 text-white px-3 py-2 rounded font-bold text-sm hover:bg-orange-600">👁️ Voir fiche</button>
+                      <button onClick={(e) => {e.stopPropagation();ouvrirEditionEquipement(eq);}} className="flex-1 bg-blue-600 text-white px-3 py-2 rounded font-bold text-sm hover:bg-blue-700">✏️ Éditer</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         )}
+        {ongletActif === 'interventions' && (
+          <div className="space-y-4">
+            <div className="bg-white p-4 rounded border"><h3 className="font-bold text-lg mb-3">🔧 Créer intervention</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-2">
+                <select value={nouvelleIntervention.equipementId} onChange={(e) => setNouvelleIntervention({...nouvelleIntervention,equipementId:e.target.value})} className="border-2 rounded px-2 py-2"><option value="">Équipement *</option>{getEquipementsEtSunbrush().map(item => <option key={item.id} value={item.id}>{item.nom}</option>)}</select>
+                <select value={nouvelleIntervention.type} onChange={(e) => setNouvelleIntervention({...nouvelleIntervention,type:e.target.value})} className="border-2 rounded px-2 py-2"><option value="">Type *</option>{typesIntervention.map(t => <option key={t} value={t}>{t}</option>)}</select>
+                <input type="date" value={nouvelleIntervention.date} onChange={(e) => setNouvelleIntervention({...nouvelleIntervention,date:e.target.value})} className="border-2 rounded px-2 py-2"/>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-3">
+                <input type="number" placeholder="KM" value={nouvelleIntervention.km} onChange={(e) => setNouvelleIntervention({...nouvelleIntervention,km:e.target.value})} className="border-2 rounded px-2 py-2"/>
+                <input type="number" placeholder="Heures" value={nouvelleIntervention.heures} onChange={(e) => setNouvelleIntervention({...nouvelleIntervention,heures:e.target.value})} className="border-2 rounded px-2 py-2"/>
+                <input type="text" placeholder="Description" value={nouvelleIntervention.description} onChange={(e) => setNouvelleIntervention({...nouvelleIntervention,description:e.target.value})} className="border-2 rounded px-2 py-2"/>
+              </div>
+              <div className="bg-purple-50 border-2 border-purple-300 p-3 rounded mb-3">
+                <h4 className="font-semibold text-sm mb-2">📍 Dépôt de prélèvement</h4>
+                <select value={nouvelleIntervention.depotPrelevement} onChange={(e) => setNouvelleIntervention({...nouvelleIntervention,depotPrelevement:e.target.value})} className="w-full border-2 border-purple-300 rounded px-3 py-2 mb-2">{depots.map(d => <option key={d} value={d}>{d}</option>)}</select>
+              </div>
+              <div className="bg-blue-50 border-2 border-blue-300 p-3 rounded mb-3">
+                <h4 className="font-semibold text-sm mb-2">📦 Articles</h4>
+                <div className="mb-2 flex gap-2"><button onClick={() => setAfficherArticlesEquipement(!afficherArticlesEquipement)} className={`px-3 py-1 rounded text-xs font-bold ${afficherArticlesEquipement ? 'bg-blue-600 text-white' : 'bg-gray-300'}`}>{afficherArticlesEquipement ? 'Équipement' : 'Tous'}</button><button onClick={toggleScannerIntervention} className={`px-3 py-1 rounded text-xs font-bold ${afficherScannerIntervention ? 'bg-red-600 text-white' : 'bg-indigo-600 text-white'}`}>{afficherScannerIntervention ? 'Fermer' : 'Scanner'}</button></div>
+                {afficherScannerIntervention && !scanResultatIntervention && (<div className="mb-3 bg-indigo-50 p-3 rounded border border-indigo-200"><div className="bg-gray-900 rounded overflow-hidden mb-2" style={{maxWidth:'100%',height:'200px'}}><video ref={videoIntervention} autoPlay playsInline muted style={{width:'100%',height:'100%',display:'block'}}/><canvas ref={canvasIntervention} style={{display:'none'}}/></div><p className="text-xs text-indigo-600 font-semibold">🎯 Pointez un QR code</p></div>)}
+                {scanResultatIntervention && (<div className="mb-3 bg-green-50 p-3 rounded border-2 border-green-300"><div className="font-bold text-green-700 mb-2">{scanResultatIntervention.article.code} - {scanResultatIntervention.article.description}</div><div className="flex gap-2 items-end"><input type="number" min="1" placeholder="Quantité *" value={quantiteScanIntervention} onChange={(e) => setQuantiteScanIntervention(e.target.value)} className="flex-1 border-2 border-green-300 rounded px-2 py-1 font-bold text-center"/><button onClick={ajouterArticlePrevuScan} className="bg-green-600 text-white px-3 py-1 rounded text-sm font-bold">➕ Ajouter</button><button onClick={() => {setScanResultatIntervention(null);setQuantiteScanIntervention('');}} className="bg-gray-400 text-white px-3 py-1 rounded text-sm">✕</button></div></div>)}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-2 mb-2">
+                  <select value={nouvelArticleIntervention.articleId} onChange={(e) => setNouvelArticleIntervention({...nouvelArticleIntervention,articleId:e.target.value})} className="border-2 rounded px-2 py-2 text-sm"><option value="">Article</option>{getArticlesDisponibles().map(a => <option key={a.id} value={a.id}>{a.code} - {a.prixUnitaire}€</option>)}</select>
+                  <input type="number" min="1" placeholder="Quantité" value={nouvelArticleIntervention.quantite} onChange={(e) => setNouvelArticleIntervention({...nouvelArticleIntervention,quantite:e.target.value})} className="border-2 rounded px-2 py-2 text-sm"/>
+                  <button onClick={ajouterArticlePrevu} className="bg-blue-600 text-white px-3 py-2 rounded text-sm font-bold col-span-2">+ Ajouter</button>
+                </div>
+                {nouvelleIntervention.articlesPrevu.length > 0 && (<div className="bg-white rounded p-2 mb-2 space-y-1 border"><div className="text-xs font-bold mb-2">Prévus:</div>{nouvelleIntervention.articlesPrevu.map((art,idx) => (<div key={idx} className="flex justify-between items-center text-xs bg-gray-50 p-2 rounded"><div><strong>{art.code}</strong> - {art.quantite}x @ {art.prixUnitaire.toFixed(2)}€</div><button onClick={() => supprimerArticlePrevu(idx)} className="text-red-600">✕</button></div>))}</div>)}
+              </div>
+              <button onClick={creerIntervention} className="w-full bg-orange-500 text-white px-4 py-3 rounded font-bold text-lg">✓ CRÉER INTERVENTION</button>
+            </div>
+            {interventionsEnCours.length > 0 && (<div><h3 className="font-bold text-lg mb-2">En cours ({interventionsEnCours.length})</h3>{interventionsEnCours.map(i => {const eq = equipements.find(e => e.id === i.equipementId); return (<div key={i.id} className="bg-yellow-50 border-2 border-yellow-400 p-4 rounded mb-3"><div className="flex justify-between items-start"><div><h4 className="font-bold text-lg">{i.type}</h4><p className="text-sm">{eq?.immat} - {i.date}</p></div><button onClick={() => cloturerIntervention(i.id)} className="bg-green-600 text-white px-4 py-2 rounded font-bold">Terminer</button></div></div>);})}</div>)}
+            {interventions.filter(i => i.statut === 'effectue').length > 0 && (<div><h3 className="font-bold text-lg mb-2">Effectuées</h3>{interventions.filter(i => i.statut === 'effectue').map(i => {const eq = equipements.find(e => e.id === i.equipementId); return (<div key={i.id} className="p-4 bg-green-50 rounded mb-3 border"><div className="flex justify-between"><div><div className="font-bold text-lg">{i.type}</div><p className="text-sm"><strong>{eq?.immat}</strong> • {i.date}</p></div><div className="text-2xl font-black text-green-600">{(i.coutTotal || 0).toFixed(2)}€</div></div></div>);})}</div>)}
+          </div>
+        )}
+        {ongletActif === 'maintenance' && (
+          <div className="space-y-6">
+            <div className="bg-gradient-to-r from-red-50 to-orange-50 border-2 border-red-300 p-6 rounded-xl">
+              <h2 className="text-2xl font-black text-red-700 mb-4">🚨 DÉCLARER UN DÉFAUT</h2>
+              <div className="space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div><label className="block text-sm font-bold text-gray-700 mb-1">Équipement *</label><select value={nouveauDefaut.equipementId} onChange={(e) => setNouveauDefaut({...nouveauDefaut,equipementId:e.target.value,accessoireId:''})} className="w-full border-2 border-red-300 rounded px-3 py-2 font-semibold"><option value="">Sélectionner équipement</option>{equipements.map(eq => <option key={eq.id} value={eq.id}>{eq.immat} - {eq.marque}</option>)}</select></div>
+                  <div><label className="block text-sm font-bold text-gray-700 mb-1">Accessoire (optionnel)</label><select value={nouveauDefaut.accessoireId} onChange={(e) => setNouveauDefaut({...nouveauDefaut,accessoireId:e.target.value})} className="w-full border-2 border-red-300 rounded px-3 py-2"><option value="">Aucun accessoire</option>{nouveauDefaut.equipementId && accessoiresEquipement[parseInt(nouveauDefaut.equipementId)]?.map(acc => <option key={acc.id} value={acc.id}>{acc.nom}</option>)}</select></div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div><label className="block text-sm font-bold text-gray-700 mb-1">Type de défaut *</label><select value={nouveauDefaut.type} onChange={(e) => setNouveauDefaut({...nouveauDefaut,type:e.target.value})} className="w-full border-2 rounded px-3 py-2 font-semibold"><option value="Fuite">Fuite</option><option value="Bruit">Bruit anormal</option><option value="Usure">Usure</option><option value="Cassure">Cassure/Casse</option><option value="Dysfonctionnement">Dysfonctionnement</option><option value="Autre">Autre</option></select></div>
+                  <div><label className="block text-sm font-bold text-gray-700 mb-1">Sévérité *</label><select value={nouveauDefaut.severite} onChange={(e) => setNouveauDefaut({...nouveauDefaut,severite:e.target.value})} className="w-full border-2 rounded px-3 py-2 font-semibold"><option value="mineur">🟢 Mineur</option><option value="moyen">🟠 Moyen</option><option value="critique">🔴 Critique</option></select></div>
+                  <div><label className="block text-sm font-bold text-gray-700 mb-1">Opérateur *</label><select value={nouveauDefaut.operateur} onChange={(e) => setNouveauDefaut({...nouveauDefaut,operateur:e.target.value})} className="w-full border-2 rounded px-3 py-2 font-semibold">{operateurs.map(op => <option key={op} value={op}>{op}</option>)}</select></div>
+                </div>
+                <div><label className="block text-sm font-bold text-gray-700 mb-1">Description détaillée *</label><textarea value={nouveauDefaut.description} onChange={(e) => setNouveauDefaut({...nouveauDefaut,description:e.target.value})} placeholder="Ex: Fuite hydraulique..." className="w-full border-2 border-red-300 rounded px-3 py-2 h-20 font-semibold"/></div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div><label className="block text-sm font-bold text-gray-700 mb-1">Localisation sur équipement</label><input type="text" value={nouveauDefaut.localisation} onChange={(e) => setNouveauDefaut({...nouveauDefaut,localisation:e.target.value})} placeholder="Ex: Raccord du bras..." className="w-full border-2 rounded px-3 py-2"/></div>
+                  <div><label className="block text-sm font-bold text-gray-700 mb-1">Date constatation</label><input type="date" value={nouveauDefaut.dateConstatation} onChange={(e) => setNouveauDefaut({...nouveauDefaut,dateConstatation:e.target.value})} className="w-full border-2 rounded px-3 py-2"/></div>
+                </div>
+                <div><label className="block text-sm font-bold text-gray-700 mb-1">Remarques additionnelles</label><textarea value={nouveauDefaut.remarques} onChange={(e) => setNouveauDefaut({...nouveauDefaut,remarques:e.target.value})} placeholder="Infos supplémentaires..." className="w-full border-2 rounded px-3 py-2 h-16"/></div>
+                <div className="bg-blue-50 border-2 border-blue-300 p-4 rounded">
+                  <label className="block text-sm font-bold text-blue-700 mb-2">📸 Joindre photos (multiples)</label>
+                  <button onClick={() => fileInputRef.current?.click()} className="bg-blue-600 text-white px-4 py-2 rounded font-bold mb-3">+ Ajouter photos</button>
+                  <input ref={fileInputRef} type="file" multiple accept="image/*" onChange={gererSelectionPhotos} style={{display:'none'}}/>
+                  {photosSelectionnees.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-sm font-semibold">Photos sélectionnées ({photosSelectionnees.length}):</p>
+                      {photosSelectionnees.map((photo,idx) => (
+                        <div key={idx} className="flex justify-between items-center bg-white p-2 rounded border">
+                          <div className="flex-1"><p className="text-sm font-semibold">{photo.nom}</p><img src={photo.base64} alt={photo.nom} className="mt-1 h-16 rounded border"/></div>
+                          <button onClick={() => supprimerPhotoSelectionnee(idx)} className="text-red-600 font-bold">✕</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <button onClick={declareDefaut} className="w-full bg-red-600 text-white px-6 py-4 rounded-lg font-black text-lg hover:bg-red-700">🚨 DÉCLARER DÉFAUT</button>
+              </div>
+            </div>
+            <div className="space-y-4">
+              <h2 className="text-2xl font-black text-gray-800">📋 DÉFAUTS À TRAITER</h2>
+              {defautsCritiques.length > 0 && (
+                <div className="bg-red-50 border-4 border-red-600 p-4 rounded-lg">
+                  <h3 className="text-xl font-black text-red-700 mb-3">🔴 CRITIQUES ({defautsCritiques.length})</h3>
+                  <div className="space-y-3">
+                    {defautsCritiques.map(d => {
+                      const eq = equipements.find(e => e.id === d.equipementId);
+                      const acc = d.accessoireId ? Object.values(accessoiresEquipement).flat().find(a => a.id === d.accessoireId) : null;
+                      return (
+                        <div key={d.id} className="bg-white rounded-lg p-4 border-2 border-red-300">
+                          <div className="flex justify-between items-start mb-2">
+                            <div className="flex-1"><h4 className="font-black text-lg text-red-700">{d.type}</h4><p className="text-sm text-gray-600">{eq?.immat} {acc ? `- ${acc.nom}` : ''}</p></div>
+                            <button onClick={() => setDefautSelectionne(d)} className="bg-blue-600 text-white px-3 py-1 rounded font-bold text-sm">👁️ Détails</button>
+                          </div>
+                          <p className="text-sm mb-3">{d.description}</p>
+                          <p className="text-xs text-gray-500 mb-2">Signalé par <strong>{d.operateur}</strong> le {d.dateConstatation}</p>
+                          <div className="flex gap-2">
+                            <button onClick={() => creerInterventionDepuisDefaut(d)} className="flex-1 bg-orange-600 text-white px-3 py-2 rounded font-bold text-sm">🔧 Créer intervention</button>
+                            <button onClick={() => resoudreDefaut(d.id)} className="flex-1 bg-green-600 text-white px-3 py-2 rounded font-bold text-sm">✓ Résolu</button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+              {defautsAtention.length > 0 && (
+                <div className="bg-orange-50 border-4 border-orange-500 p-4 rounded-lg">
+                  <h3 className="text-xl font-black text-orange-700 mb-3">🟠 MOYENS ({defautsAtention.length})</h3>
+                  <div className="space-y-3">
+                    {defautsAtention.map(d => {
+                      const eq = equipements.find(e => e.id === d.equipementId);
+                      const acc = d.accessoireId ? Object.values(accessoiresEquipement).flat().find(a => a.id === d.accessoireId) : null;
+                      return (
+                        <div key={d.id} className="bg-white rounded-lg p-4 border-2 border-orange-300">
+                          <div className="flex justify-between items-start mb-2">
+                            <div className="flex-1"><h4 className="font-black text-lg text-orange-700">{d.type}</h4><p className="text-sm text-gray-600">{eq?.immat} {acc ? `- ${acc.nom}` : ''}</p></div>
+                            <button onClick={() => setDefautSelectionne(d)} className="bg-blue-600 text-white px-3 py-1 rounded font-bold text-sm">👁️ Détails</button>
+                          </div>
+                          <p className="text-sm mb-3">{d.description}</p>
+                          <p className="text-xs text-gray-500 mb-2">Signalé par <strong>{d.operateur}</strong> le {d.dateConstatation}</p>
+                          <div className="flex gap-2">
+                            <button onClick={() => creerInterventionDepuisDefaut(d)} className="flex-1 bg-orange-600 text-white px-3 py-2 rounded font-bold text-sm">🔧 Créer intervention</button>
+                            <button onClick={() => resoudreDefaut(d.id)} className="flex-1 bg-green-600 text-white px-3 py-2 rounded font-bold text-sm">✓ Résolu</button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+              {defautsMineur.length > 0 && (
+                <div className="bg-yellow-50 border-4 border-yellow-500 p-4 rounded-lg">
+                  <h3 className="text-xl font-black text-yellow-700 mb-3">🟡 MINEURS ({defautsMineur.length})</h3>
+                  <div className="space-y-3">
+                    {defautsMineur.map(d => {
+                      const eq = equipements.find(e => e.id === d.equipementId);
+                      const acc = d.accessoireId ? Object.values(accessoiresEquipement).flat().find(a => a.id === d.accessoireId) : null;
+                      return (
+                        <div key={d.id} className="bg-white rounded-lg p-4 border-2 border-yellow-300">
+                          <div className="flex justify-between items-start mb-2">
+                            <div className="flex-1"><h4 className="font-black text-lg text-yellow-700">{d.type}</h4><p className="text-sm text-gray-600">{eq?.immat} {acc ? `- ${acc.nom}` : ''}</p></div>
+                            <button onClick={() => setDefautSelectionne(d)} className="bg-blue-600 text-white px-3 py-1 rounded font-bold text-sm">👁️ Détails</button>
+                          </div>
+                          <p className="text-sm mb-3">{d.description}</p>
+                          <p className="text-xs text-gray-500 mb-2">Signalé par <strong>{d.operateur}</strong> le {d.dateConstatation}</p>
+                          <div className="flex gap-2">
+                            <button onClick={() => creerInterventionDepuisDefaut(d)} className="flex-1 bg-orange-600 text-white px-3 py-2 rounded font-bold text-sm">🔧 Créer intervention</button>
+                            <button onClick={() => resoudreDefaut(d.id)} className="flex-1 bg-green-600 text-white px-3 py-2 rounded font-bold text-sm">✓ Résolu</button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+              {defautsATraiter.length === 0 && (
+                <div className="bg-green-50 border-4 border-green-500 p-6 rounded-lg text-center">
+                  <p className="text-2xl font-black text-green-700">✅ AUCUN DÉFAUT À TRAITER</p>
+                </div>
+              )}
+            </div>
+            {defautsArchives.length > 0 && (
+              <div className="bg-green-50 border-2 border-green-300 p-4 rounded-lg">
+                <h3 className="text-xl font-black text-green-700 mb-3">✅ DÉFAUTS RÉSOLUS ({defautsArchives.length})</h3>
+                <div className="space-y-2">
+                  {defautsArchives.map(d => {
+                    const eq = equipements.find(e => e.id === d.equipementId);
+                    return (
+                      <div key={d.id} className="bg-white rounded p-3 border-l-4 border-green-500 flex justify-between items-center">
+                        <div><p className="font-semibold">{d.type} - {eq?.immat}</p><p className="text-xs text-gray-500">Résolu le {d.dateArchivage}</p></div>
+                        <button onClick={() => setDefautSelectionne(d)} className="bg-gray-600 text-white px-3 py-1 rounded font-bold text-sm">👁️ Voir</button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+        {ongletActif === 'alertes' && (
+          <div className="space-y-6">
+            <h2 className="text-3xl font-black text-red-700">🚨 ALERTES STOCKS INTELLIGENTES</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-red-50 border-4 border-red-600 p-6 rounded-xl cursor-pointer hover:shadow-lg transition" onClick={() => {setFiltreAlerteSeverite('critique');setFiltreAlerteFournisseur('');setFiltreAlerteDepot('');}}><p className="text-xs text-red-600 font-bold">🔴 CRITIQUES</p><p className="text-5xl font-black text-red-600 mt-2">{alertesCritiques.length}</p><p className="text-sm text-red-700 mt-2">⚡ Action immédiate!</p></div>
+              <div className="bg-orange-50 border-4 border-orange-500 p-6 rounded-xl cursor-pointer hover:shadow-lg transition" onClick={() => {setFiltreAlerteSeverite('attention');setFiltreAlerteFournisseur('');setFiltreAlerteDepot('');}}><p className="text-xs text-orange-600 font-bold">🟠 ATTENTION</p><p className="text-5xl font-black text-orange-600 mt-2">{alertesAttention.length}</p><p className="text-sm text-orange-700 mt-2">⏳ À court terme</p></div>
+              <div className="bg-yellow-50 border-4 border-yellow-500 p-6 rounded-xl cursor-pointer hover:shadow-lg transition" onClick={() => {setFiltreAlerteSeverite('vigilance');setFiltreAlerteFournisseur('');setFiltreAlerteDepot('');}}><p className="text-xs text-yellow-600 font-bold">🟡 VIGILANCE</p><p className="text-5xl font-black text-yellow-600 mt-2">{alertesVigilance.length}</p><p className="text-sm text-yellow-700 mt-2">👁️ À surveiller</p></div>
+            </div>
+            <div className="bg-blue-50 border-2 border-blue-300 p-4 rounded-lg">
+              <h3 className="font-bold mb-3">🔍 FILTRES & TRI</h3>
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+                <div><label className="text-xs font-bold text-gray-700">Sévérité</label><select value={filtreAlerteSeverite} onChange={(e) => setFiltreAlerteSeverite(e.target.value)} className="w-full border-2 rounded px-2 py-1 text-sm"><option value="">Tous</option><option value="critique">🔴 Critique</option><option value="attention">🟠 Attention</option><option value="vigilance">🟡 Vigilance</option></select></div>
+                <div><label className="text-xs font-bold text-gray-700">Fournisseur</label><select value={filtreAlerteFournisseur} onChange={(e) => setFiltreAlerteFournisseur(e.target.value)} className="w-full border-2 rounded px-2 py-1 text-sm"><option value="">Tous</option>{[...new Set(articles.map(a => a.fournisseur))].map(f => (<option key={f} value={f}>{f}</option>))}</select></div>
+                <div><label className="text-xs font-bold text-gray-700">Dépôt vide</label><select value={filtreAlerteDepot} onChange={(e) => setFiltreAlerteDepot(e.target.value)} className="w-full border-2 rounded px-2 py-1 text-sm"><option value="">Tous</option>{depots.map(d => (<option key={d} value={d}>{d}</option>))}</select></div>
+                <div><label className="text-xs font-bold text-gray-700">Tri</label><select value={triAlertes} onChange={(e) => setTriAlertes(e.target.value)} className="w-full border-2 rounded px-2 py-1 text-sm"><option value="severite">Par sévérité</option><option value="stock">Stock faible</option><option value="nom">Alphabétique</option></select></div>
+                <div><button onClick={() => {setFiltreAlerteSeverite('');setFiltreAlerteFournisseur('');setFiltreAlerteDepot('');}} className="w-full bg-blue-600 text-white px-3 py-1 rounded font-bold text-sm mt-5 hover:bg-blue-700">Réinitialiser</button></div>
+              </div>
+            </div>
+            {alertesFiltrees.length === 0 ? (
+              <div className="bg-green-50 border-4 border-green-500 p-6 rounded-lg text-center">
+                <p className="text-2xl font-black text-green-700">✅ AUCUNE ALERTE!</p>
+                <p className="text-green-600 mt-2">Tous les stocks sont corrects 🎉</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {alertesFiltrees.map(article => {
+                  const barrePourcent = (article.total / article.stockMin) * 100;
+                  const couleurSeverite = article.severite === 'critique' ? 'border-red-500 bg-red-50' : article.severite === 'attention' ? 'border-orange-500 bg-orange-50' : 'border-yellow-500 bg-yellow-50';
+                  const icone = article.severite === 'critique' ? '🔴' : article.severite === 'attention' ? '🟠' : '🟡';
+                  return (
+                    <div key={article.id} className={`border-l-4 ${couleurSeverite} p-4 rounded-lg`}>
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-3">
+                        <div><p className="font-bold text-lg">{article.code}</p><p className="text-sm text-gray-600">{article.description}</p></div>
+                        <div><p className="text-xs font-bold text-gray-600 mb-1">STOCK GLOBAL</p><div className="flex items-center gap-2"><div className="flex-1 bg-gray-300 rounded-full h-3 overflow-hidden"><div style={{width:`${Math.min(barrePourcent,100)}%`}} className={`h-full ${article.severite === 'critique' ? 'bg-red-600' : article.severite === 'attention' ? 'bg-orange-600' : 'bg-yellow-600'}`}/></div><p className="font-black text-sm">{article.total}/{article.stockMin}</p></div></div>
+                        <div><p className="text-xs font-bold text-gray-600 mb-1">DÉPÔTS</p><div className="grid grid-cols-2 gap-1 text-xs">{depots.map(d => (<p key={d} className={`${article.stockParDepot[d] === 0 ? 'text-red-600 font-bold' : 'text-gray-700'}`}>{d.substring(0,3)}: {article.stockParDepot[d] || 0}</p>))}</div></div>
+                        <div><p className="text-xs font-bold text-gray-600 mb-1">INFOS</p><p className="text-sm"><strong>{article.fournisseur}</strong></p><p className="text-sm">{article.prixUnitaire}€ u.</p><p className="font-bold mt-1">{icone} {article.severite.toUpperCase()}</p></div>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <button onClick={() => genererTexteCommande(article)} className="bg-green-600 text-white px-3 py-2 rounded font-bold text-sm hover:bg-green-700">🛒 Commander</button>
+                        <button onClick={() => setArticleEnTransfertAlerte(article)} className="bg-blue-600 text-white px-3 py-2 rounded font-bold text-sm hover:bg-blue-700">🔄 Transférer</button>
+                        <button onClick={() => setArticleEnDetailsAlerte(article)} className="bg-gray-600 text-white px-3 py-2 rounded font-bold text-sm hover:bg-gray-700">👁️ Détails</button>
+                        <button onClick={() => setArticleEnHistoriqueAlerte(article)} className="bg-purple-600 text-white px-3 py-2 rounded font-bold text-sm hover:bg-purple-700">📊 Historique</button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+        {ongletActif === 'statistiques' && (
+          <div className="space-y-6">
+            <h2 className="text-3xl font-black text-purple-700">📈 STATISTIQUES ÉQUIPEMENTS</h2>
+            <div className="bg-white p-4 rounded border-2 border-purple-300">
+              <label className="block text-sm font-bold text-gray-700 mb-2">Sélectionner équipement</label>
+              <select value={equipementSelectionne} onChange={(e) => setEquipementSelectionne(parseInt(e.target.value))} className="w-full border-2 border-purple-400 rounded px-3 py-2 font-bold text-lg">
+                {equipements.map(eq => (<option key={eq.id} value={eq.id}>{eq.immat} - {eq.marque} {eq.modele}</option>))}
+              </select>
+            </div>
+            {equipSelectionne && (
+              <div className="space-y-6">
+                <div className="bg-gradient-to-r from-purple-100 to-indigo-100 border-4 border-purple-500 p-6 rounded-xl">
+                  <h3 className="text-2xl font-black text-purple-700 mb-4">📊 RÉSUMÉ - {equipSelectionne.immat}</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="bg-white p-4 rounded-lg border-2 border-purple-300"><p className="text-xs text-gray-600 font-bold">INTERVENTIONS</p><p className="text-3xl font-black text-purple-600">{interventions.filter(i => i.equipementId === equipSelectionne.id).length}</p><p className="text-sm text-gray-700">{interventions.filter(i => i.equipementId === equipSelectionne.id && i.statut === 'effectue').length} effectuées</p></div>
+                    <div className="bg-white p-4 rounded-lg border-2 border-red-300"><p className="text-xs text-gray-600 font-bold">DÉFAUTS</p><p className="text-3xl font-black text-red-600">{defauts.filter(d => d.equipementId === equipSelectionne.id).length}</p><p className="text-sm text-gray-700">{defauts.filter(d => d.equipementId === equipSelectionne.id && d.statut === 'resolu').length} résolus</p></div>
+                    <div className="bg-white p-4 rounded-lg border-2 border-green-300"><p className="text-xs text-gray-600 font-bold">ACCESSOIRES</p><p className="text-3xl font-black text-green-600">{(accessoiresEquipement[equipSelectionne.id] || []).length}</p><p className="text-sm text-gray-700">{accessoiresTotal.toFixed(0)}€ total</p></div>
+                    <div className="bg-white p-4 rounded-lg border-2 border-blue-300"><p className="text-xs text-gray-600 font-bold">COÛT INTERVENTIONS</p><p className="text-3xl font-black text-blue-600">{interventions.filter(i => i.equipementId === equipSelectionne.id && i.statut === 'effectue').reduce((sum,i) => sum + (i.coutTotal || 0),0).toFixed(0)}€</p></div>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={() => exporterPDF()} className="flex-1 bg-red-600 text-white px-4 py-3 rounded-lg font-black hover:bg-red-700">📄 Exporter PDF</button>
+                  <button onClick={() => exporterCSV()} className="flex-1 bg-green-600 text-white px-4 py-3 rounded-lg font-black hover:bg-green-700">📊 Exporter CSV</button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+        {articleEnTransfertAlerte && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl shadow-2xl p-6 max-w-md w-full">
+              <h2 className="text-2xl font-black text-blue-700 mb-4">🔄 TRANSFERT RAPIDE</h2>
+              <div className="space-y-4">
+                <div className="bg-blue-50 p-3 rounded border-2 border-blue-300"><p className="font-bold text-blue-700">{articleEnTransfertAlerte.code}</p><p className="text-sm text-gray-600">{articleEnTransfertAlerte.description}</p></div>
+                <div><label className="text-sm font-bold text-gray-700">Dépôt source *</label><select value={transfertRapideData.depotSource} onChange={(e) => setTransfertRapideData({...transfertRapideData,depotSource:e.target.value})} className="w-full border-2 rounded px-3 py-2 mt-1">{depots.map(d => <option key={d} value={d}>{d} (Stock: {articleEnTransfertAlerte.stockParDepot[d] || 0})</option>)}</select></div>
+                <div><label className="text-sm font-bold text-gray-700">Dépôt destination *</label><select value={transfertRapideData.depotDestination} onChange={(e) => setTransfertRapideData({...transfertRapideData,depotDestination:e.target.value})} className="w-full border-2 rounded px-3 py-2 mt-1">{depots.map(d => <option key={d} value={d}>{d}</option>)}</select></div>
+                <div><label className="text-sm font-bold text-gray-700">Quantité *</label><input type="number" min="1" value={transfertRapideData.quantite} onChange={(e) => setTransfertRapideData({...transfertRapideData,quantite:e.target.value})} className="w-full border-2 rounded px-3 py-2 mt-1"/></div>
+                <div className="flex gap-2">
+                  <button onClick={effectuerTransfertRapide} className="flex-1 bg-blue-600 text-white px-4 py-2 rounded font-bold hover:bg-blue-700">✓ Transférer</button>
+                  <button onClick={() => setArticleEnTransfertAlerte(null)} className="flex-1 bg-gray-400 text-white px-4 py-2 rounded font-bold">Annuler</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+        {articleEnDetailsAlerte && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl shadow-2xl p-6 max-w-md w-full max-h-[80vh] overflow-y-auto">
+              <div className="flex justify-between items-start mb-4"><h2 className="text-2xl font-black">📋 DÉTAILS</h2><button onClick={() => setArticleEnDetailsAlerte(null)} className="text-2xl">✕</button></div>
+              <div className="space-y-3">
+                <div className="bg-gray-50 p-3 rounded border-2"><p className="text-xs text-gray-600 font-bold">CODE</p><p className="font-bold text-lg">{articleEnDetailsAlerte.code}</p></div>
+                <div><p className="text-xs text-gray-600 font-bold">DESCRIPTION</p><p className="font-semibold">{articleEnDetailsAlerte.description}</p></div>
+                <div><p className="text-xs text-gray-600 font-bold">FOURNISSEUR</p><p className="font-semibold">{articleEnDetailsAlerte.fournisseur}</p></div>
+                <div><p className="text-xs text-gray-600 font-bold">PRIX UNITAIRE</p><p className="font-bold text-green-600">{articleEnDetailsAlerte.prixUnitaire}€</p></div>
+                <div className="border-t pt-3"><p className="text-xs text-gray-600 font-bold mb-2">STOCK PAR DÉPÔT</p><div className="space-y-1">{depots.map(d => (<div key={d} className="flex justify-between p-2 bg-gray-100 rounded"><span className="font-semibold">{d}:</span><span className="font-bold">{articleEnDetailsAlerte.stockParDepot[d] || 0}</span></div>))}</div></div>
+                <div className="bg-blue-50 p-3 rounded border-2 border-blue-300"><p className="text-xs text-gray-600 font-bold">STOCK TOTAL</p><p className="text-2xl font-black text-blue-600">{getStockTotal(articleEnDetailsAlerte)}</p><p className="text-xs text-blue-700 mt-1">Minimum: {articleEnDetailsAlerte.stockMin}</p></div>
+                <button onClick={() => setArticleEnDetailsAlerte(null)} className="w-full bg-gray-600 text-white px-4 py-2 rounded font-bold">Fermer</button>
+              </div>
+            </div>
+          </div>
+        )}
+        {articleEnHistoriqueAlerte && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl shadow-2xl p-6 max-w-lg w-full max-h-[80vh] overflow-y-auto">
+              <div className="flex justify-between items-start mb-4"><h2 className="text-2xl font-black">📊 HISTORIQUE</h2><button onClick={() => setArticleEnHistoriqueAlerte(null)} className="text-2xl">✕</button></div>
+              <div className="bg-gray-50 p-3 rounded border-2 mb-4"><p className="font-bold">{articleEnHistoriqueAlerte.code}</p><p className="text-sm text-gray-600">{articleEnHistoriqueAlerte.description}</p></div>
+              <div className="space-y-2">
+                {mouvementsStock.filter(m => m.articleId === articleEnHistoriqueAlerte.id).length === 0 ? (
+                  <p className="text-gray-500 italic">Aucun mouvement</p>
+                ) : (
+                  mouvementsStock.filter(m => m.articleId === articleEnHistoriqueAlerte.id).map(m => (
+                    <div key={m.id} className={`p-3 rounded border-l-4 ${m.type === 'entree' ? 'bg-green-50 border-green-500' : m.type === 'sortie' ? 'bg-red-50 border-red-500' : 'bg-blue-50 border-blue-500'}`}>
+                      <div className="flex justify-between items-center">
+                        <div><p className="font-bold">{m.type === 'entree' ? '📥 Entrée' : m.type === 'sortie' ? '📤 Sortie' : '🔄 Transfert'}</p><p className="text-xs text-gray-600">{m.date} • {m.raison}</p></div>
+                        <p className="font-black text-lg">{m.type === 'transfer' ? '→' : m.type === 'entree' ? '+' : '-'} {m.quantite}</p>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+              <button onClick={() => setArticleEnHistoriqueAlerte(null)} className="w-full bg-gray-600 text-white px-4 py-2 rounded font-bold mt-4">Fermer</button>
+            </div>
+          </div>
+        )}
+        {defautSelectionne && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl shadow-2xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="flex justify-between items-start mb-4"><h2 className="text-2xl font-black">📋 DÉTAILS DÉFAUT</h2><button onClick={() => setDefautSelectionne(null)} className="text-2xl">✕</button></div>
+              <div className="space-y-4">
+                <div className="bg-gray-50 p-4 rounded-lg border-2">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div><p className="text-xs text-gray-500 font-bold">TYPE</p><p className="text-lg font-black">{defautSelectionne.type}</p></div>
+                    <div><p className="text-xs text-gray-500 font-bold">SÉVÉRITÉ</p><p className="text-lg font-black">{defautSelectionne.severite === 'critique' ? '🔴' : defautSelectionne.severite === 'moyen' ? '🟠' : '🟡'} {defautSelectionne.severite.toUpperCase()}</p></div>
+                    <div><p className="text-xs text-gray-500 font-bold">ÉQUIPEMENT</p><p className="font-semibold">{equipements.find(e => e.id === defautSelectionne.equipementId)?.immat}</p></div>
+                    <div><p className="text-xs text-gray-500 font-bold">OPÉRATEUR</p><p className="font-semibold">{defautSelectionne.operateur}</p></div>
+                  </div>
+                </div>
+                <div><p className="text-xs text-gray-500 font-bold mb-1">DESCRIPTION</p><p className="bg-blue-50 border-2 border-blue-300 p-3 rounded font-semibold">{defautSelectionne.description}</p></div>
+                <div><p className="text-xs text-gray-500 font-bold mb-1">LOCALISATION</p><p className="font-semibold">{defautSelectionne.localisation || 'Non spécifiée'}</p></div>
+                {defautSelectionne.remarques && (<div><p className="text-xs text-gray-500 font-bold mb-1">REMARQUES</p><p className="bg-yellow-50 border-2 border-yellow-300 p-3 rounded">{defautSelectionne.remarques}</p></div>)}
+                {defautSelectionne.photos && defautSelectionne.photos.length > 0 && (
+                  <div><p className="text-xs text-gray-500 font-bold mb-2">📸 PHOTOS ({defautSelectionne.photos.length})</p><div className="grid grid-cols-2 gap-3">{defautSelectionne.photos.map((photo,idx) => (<div key={idx} className="border-2 border-gray-300 rounded-lg overflow-hidden"><img src={photo.base64} alt={photo.nom} className="w-full h-auto object-cover"/><p className="text-xs text-center font-semibold text-gray-700 p-1 bg-gray-100">{photo.nom}</p></div>))}</div></div>
+                )}
+                <div className="bg-gray-100 p-3 rounded text-sm"><p><strong>Date constatation:</strong> {defautSelectionne.dateConstatation}</p><p><strong>Statut:</strong> {defautSelectionne.statut === 'a_traiter' ? '⏳ À traiter' : '✅ Résolu'}</p>{defautSelectionne.dateArchivage && <p><strong>Date résolution:</strong> {defautSelectionne.dateArchivage}</p>}</div>
+                <button onClick={() => setDefautSelectionne(null)} className="w-full bg-gray-600 text-white px-4 py-3 rounded-lg font-black">Fermer</button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-red-50 border-4 border-red-600 p-6 rounded-xl cursor-pointer hover:shadow-lg transition" onClick={() => {setFiltreAlerteSeverite('critique');setFiltreAlerteFournisseur('');setFiltreAlerteDepot('');}}>
+                <p className="text-xs text-red-600 font-bold">🔴 CRITIQUES</p>
+                <p className="text-5xl font-black text-red-600 mt-2">{alertesCritiques.length}</p>
+                <p className="text-sm text-red-700 mt-2">⚡ Action immédiate!</p>
+              </div>
+              <div className="bg-orange-50 border-4 border-orange-500 p-6 rounded-xl cursor-pointer hover:shadow-lg transition" onClick={() => {setFiltreAlerteSeverite('attention');setFiltreAlerteFournisseur('');setFiltreAlerteDepot('');}}>
+                <p className="text-xs text-orange-600 font-bold">🟠 ATTENTION</p>
+                <p className="text-5xl font-black text-orange-600 mt-2">{alertesAttention.length}</p>
+                <p className="text-sm text-orange-700 mt-2">⏳ À court terme</p>
+              </div>
+              <div className="bg-yellow-50 border-4 border-yellow-500 p-6 rounded-xl cursor-pointer hover:shadow-lg transition" onClick={() => {setFiltreAlerteSeverite('vigilance');setFiltreAlerteFournisseur('');setFiltreAlerteDepot('');}}>
+                <p className="text-xs text-yellow-600 font-bold">🟡 VIGILANCE</p>
+                <p className="text-5xl font-black text-yellow-600 mt-2">{alertesVigilance.length}</p>
+                <p className="text-sm text-yellow-700 mt-2">👁️ À surveiller</p>
+              </div>
+            </div>
+            <div className="bg-blue-50 border-2 border-blue-300 p-4 rounded-lg">
+              <h3 className="font-bold mb-3">🔍 FILTRES & TRI</h3>
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+                <div><label className="text-xs font-bold text-gray-700">Sévérité</label><select value={filtreAlerteSeverite} onChange={(e) => setFiltreAlerteSeverite(e.target.value)} className="w-full border-2 rounded px-2 py-1 text-sm"><option value="">Tous</option><option value="critique">🔴 Critique</option><option value="attention">🟠 Attention</option><option value="vigilance">🟡 Vigilance</option></select></div>
+                <div><label className="text-xs font-bold text-gray-700">Fournisseur</label><select value={filtreAlerteFournisseur} onChange={(e) => setFiltreAlerteFournisseur(e.target.value)} className="w-full border-2 rounded px-2 py-1 text-sm"><option value="">Tous</option>{[...new Set(articles.map(a => a.fournisseur))].map(f => (<option key={f} value={f}>{f}</option>))}</select></div>
+                <div><label className="text-xs font-bold text-gray-700">Dépôt vide</label><select value={filtreAlerteDepot} onChange={(e) => setFiltreAlerteDepot(e.target.value)} className="w-full border-2 rounded px-2 py-1 text-sm"><option value="">Tous</option>{depots.map(d => (<option key={d} value={d}>{d}</option>))}</select></div>
+                <div><label className="text-xs font-bold text-gray-700">Tri</label><select value={triAlertes} onChange={(e) => setTriAlertes(e.target.value)} className="w-full border-2 rounded px-2 py-1 text-sm"><option value="severite">Par sévérité</option><option value="stock">Stock faible</option><option value="nom">Alphabétique</option></select></div>
+                <div><button onClick={() => {setFiltreAlerteSeverite('');setFiltreAlerteFournisseur('');setFiltreAlerteDepot('');}} className="w-full bg-blue-600 text-white px-3 py-1 rounded font-bold text-sm mt-5 hover:bg-blue-700">Réinitialiser</button></div>
+              </div>
+            </div>
+            {alertesFiltrees.length === 0 ? (
+              <div className="bg-green-50 border-4 border-green-500 p-6 rounded-lg text-center">
+                <p className="text-2xl font-black text-green-700">✅ AUCUNE ALERTE!</p>
+                <p className="text-green-600 mt-2">Tous les stocks sont corrects 🎉</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {alertesFiltrees.map(article => {
+                  const barrePourcent = (article.total / article.stockMin) * 100;
+                  const couleurSeverite = article.severite === 'critique' ? 'border-red-500 bg-red-50' : article.severite === 'attention' ? 'border-orange-500 bg-orange-50' : 'border-yellow-500 bg-yellow-50';
+                  const icone = article.severite === 'critique' ? '🔴' : article.severite === 'attention' ? '🟠' : '🟡';
+                  return (
+                    <div key={article.id} className={`border-l-4 ${couleurSeverite} p-4 rounded-lg`}>
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-3">
+                        <div><p className="font-bold text-lg">{article.code}</p><p className="text-sm text-gray-600">{article.description}</p></div>
+                        <div><p className="text-xs font-bold text-gray-600 mb-1">STOCK GLOBAL</p><div className="flex items-center gap-2"><div className="flex-1 bg-gray-300 rounded-full h-3 overflow-hidden"><div style={{width:`${Math.min(barrePourcent,100)}%`}} className={`h-full ${article.severite === 'critique' ? 'bg-red-600' : article.severite === 'attention' ? 'bg-orange-600' : 'bg-yellow-600'}`}/></div><p className="font-black text-sm">{article.total}/{article.stockMin}</p></div></div>
+                        <div><p className="text-xs font-bold text-gray-600 mb-1">DÉPÔTS</p><div className="grid grid-cols-2 gap-1 text-xs">{depots.map(d => (<p key={d} className={`${article.stockParDepot[d] === 0 ? 'text-red-600 font-bold' : 'text-gray-700'}`}>{d.substring(0,3)}: {article.stockParDepot[d] || 0}</p>))}</div></div>
+                        <div><p className="text-xs font-bold text-gray-600 mb-1">INFOS</p><p className="text-sm"><strong>{article.fournisseur}</strong></p><p className="text-sm">{article.prixUnitaire}€ u.</p><p className="font-bold mt-1">{icone} {article.severite.toUpperCase()}</p></div>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <button onClick={() => genererTexteCommande(article)} className="bg-green-600 text-white px-3 py-2 rounded font-bold text-sm hover:bg-green-700">🛒 Commander</button>
+                        <button onClick={() => setArticleEnTransfertAlerte(article)} className="bg-blue-600 text-white px-3 py-2 rounded font-bold text-sm hover:bg-blue-700">🔄 Transférer</button>
+                        <button onClick={() => setArticleEnDetailsAlerte(article)} className="bg-gray-600 text-white px-3 py-2 rounded font-bold text-sm hover:bg-gray-700">👁️ Détails</button>
+                        <button onClick={() => setArticleEnHistoriqueAlerte(article)} className="bg-purple-600 text-white px-3 py-2 rounded font-bold text-sm hover:bg-purple-700">📊 Historique</button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+        {ongletActif === 'statistiques' && (
+          <div className="space-y-6">
+            <h2 className="text-3xl font-black text-purple-700">📈 STATISTIQUES ÉQUIPEMENTS</h2>
+            <div className="bg-white p-4 rounded border-2 border-purple-300">
+              <label className="block text-sm font-bold text-gray-700 mb-2">Sélectionner équipement</label>
+              <select value={equipementSelectionne} onChange={(e) => setEquipementSelectionne(parseInt(e.target.value))} className="w-full border-2 border-purple-400 rounded px-3 py-2 font-bold text-lg">
+                {equipements.map(eq => (<option key={eq.id} value={eq.id}>{eq.immat} - {eq.marque} {eq.modele}</option>))}
+              </select>
+            </div>
+            {equipSelectionne && (
+              <div className="space-y-6">
+                <div className="bg-gradient-to-r from-purple-100 to-indigo-100 border-4 border-purple-500 p-6 rounded-xl">
+                  <h3 className="text-2xl font-black text-purple-700 mb-4">📊 RÉSUMÉ - {equipSelectionne.immat}</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="bg-white p-4 rounded-lg border-2 border-purple-300"><p className="text-xs text-gray-600 font-bold">INTERVENTIONS</p><p className="text-3xl font-black text-purple-600">{interventions.filter(i => i.equipementId === equipSelectionne.id).length}</p><p className="text-sm text-gray-700">{interventions.filter(i => i.equipementId === equipSelectionne.id && i.statut === 'effectue').length} effectuées</p></div>
+                    <div className="bg-white p-4 rounded-lg border-2 border-red-300"><p className="text-xs text-gray-600 font-bold">DÉFAUTS</p><p className="text-3xl font-black text-red-600">{defauts.filter(d => d.equipementId === equipSelectionne.id).length}</p><p className="text-sm text-gray-700">{defauts.filter(d => d.equipementId === equipSelectionne.id && d.statut === 'resolu').length} résolus</p></div>
+                    <div className="bg-white p-4 rounded-lg border-2 border-green-300"><p className="text-xs text-gray-600 font-bold">ACCESSOIRES</p><p className="text-3xl font-black text-green-600">{(accessoiresEquipement[equipSelectionne.id] || []).length}</p><p className="text-sm text-gray-700">{accessoiresTotal.toFixed(0)}€ total</p></div>
+                    <div className="bg-white p-4 rounded-lg border-2 border-blue-300"><p className="text-xs text-gray-600 font-bold">COÛT INTERVENTIONS</p><p className="text-3xl font-black text-blue-600">{interventions.filter(i => i.equipementId === equipSelectionne.id && i.statut === 'effectue').reduce((sum,i) => sum + (i.coutTotal || 0),0).toFixed(0)}€</p></div>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={() => exporterPDF()} className="flex-1 bg-red-600 text-white px-4 py-3 rounded-lg font-black hover:bg-red-700">📄 Exporter PDF</button>
+                  <button onClick={() => exporterCSV()} className="flex-1 bg-green-600 text-white px-4 py-3 rounded-lg font-black hover:bg-green-700">📊 Exporter CSV</button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+        {articleEnTransfertAlerte && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl shadow-2xl p-6 max-w-md w-full">
+              <h2 className="text-2xl font-black text-blue-700 mb-4">🔄 TRANSFERT RAPIDE</h2>
+              <div className="space-y-4">
+                <div className="bg-blue-50 p-3 rounded border-2 border-blue-300"><p className="font-bold text-blue-700">{articleEnTransfertAlerte.code}</p><p className="text-sm text-gray-600">{articleEnTransfertAlerte.description}</p></div>
+                <div><label className="text-sm font-bold text-gray-700">Dépôt source *</label><select value={transfertRapideData.depotSource} onChange={(e) => setTransfertRapideData({...transfertRapideData,depotSource:e.target.value})} className="w-full border-2 rounded px-3 py-2 mt-1">{depots.map(d => <option key={d} value={d}>{d} (Stock: {articleEnTransfertAlerte.stockParDepot[d] || 0})</option>)}</select></div>
+                <div><label className="text-sm font-bold text-gray-700">Dépôt destination *</label><select value={transfertRapideData.depotDestination} onChange={(e) => setTransfertRapideData({...transfertRapideData,depotDestination:e.target.value})} className="w-full border-2 rounded px-3 py-2 mt-1">{depots.map(d => <option key={d} value={d}>{d}</option>)}</select></div>
+                <div><label className="text-sm font-bold text-gray-700">Quantité *</label><input type="number" min="1" value={transfertRapideData.quantite} onChange={(e) => setTransfertRapideData({...transfertRapideData,quantite:e.target.value})} className="w-full border-2 rounded px-3 py-2 mt-1"/></div>
+                <div className="flex gap-2">
+                  <button onClick={effectuerTransfertRapide} className="flex-1 bg-blue-600 text-white px-4 py-2 rounded font-bold hover:bg-blue-700">✓ Transférer</button>
+                  <button onClick={() => setArticleEnTransfertAlerte(null)} className="flex-1 bg-gray-400 text-white px-4 py-2 rounded font-bold">Annuler</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+        {articleEnDetailsAlerte && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl shadow-2xl p-6 max-w-md w-full max-h-[80vh] overflow-y-auto">
+              <div className="flex justify-between items-start mb-4"><h2 className="text-2xl font-black">📋 DÉTAILS</h2><button onClick={() => setArticleEnDetailsAlerte(null)} className="text-2xl">✕</button></div>
+              <div className="space-y-3">
+                <div className="bg-gray-50 p-3 rounded border-2"><p className="text-xs text-gray-600 font-bold">CODE</p><p className="font-bold text-lg">{articleEnDetailsAlerte.code}</p></div>
+                <div><p className="text-xs text-gray-600 font-bold">DESCRIPTION</p><p className="font-semibold">{articleEnDetailsAlerte.description}</p></div>
+                <div><p className="text-xs text-gray-600 font-bold">FOURNISSEUR</p><p className="font-semibold">{articleEnDetailsAlerte.fournisseur}</p></div>
+                <div><p className="text-xs text-gray-600 font-bold">PRIX UNITAIRE</p><p className="font-bold text-green-600">{articleEnDetailsAlerte.prixUnitaire}€</p></div>
+                <div className="border-t pt-3"><p className="text-xs text-gray-600 font-bold mb-2">STOCK PAR DÉPÔT</p><div className="space-y-1">{depots.map(d => (<div key={d} className="flex justify-between p-2 bg-gray-100 rounded"><span className="font-semibold">{d}:</span><span className="font-bold">{articleEnDetailsAlerte.stockParDepot[d] || 0}</span></div>))}</div></div>
+                <div className="bg-blue-50 p-3 rounded border-2 border-blue-300"><p className="text-xs text-gray-600 font-bold">STOCK TOTAL</p><p className="text-2xl font-black text-blue-600">{getStockTotal(articleEnDetailsAlerte)}</p><p className="text-xs text-blue-700 mt-1">Minimum: {articleEnDetailsAlerte.stockMin}</p></div>
+                <button onClick={() => setArticleEnDetailsAlerte(null)} className="w-full bg-gray-600 text-white px-4 py-2 rounded font-bold">Fermer</button>
+              </div>
+            </div>
+          </div>
+        )}
+        {articleEnHistoriqueAlerte && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl shadow-2xl p-6 max-w-lg w-full max-h-[80vh] overflow-y-auto">
+              <div className="flex justify-between items-start mb-4"><h2 className="text-2xl font-black">📊 HISTORIQUE</h2><button onClick={() => setArticleEnHistoriqueAlerte(null)} className="text-2xl">✕</button></div>
+              <div className="bg-gray-50 p-3 rounded border-2 mb-4"><p className="font-bold">{articleEnHistoriqueAlerte.code}</p><p className="text-sm text-gray-600">{articleEnHistoriqueAlerte.description}</p></div>
+              <div className="space-y-2">
+                {mouvementsStock.filter(m => m.articleId === articleEnHistoriqueAlerte.id).length === 0 ? (
+                  <p className="text-gray-500 italic">Aucun mouvement</p>
+                ) : (
+                  mouvementsStock.filter(m => m.articleId === articleEnHistoriqueAlerte.id).map(m => (
+                    <div key={m.id} className={`p-3 rounded border-l-4 ${m.type === 'entree' ? 'bg-green-50 border-green-500' : m.type === 'sortie' ? 'bg-red-50 border-red-500' : 'bg-blue-50 border-blue-500'}`}>
+                      <div className="flex justify-between items-center"><div><p className="font-bold">{m.type === 'entree' ? '📥 Entrée' : m.type === 'sortie' ? '📤 Sortie' : '🔄 Transfert'}</p><p className="text-xs text-gray-600">{m.date} • {m.raison}</p></div><p className="font-black text-lg">{m.type === 'transfer' ? '→' : m.type === 'entree' ? '+' : '-'} {m.quantite}</p></div>
+                    </div>
+                  ))
+                )}
+              </div>
+              <button onClick={() => setArticleEnHistoriqueAlerte(null)} className="w-full bg-gray-600 text-white px-4 py-2 rounded font-bold mt-4">Fermer</button>
+            </div>
+          </div>
+        )}
+        {defautSelectionne && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl shadow-2xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="flex justify-between items-start mb-4"><h2 className="text-2xl font-black">📋 DÉTAILS DÉFAUT</h2><button onClick={() => setDefautSelectionne(null)} className="text-2xl">✕</button></div>
+              <div className="space-y-4">
+                <div className="bg-gray-50 p-4 rounded-lg border-2">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div><p className="text-xs text-gray-500 font-bold">TYPE</p><p className="text-lg font-black">{defautSelectionne.type}</p></div>
+                    <div><p className="text-xs text-gray-500 font-bold">SÉVÉRITÉ</p><p className="text-lg font-black">{defautSelectionne.severite === 'critique' ? '🔴' : defautSelectionne.severite === 'moyen' ? '🟠' : '🟡'} {defautSelectionne.severite.toUpperCase()}</p></div>
+                    <div><p className="text-xs text-gray-500 font-bold">ÉQUIPEMENT</p><p className="font-semibold">{equipements.find(e => e.id === defautSelectionne.equipementId)?.immat}</p></div>
+                    <div><p className="text-xs text-gray-500 font-bold">OPÉRATEUR</p><p className="font-semibold">{defautSelectionne.operateur}</p></div>
+                  </div>
+                </div>
+                <div><p className="text-xs text-gray-500 font-bold mb-1">DESCRIPTION</p><p className="bg-blue-50 border-2 border-blue-300 p-3 rounded font-semibold">{defautSelectionne.description}</p></div>
+                <div><p className="text-xs text-gray-500 font-bold mb-1">LOCALISATION</p><p className="font-semibold">{defautSelectionne.localisation || 'Non spécifiée'}</p></div>
+                {defautSelectionne.remarques && (<div><p className="text-xs text-gray-500 font-bold mb-1">REMARQUES</p><p className="bg-yellow-50 border-2 border-yellow-300 p-3 rounded">{defautSelectionne.remarques}</p></div>)}
+                {defautSelectionne.photos && defautSelectionne.photos.length > 0 && (
+                  <div>
+                    <p className="text-xs text-gray-500 font-bold mb-2">📸 PHOTOS ({defautSelectionne.photos.length})</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      {defautSelectionne.photos.map((photo,idx) => (
+                        <div key={idx} className="border-2 border-gray-300 rounded-lg overflow-hidden"><img src={photo.base64} alt={photo.nom} className="w-full h-auto object-cover"/><p className="text-xs text-center font-semibold text-gray-700 p-1 bg-gray-100">{photo.nom}</p></div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                <div className="bg-gray-100 p-3 rounded text-sm"><p><strong>Date constatation:</strong> {defautSelectionne.dateConstatation}</p><p><strong>Statut:</strong> {defautSelectionne.statut === 'a_traiter' ? '⏳ À traiter' : '✅ Résolu'}</p>{defautSelectionne.dateArchivage && <p><strong>Date résolution:</strong> {defautSelectionne.dateArchivage}</p>}</div>
+                <button onClick={() => setDefautSelectionne(null)} className="w-full bg-gray-600 text-white px-4 py-3 rounded-lg font-black">Fermer</button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+        {ongletActif === 'articles' && (
+          <div className="space-y-6">
+            <div className="bg-gradient-to-r from-purple-50 to-pink-50 border-4 border-purple-400 p-6 rounded-xl">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-2xl font-black text-purple-700">{modeEditionArticle ? `✏️ MODIFIER ARTICLE - ${articleFormEnEdition?.code}` : '📦 CRÉER NOUVEL ARTICLE'}</h3>
+                <button onClick={() => modeEditionArticle ? annulerEditionArticle() : setAfficherFormulaireArticle(!afficherFormulaireArticle)} className={`px-4 py-2 rounded font-bold text-white ${afficherFormulaireArticle ? 'bg-red-600' : 'bg-purple-600'}`}>{afficherFormulaireArticle ? '✕ Fermer' : '➕ Ouvrir'}</button>
+              </div>
+              {afficherFormulaireArticle && (
+                <div className="bg-white p-6 rounded-lg space-y-4">
+                  <div className="bg-purple-50 p-4 rounded-lg border-2 border-purple-300">
+                    <h4 className="font-bold text-purple-700 mb-3">📋 INFO DE BASE</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div><label className="text-xs font-bold text-gray-700">Code article *</label><input type="text" placeholder="Ex: BAC5X5" value={nouvelArticleForm.code} onChange={(e) => setNouvelArticleForm({...nouvelArticleForm,code:e.target.value})} className="w-full border-2 border-purple-300 rounded px-3 py-2 mt-1 font-bold"/></div>
+                      <div><label className="text-xs font-bold text-gray-700">Description *</label><input type="text" placeholder="Ex: Barre pour clavette..." value={nouvelArticleForm.description} onChange={(e) => setNouvelArticleForm({...nouvelArticleForm,description:e.target.value})} className="w-full border-2 border-purple-300 rounded px-3 py-2 mt-1"/></div>
+                    </div>
+                  </div>
+                  <div className="bg-blue-50 p-4 rounded-lg border-2 border-blue-300">
+                    <h4 className="font-bold text-blue-700 mb-3">💰 INFOS COMMERCIALES</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div><label className="text-xs font-bold text-gray-700">Fournisseur</label><input type="text" placeholder="Ex: LE BON ROULEMENT" value={nouvelArticleForm.fournisseur} onChange={(e) => setNouvelArticleForm({...nouvelArticleForm,fournisseur:e.target.value})} className="w-full border-2 border-blue-300 rounded px-3 py-2 mt-1"/></div>
+                      <div><label className="text-xs font-bold text-gray-700">Prix unitaire (€)</label><input type="number" step="0.01" placeholder="0" value={nouvelArticleForm.prixUnitaire} onChange={(e) => setNouvelArticleForm({...nouvelArticleForm,prixUnitaire:e.target.value})} className="w-full border-2 border-blue-300 rounded px-3 py-2 mt-1"/></div>
+                    </div>
+                  </div>
+                  <div className="bg-green-50 p-4 rounded-lg border-2 border-green-300">
+                    <h4 className="font-bold text-green-700 mb-3">📊 STOCK</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-1 gap-3">
+                      <div><label className="text-xs font-bold text-gray-700">Stock minimum</label><input type="number" placeholder="0" value={nouvelArticleForm.stockMin} onChange={(e) => setNouvelArticleForm({...nouvelArticleForm,stockMin:e.target.value})} className="w-full border-2 border-green-300 rounded px-3 py-2 mt-1"/></div>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={creerOuModifierArticle} className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-4 rounded-lg font-black text-lg hover:from-purple-700 hover:to-pink-700 transition">{modeEditionArticle ? '💾 SAUVEGARDER MODIFICATIONS' : '✅ CRÉER ARTICLE'}</button>
+                    {modeEditionArticle && (<button onClick={annulerEditionArticle} className="flex-1 bg-gray-500 text-white px-6 py-4 rounded-lg font-black text-lg hover:bg-gray-600 transition">❌ ANNULER</button>)}
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="bg-white p-4 rounded border">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="font-black text-xl">📦 Articles ({articles.length})</h2>
+                <button onClick={genererQRCodesPDF} className="bg-purple-600 text-white px-4 py-2 rounded font-bold hover:bg-purple-700 text-sm">📋 QR Codes PDF</button>
+              </div>
+              <div className="space-y-2">
+                {articles.map(a => (
+                  <div key={a.id} className="flex justify-between items-center p-3 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg border-2 border-purple-200 hover:shadow-md transition">
+                    <div className="flex-1">
+                      <div className="font-bold text-purple-700">{a.code}</div>
+                      <div className="text-sm text-gray-600">{a.description}</div>
+                      <div className="text-xs text-gray-500 mt-1">
+                        {a.fournisseur && <span>📍 {a.fournisseur} • </span>}
+                        <span>💰 {a.prixUnitaire}€ • </span>
+                        <span>📊 Min: {a.stockMin} • </span>
+                        <span className={getStockTotal(a) <= 2 ? 'text-red-600 font-bold' : 'text-green-600 font-bold'}>{getStockTotal(a)} pièces</span>
+                      </div>
+                    </div>
+                    <div className="flex gap-2 ml-2">
+                      <button onClick={() => ouvrirEditionArticle(a)} className="bg-blue-600 text-white px-3 py-2 rounded font-bold text-sm hover:bg-blue-700 whitespace-nowrap">✏️ Éditer</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+        {ongletActif === 'fiche' && equipSelectionne && (
+          <div className="space-y-6">
+            <div className="sticky top-20 z-20"><div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory" style={{scrollBehavior:'smooth'}}>{equipements.map(eq => (<button key={eq.id} onClick={() => setEquipementSelectionne(eq.id)} className={`px-4 py-4 rounded-lg font-semibold transition whitespace-nowrap snap-center flex-shrink-0 ${equipementSelectionne === eq.id ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg' : 'bg-white text-gray-800 border-2 border-gray-200'}`}><div className="text-lg">{eq.immat}</div><div className="text-sm mt-1">{eq.marque} {eq.modele}</div></button>))}</div></div>
+            <div className="bg-gradient-to-br from-orange-500 to-yellow-400 text-white p-8 rounded-xl shadow-lg"><h2 className="text-5xl font-black mb-2">{equipSelectionne.immat}</h2><p className="text-xl">{equipSelectionne.marque} {equipSelectionne.modele}</p></div>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="bg-white rounded-xl shadow-md p-6 border-t-4 border-blue-500"><div className="text-blue-600 font-bold text-sm">VALEUR D'ACHAT</div><div className="text-3xl font-black text-blue-600 mt-2">{equipSelectionne.valeurAchat}€</div></div>
+              <div className="bg-white rounded-xl shadow-md p-6 border-t-4 border-green-500"><div className="text-green-600 font-bold text-sm">VALEUR ACTUELLE</div><div className="text-3xl font-black text-green-700 mt-2">{equipSelectionne.valeurActuelle}€</div></div>
+              <div className="bg-white rounded-xl shadow-md p-6 border-t-4 border-indigo-500"><div className="text-indigo-600 font-bold text-sm">ACCESSOIRES</div><div className="text-3xl font-black text-indigo-700 mt-2">{Math.round(accessoiresTotal)}€</div></div>
+              <div className="bg-white rounded-xl shadow-md p-6 border-t-4 border-orange-500"><div className="text-orange-600 font-bold text-sm">VALEUR TOTALE</div><div className="text-3xl font-black text-orange-700 mt-2">{Math.round(valeurEquipementTotal)}€</div></div>
+            </div>
+            <div className="bg-white rounded-xl shadow-md p-6"><h3 className="text-lg font-black text-gray-800 mb-4 pb-3 border-b-3 border-purple-500">📦 ARTICLES AFFECTÉS</h3>{articlesAffectesEquipement.length === 0 ? <p className="text-gray-500 italic">Aucun article affecté</p> : <div className="space-y-2">{articlesAffectesEquipement.map(a => (<div key={a.id} className="flex justify-between p-3 bg-purple-50 rounded-lg border"><div><div className="font-bold text-purple-700">{a.code}</div><div className="text-sm text-gray-600">{a.description}</div></div><div className="text-right"><div className="text-purple-600 font-bold">Total: {getStockTotal(a)}</div><div className="text-sm">{a.prixUnitaire}€ u.</div></div></div>))}</div>}</div>
+            <div className="bg-white rounded-xl shadow-md p-6"><h3 className="text-lg font-black text-gray-800 mb-4 pb-3 border-b-3 border-pink-500">🎨 ACCESSOIRES</h3><div className="bg-pink-50 border-2 border-pink-300 p-4 rounded-lg mb-4"><div className="grid grid-cols-1 md:grid-cols-5 gap-2"><input type="text" placeholder="Nom" value={nouvelAccessoire.nom} onChange={(e) => setNouvelAccessoire({...nouvelAccessoire,nom:e.target.value})} className="border-2 border-pink-300 rounded px-3 py-2"/><input type="number" step="0.01" placeholder="Valeur €" value={nouvelAccessoire.valeur} onChange={(e) => setNouvelAccessoire({...nouvelAccessoire,valeur:e.target.value})} className="border-2 border-pink-300 rounded px-3 py-2"/><input type="text" placeholder="Description" value={nouvelAccessoire.description} onChange={(e) => setNouvelAccessoire({...nouvelAccessoire,description:e.target.value})} className="border-2 border-pink-300 rounded px-3 py-2 col-span-2"/><button onClick={() => ajouterAccessoire(equipementSelectionne)} className="bg-pink-500 text-white px-4 py-2 rounded font-bold">Ajouter</button></div></div>{(accessoiresEquipement[equipementSelectionne] || []).length === 0 ? <p className="text-gray-500">Aucun accessoire</p> : <div className="grid grid-cols-1 md:grid-cols-2 gap-3">{(accessoiresEquipement[equipementSelectionne] || []).map(acc => (<div key={acc.id} className="bg-pink-50 p-4 rounded-lg border-2 border-pink-200"><div className="flex justify-between items-start mb-2"><div className="flex items-center gap-2 flex-1"><input type="checkbox" checked={acc.actif} onChange={() => setAccessoiresEquipement({...accessoiresEquipement,[equipementSelectionne]:(accessoiresEquipement[equipementSelectionne] || []).map(a => a.id === acc.id ? {...a,actif:!a.actif} : a)})} className="w-4 h-4"/><div className="font-bold text-pink-700">{acc.nom}</div></div><div className="text-xl font-black text-green-600">{acc.valeur}€</div></div><p className="text-sm text-gray-700 mb-2">{acc.description}</p><button onClick={() => supprimerAccessoire(equipementSelectionne,acc.id)} className="text-red-600 font-bold text-sm">Supprimer</button></div>))}</div>}</div>
+          </div>
+        )}
+        {ongletActif === 'equipements' && (
+          <div className="space-y-6">
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-4 border-blue-400 p-6 rounded-xl">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-2xl font-black text-blue-700">{modeEdition ? `✏️ MODIFIER ÉQUIPEMENT - ${equipementEnEdition?.immat}` : '🚛 CRÉER NOUVEL ÉQUIPEMENT'}</h3>
+                <button onClick={() => modeEdition ? annulerEditionEquipement() : setAfficherFormulaireEquipement(!afficherFormulaireEquipement)} className={`px-4 py-2 rounded font-bold text-white ${afficherFormulaireEquipement ? 'bg-red-600' : 'bg-blue-600'}`}>{afficherFormulaireEquipement ? '✕ Fermer' : '➕ Ouvrir'}</button>
+              </div>
+              {afficherFormulaireEquipement && (
+                <div className="bg-white p-6 rounded-lg space-y-4">
+                  <div className="bg-blue-50 p-4 rounded-lg border-2 border-blue-300">
+                    <h4 className="font-bold text-blue-700 mb-3">📋 INFOS DE BASE</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div><label className="text-xs font-bold text-gray-700">Immatriculation *</label><input type="text" placeholder="Ex: GT-316-FG" value={nouvelEquipement.immat} onChange={(e) => setNouvelEquipement({...nouvelEquipement,immat:e.target.value})} className="w-full border-2 border-blue-300 rounded px-3 py-2 mt-1 font-bold"/></div>
+                      <div><label className="text-xs font-bold text-gray-700">Type *</label><select value={nouvelEquipement.type} onChange={(e) => setNouvelEquipement({...nouvelEquipement,type:e.target.value})} className="w-full border-2 border-blue-300 rounded px-3 py-2 mt-1"><option value="">Sélectionner type</option><option value="Camion Citerne">Camion Citerne</option><option value="Tracteur Routier">Tracteur Routier</option><option value="Semi-Remorque">Semi-Remorque</option><option value="Micro-tracteur">Micro-tracteur</option><option value="Tracteur">Tracteur</option><option value="Remorque">Remorque</option><option value="Camion Porteur">Camion Porteur</option><option value="Nacelle">Nacelle</option><option value="Groupe électrogène">Groupe électrogène</option><option value="Osmoseur">Osmoseur</option><option value="Robot nettoyage">Robot nettoyage</option><option value="Accessoire">Accessoire</option><option value="Autre">Autre</option></select></div>
+                      <div><label className="text-xs font-bold text-gray-700">Marque</label><input type="text" placeholder="Ex: IVECO" value={nouvelEquipement.marque} onChange={(e) => setNouvelEquipement({...nouvelEquipement,marque:e.target.value})} className="w-full border-2 border-blue-300 rounded px-3 py-2 mt-1"/></div>
+                      <div><label className="text-xs font-bold text-gray-700">Modèle</label><input type="text" placeholder="Ex: S-WAY" value={nouvelEquipement.modele} onChange={(e) => setNouvelEquipement({...nouvelEquipement,modele:e.target.value})} className="w-full border-2 border-blue-300 rounded px-3 py-2 mt-1"/></div>
+                      <div><label className="text-xs font-bold text-gray-700">Année</label><input type="number" placeholder="Ex: 2023" value={nouvelEquipement.annee} onChange={(e) => setNouvelEquipement({...nouvelEquipement,annee:e.target.value})} className="w-full border-2 border-blue-300 rounded px-3 py-2 mt-1"/></div>
+                      <div><label className="text-xs font-bold text-gray-700">VIN</label><input type="text" placeholder="Numéro VIN" value={nouvelEquipement.vin} onChange={(e) => setNouvelEquipement({...nouvelEquipement,vin:e.target.value})} className="w-full border-2 border-blue-300 rounded px-3 py-2 mt-1"/></div>
+                    </div>
+                  </div>
+                  <div className="bg-green-50 p-4 rounded-lg border-2 border-green-300">
+                    <h4 className="font-bold text-green-700 mb-3">⚙️ TECHNIQUE</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div><label className="text-xs font-bold text-gray-700">Carburant</label><select value={nouvelEquipement.carburant} onChange={(e) => setNouvelEquipement({...nouvelEquipement,carburant:e.target.value})} className="w-full border-2 border-green-300 rounded px-3 py-2 mt-1"><option value="">Sélectionner</option><option value="Diesel">Diesel</option><option value="Essence">Essence</option><option value="Agricole">Agricole</option><option value="N/A">N/A</option></select></div>
+                      <div><label className="text-xs font-bold text-gray-700">PTAC (kg)</label><input type="number" placeholder="26000" value={nouvelEquipement.ptac} onChange={(e) => setNouvelEquipement({...nouvelEquipement,ptac:e.target.value})} className="w-full border-2 border-green-300 rounded px-3 py-2 mt-1"/></div>
+                      <div><label className="text-xs font-bold text-gray-700">Poids (kg)</label><input type="number" placeholder="13190" value={nouvelEquipement.poids} onChange={(e) => setNouvelEquipement({...nouvelEquipement,poids:e.target.value})} className="w-full border-2 border-green-300 rounded px-3 py-2 mt-1"/></div>
+                      <div><label className="text-xs font-bold text-gray-700">Kilométrage initial</label><input type="number" placeholder="0" value={nouvelEquipement.km} onChange={(e) => setNouvelEquipement({...nouvelEquipement,km:e.target.value})} className="w-full border-2 border-green-300 rounded px-3 py-2 mt-1"/></div>
+                      <div><label className="text-xs font-bold text-gray-700">Heures initial</label><input type="number" placeholder="0" value={nouvelEquipement.heures} onChange={(e) => setNouvelEquipement({...nouvelEquipement,heures:e.target.value})} className="w-full border-2 border-green-300 rounded px-3 py-2 mt-1"/></div>
+                    </div>
+                  </div>
+                  <div className="bg-purple-50 p-4 rounded-lg border-2 border-purple-300">
+                    <h4 className="font-bold text-purple-700 mb-3">💰 VALEURS</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div><label className="text-xs font-bold text-gray-700">Valeur achat (€)</label><input type="number" step="0.01" placeholder="0" value={nouvelEquipement.valeurAchat} onChange={(e) => setNouvelEquipement({...nouvelEquipement,valeurAchat:e.target.value})} className="w-full border-2 border-purple-300 rounded px-3 py-2 mt-1"/></div>
+                      <div><label className="text-xs font-bold text-gray-700">Valeur actuelle (€)</label><input type="number" step="0.01" placeholder="0" value={nouvelEquipement.valeurActuelle} onChange={(e) => setNouvelEquipement({...nouvelEquipement,valeurActuelle:e.target.value})} className="w-full border-2 border-purple-300 rounded px-3 py-2 mt-1"/></div>
+                      <div><label className="text-xs font-bold text-gray-700">Assurance (€/mois)</label><input type="number" step="0.01" placeholder="0" value={nouvelEquipement.assurance} onChange={(e) => setNouvelEquipement({...nouvelEquipement,assurance:e.target.value})} className="w-full border-2 border-purple-300 rounded px-3 py-2 mt-1"/></div>
+                    </div>
+                  </div>
+                  <div className="bg-yellow-50 p-4 rounded-lg border-2 border-yellow-400">
+                    <h4 className="font-bold text-yellow-700 mb-3">📝 FINANCEMENT</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div><label className="text-xs font-bold text-gray-700">Type financement</label><select value={nouvelEquipement.typeFinancement} onChange={(e) => setNouvelEquipement({...nouvelEquipement,typeFinancement:e.target.value})} className="w-full border-2 border-yellow-400 rounded px-3 py-2 mt-1"><option value="">Sélectionner</option><option value="Achat">Achat</option><option value="Location">Location</option><option value="Crédit">Crédit</option><option value="Autre">Autre</option></select></div>
+                      <div><label className="text-xs font-bold text-gray-700">Coût mensuel (€)</label><input type="number" step="0.01" placeholder="0" value={nouvelEquipement.coutMensuel} onChange={(e) => setNouvelEquipement({...nouvelEquipement,coutMensuel:e.target.value})} className="w-full border-2 border-yellow-400 rounded px-3 py-2 mt-1"/></div>
+                      <div></div>
+                      <div><label className="text-xs font-bold text-gray-700">Date début</label><input type="date" value={nouvelEquipement.dateDebut} onChange={(e) => setNouvelEquipement({...nouvelEquipement,dateDebut:e.target.value})} className="w-full border-2 border-yellow-400 rounded px-3 py-2 mt-1"/></div>
+                      <div><label className="text-xs font-bold text-gray-700">Date fin</label><input type="date" value={nouvelEquipement.dateFin} onChange={(e) => setNouvelEquipement({...nouvelEquipement,dateFin:e.target.value})} className="w-full border-2 border-yellow-400 rounded px-3 py-2 mt-1"/></div>
+                      <div><label className="text-xs font-bold text-gray-700">Date contrôle technique</label><input type="date" value={nouvelEquipement.dateContracteTechnique} onChange={(e) => setNouvelEquipement({...nouvelEquipement,dateContracteTechnique:e.target.value})} className="w-full border-2 border-yellow-400 rounded px-3 py-2 mt-1"/></div>
+                    </div>
+                  </div>
+                  <div className="bg-orange-50 p-4 rounded-lg border-2 border-orange-400">
+                    <h4 className="font-bold text-orange-700 mb-3">🏢 INFOS OPÉRATIONNELLES</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div><label className="text-xs font-bold text-gray-700">Propriétaire</label><input type="text" placeholder="SOLAIRE NETTOYAGE" value={nouvelEquipement.proprietaire} onChange={(e) => setNouvelEquipement({...nouvelEquipement,proprietaire:e.target.value})} className="w-full border-2 border-orange-400 rounded px-3 py-2 mt-1"/></div>
+                      <div><label className="text-xs font-bold text-gray-700">Notes</label><input type="text" placeholder="Notes..." value={nouvelEquipement.notes} onChange={(e) => setNouvelEquipement({...nouvelEquipement,notes:e.target.value})} className="w-full border-2 border-orange-400 rounded px-3 py-2 mt-1"/></div>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={creerOuModifierEquipement} className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-4 rounded-lg font-black text-lg hover:from-blue-700 hover:to-indigo-700 transition">{modeEdition ? '💾 SAUVEGARDER MODIFICATIONS' : '✅ CRÉER ÉQUIPEMENT'}</button>
+                    {modeEdition && (<button onClick={annulerEditionEquipement} className="flex-1 bg-gray-500 text-white px-6 py-4 rounded-lg font-black text-lg hover:bg-gray-600 transition">❌ ANNULER</button>)}
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="bg-white p-4 rounded border">
+              <h2 className="font-black text-xl mb-4">🚛 Équipements ({equipements.length})</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {equipements.map(eq => (
+                  <div key={eq.id} className="p-4 bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg border-2 border-gray-300 hover:shadow-lg transition cursor-pointer" onClick={() => {setOngletActif('fiche');setEquipementSelectionne(eq.id);}}>
+                    <div className="flex justify-between items-start mb-2">
+                      <div><div className="text-xl font-black text-orange-600">{eq.immat}</div><div className="text-sm text-gray-700"><strong>{eq.type}</strong></div></div>
+                      <div className="text-right text-sm"><div className="text-gray-600">{eq.marque}</div><div className="text-gray-600">{eq.modele}</div><div className="text-gray-500">({eq.annee})</div></div>
+                    </div>
+                    <div className="border-t pt-2 mt-2 grid grid-cols-2 gap-2 text-xs">
+                      <div className="text-gray-600">💰 <strong>{eq.valeurActuelle}€</strong></div>
+                      <div className="text-gray-600">⛽ {eq.carburant || 'N/A'}</div>
+                      <div className="text-gray-600">📍 {eq.proprietaire}</div>
+                      <div className="text-gray-600">📅 {eq.dateDebut}</div>
+                    </div>
+                    <div className="flex gap-2 mt-3">
+                      <button onClick={(e) => {e.stopPropagation();setOngletActif('fiche');setEquipementSelectionne(eq.id);}} className="flex-1 bg-orange-500 text-white px-3 py-2 rounded font-bold text-sm hover:bg-orange-600">👁️ Voir fiche</button>
+                      <button onClick={(e) => {e.stopPropagation();ouvrirEditionEquipement(eq);}} className="flex-1 bg-blue-600 text-white px-3 py-2 rounded font-bold text-sm hover:bg-blue-700">✏️ Éditer</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+        {ongletActif === 'interventions' && (
+          <div className="space-y-4">
+            <div className="bg-white p-4 rounded border"><h3 className="font-bold text-lg mb-3">🔧 Créer intervention</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-2">
+                <select value={nouvelleIntervention.equipementId} onChange={(e) => setNouvelleIntervention({...nouvelleIntervention,equipementId:e.target.value})} className="border-2 rounded px-2 py-2"><option value="">Équipement *</option>{getEquipementsEtSunbrush().map(item => <option key={item.id} value={item.id}>{item.nom}</option>)}</select>
+                <select value={nouvelleIntervention.type} onChange={(e) => setNouvelleIntervention({...nouvelleIntervention,type:e.target.value})} className="border-2 rounded px-2 py-2"><option value="">Type *</option>{typesIntervention.map(t => <option key={t} value={t}>{t}</option>)}</select>
+                <input type="date" value={nouvelleIntervention.date} onChange={(e) => setNouvelleIntervention({...nouvelleIntervention,date:e.target.value})} className="border-2 rounded px-2 py-2"/>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-3">
+                <input type="number" placeholder="KM" value={nouvelleIntervention.km} onChange={(e) => setNouvelleIntervention({...nouvelleIntervention,km:e.target.value})} className="border-2 rounded px-2 py-2"/>
+                <input type="number" placeholder="Heures" value={nouvelleIntervention.heures} onChange={(e) => setNouvelleIntervention({...nouvelleIntervention,heures:e.target.value})} className="border-2 rounded px-2 py-2"/>
+                <input type="text" placeholder="Description" value={nouvelleIntervention.description} onChange={(e) => setNouvelleIntervention({...nouvelleIntervention,description:e.target.value})} className="border-2 rounded px-2 py-2"/>
+              </div>
+              <div className="bg-purple-50 border-2 border-purple-300 p-3 rounded mb-3">
+                <h4 className="font-semibold text-sm mb-2">📍 Dépôt de prélèvement</h4>
+                <select value={nouvelleIntervention.depotPrelevement} onChange={(e) => setNouvelleIntervention({...nouvelleIntervention,depotPrelevement:e.target.value})} className="w-full border-2 border-purple-300 rounded px-3 py-2 mb-2">{depots.map(d => <option key={d} value={d}>{d}</option>)}</select>
+              </div>
+              <div className="bg-blue-50 border-2 border-blue-300 p-3 rounded mb-3">
+                <h4 className="font-semibold text-sm mb-2">📦 Articles</h4>
+                <div className="mb-2 flex gap-2"><button onClick={() => setAfficherArticlesEquipement(!afficherArticlesEquipement)} className={`px-3 py-1 rounded text-xs font-bold ${afficherArticlesEquipement ? 'bg-blue-600 text-white' : 'bg-gray-300'}`}>{afficherArticlesEquipement ? 'Équipement' : 'Tous'}</button><button onClick={toggleScannerIntervention} className={`px-3 py-1 rounded text-xs font-bold ${afficherScannerIntervention ? 'bg-red-600 text-white' : 'bg-indigo-600 text-white'}`}>{afficherScannerIntervention ? 'Fermer' : 'Scanner'}</button></div>
+                {afficherScannerIntervention && !scanResultatIntervention && (<div className="mb-3 bg-indigo-50 p-3 rounded border border-indigo-200"><div className="bg-gray-900 rounded overflow-hidden mb-2" style={{maxWidth:'100%',height:'200px'}}><video ref={videoIntervention} autoPlay playsInline muted style={{width:'100%',height:'100%',display:'block'}}/><canvas ref={canvasIntervention} style={{display:'none'}}/></div><p className="text-xs text-indigo-600 font-semibold">🎯 Pointez un QR code</p></div>)}
+                {scanResultatIntervention && (<div className="mb-3 bg-green-50 p-3 rounded border-2 border-green-300"><div className="font-bold text-green-700 mb-2">{scanResultatIntervention.article.code} - {scanResultatIntervention.article.description}</div><div className="flex gap-2 items-end"><input type="number" min="1" placeholder="Quantité *" value={quantiteScanIntervention} onChange={(e) => setQuantiteScanIntervention(e.target.value)} className="flex-1 border-2 border-green-300 rounded px-2 py-1 font-bold text-center"/><button onClick={ajouterArticlePrevuScan} className="bg-green-600 text-white px-3 py-1 rounded text-sm font-bold">➕ Ajouter</button><button onClick={() => {setScanResultatIntervention(null);setQuantiteScanIntervention('');}} className="bg-gray-400 text-white px-3 py-1 rounded text-sm">✕</button></div></div>)}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-2 mb-2">
+                  <select value={nouvelArticleIntervention.articleId} onChange={(e) => setNouvelArticleIntervention({...nouvelArticleIntervention,articleId:e.target.value})} className="border-2 rounded px-2 py-2 text-sm"><option value="">Article</option>{getArticlesDisponibles().map(a => <option key={a.id} value={a.id}>{a.code} - {a.prixUnitaire}€</option>)}</select>
+                  <input type="number" min="1" placeholder="Quantité" value={nouvelArticleIntervention.quantite} onChange={(e) => setNouvelArticleIntervention({...nouvelArticleIntervention,quantite:e.target.value})} className="border-2 rounded px-2 py-2 text-sm"/>
+                  <button onClick={ajouterArticlePrevu} className="bg-blue-600 text-white px-3 py-2 rounded text-sm font-bold col-span-2">+ Ajouter</button>
+                </div>
+                {nouvelleIntervention.articlesPrevu.length > 0 && (<div className="bg-white rounded p-2 mb-2 space-y-1 border"><div className="text-xs font-bold mb-2">Prévus:</div>{nouvelleIntervention.articlesPrevu.map((art,idx) => (<div key={idx} className="flex justify-between items-center text-xs bg-gray-50 p-2 rounded"><div><strong>{art.code}</strong> - {art.quantite}x @ {art.prixUnitaire.toFixed(2)}€</div><button onClick={() => supprimerArticlePrevu(idx)} className="text-red-600">✕</button></div>))}</div>)}
+              </div>
+              <button onClick={creerIntervention} className="w-full bg-orange-500 text-white px-4 py-3 rounded font-bold text-lg">✓ CRÉER INTERVENTION</button>
+            </div>
+            {interventionsEnCours.length > 0 && (<div><h3 className="font-bold text-lg mb-2">En cours ({interventionsEnCours.length})</h3>{interventionsEnCours.map(i => {const eq = equipements.find(e => e.id === i.equipementId); return (<div key={i.id} className="bg-yellow-50 border-2 border-yellow-400 p-4 rounded mb-3"><div className="flex justify-between items-start"><div><h4 className="font-bold text-lg">{i.type}</h4><p className="text-sm">{eq?.immat} - {i.date}</p></div><button onClick={() => cloturerIntervention(i.id)} className="bg-green-600 text-white px-4 py-2 rounded font-bold">Terminer</button></div></div>);})}</div>)}
+            {interventions.filter(i => i.statut === 'effectue').length > 0 && (<div><h3 className="font-bold text-lg mb-2">Effectuées</h3>{interventions.filter(i => i.statut === 'effectue').map(i => {const eq = equipements.find(e => e.id === i.equipementId); return (<div key={i.id} className="p-4 bg-green-50 rounded mb-3 border"><div className="flex justify-between"><div><div className="font-bold text-lg">{i.type}</div><p className="text-sm"><strong>{eq?.immat}</strong> • {i.date}</p></div><div className="text-2xl font-black text-green-600">{(i.coutTotal || 0).toFixed(2)}€</div></div></div>);})}</div>)}
+          </div>
+        )}
+        {ongletActif === 'maintenance' && (
+          <div className="space-y-6">
+            <div className="bg-gradient-to-r from-red-50 to-orange-50 border-2 border-red-300 p-6 rounded-xl">
+              <h2 className="text-2xl font-black text-red-700 mb-4">🚨 DÉCLARER UN DÉFAUT</h2>
+              <div className="space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div><label className="block text-sm font-bold text-gray-700 mb-1">Équipement *</label><select value={nouveauDefaut.equipementId} onChange={(e) => setNouveauDefaut({...nouveauDefaut,equipementId:e.target.value,accessoireId:''})} className="w-full border-2 border-red-300 rounded px-3 py-2 font-semibold"><option value="">Sélectionner équipement</option>{equipements.map(eq => <option key={eq.id} value={eq.id}>{eq.immat} - {eq.marque}</option>)}</select></div>
+                  <div><label className="block text-sm font-bold text-gray-700 mb-1">Accessoire (optionnel)</label><select value={nouveauDefaut.accessoireId} onChange={(e) => setNouveauDefaut({...nouveauDefaut,accessoireId:e.target.value})} className="w-full border-2 border-red-300 rounded px-3 py-2"><option value="">Aucun accessoire</option>{nouveauDefaut.equipementId && accessoiresEquipement[parseInt(nouveauDefaut.equipementId)]?.map(acc => <option key={acc.id} value={acc.id}>{acc.nom}</option>)}</select></div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div><label className="block text-sm font-bold text-gray-700 mb-1">Type de défaut *</label><select value={nouveauDefaut.type} onChange={(e) => setNouveauDefaut({...nouveauDefaut,type:e.target.value})} className="w-full border-2 rounded px-3 py-2 font-semibold"><option value="Fuite">Fuite</option><option value="Bruit">Bruit anormal</option><option value="Usure">Usure</option><option value="Cassure">Cassure/Casse</option><option value="Dysfonctionnement">Dysfonctionnement</option><option value="Autre">Autre</option></select></div>
+                  <div><label className="block text-sm font-bold text-gray-700 mb-1">Sévérité *</label><select value={nouveauDefaut.severite} onChange={(e) => setNouveauDefaut({...nouveauDefaut,severite:e.target.value})} className="w-full border-2 rounded px-3 py-2 font-semibold"><option value="mineur">🟢 Mineur</option><option value="moyen">🟠 Moyen</option><option value="critique">🔴 Critique</option></select></div>
+                  <div><label className="block text-sm font-bold text-gray-700 mb-1">Opérateur *</label><select value={nouveauDefaut.operateur} onChange={(e) => setNouveauDefaut({...nouveauDefaut,operateur:e.target.value})} className="w-full border-2 rounded px-3 py-2 font-semibold">{operateurs.map(op => <option key={op} value={op}>{op}</option>)}</select></div>
+                </div>
+                <div><label className="block text-sm font-bold text-gray-700 mb-1">Description détaillée *</label><textarea value={nouveauDefaut.description} onChange={(e) => setNouveauDefaut({...nouveauDefaut,description:e.target.value})} placeholder="Ex: Fuite hydraulique..." className="w-full border-2 border-red-300 rounded px-3 py-2 h-20 font-semibold"/></div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div><label className="block text-sm font-bold text-gray-700 mb-1">Localisation sur équipement</label><input type="text" value={nouveauDefaut.localisation} onChange={(e) => setNouveauDefaut({...nouveauDefaut,localisation:e.target.value})} placeholder="Ex: Raccord du bras..." className="w-full border-2 rounded px-3 py-2"/></div>
+                  <div><label className="block text-sm font-bold text-gray-700 mb-1">Date constatation</label><input type="date" value={nouveauDefaut.dateConstatation} onChange={(e) => setNouveauDefaut({...nouveauDefaut,dateConstatation:e.target.value})} className="w-full border-2 rounded px-3 py-2"/></div>
+                </div>
+                <div><label className="block text-sm font-bold text-gray-700 mb-1">Remarques additionnelles</label><textarea value={nouveauDefaut.remarques} onChange={(e) => setNouveauDefaut({...nouveauDefaut,remarques:e.target.value})} placeholder="Infos supplémentaires..." className="w-full border-2 rounded px-3 py-2 h-16"/></div>
+                <div className="bg-blue-50 border-2 border-blue-300 p-4 rounded">
+                  <label className="block text-sm font-bold text-blue-700 mb-2">📸 Joindre photos (multiples)</label>
+                  <button onClick={() => fileInputRef.current?.click()} className="bg-blue-600 text-white px-4 py-2 rounded font-bold mb-3">+ Ajouter photos</button>
+                  <input ref={fileInputRef} type="file" multiple accept="image/*" onChange={gererSelectionPhotos} style={{display:'none'}}/>
+                  {photosSelectionnees.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-sm font-semibold">Photos sélectionnées ({photosSelectionnees.length}):</p>
+                      {photosSelectionnees.map((photo,idx) => (
+                        <div key={idx} className="flex justify-between items-center bg-white p-2 rounded border">
+                          <div className="flex-1"><p className="text-sm font-semibold">{photo.nom}</p><img src={photo.base64} alt={photo.nom} className="mt-1 h-16 rounded border"/></div>
+                          <button onClick={() => supprimerPhotoSelectionnee(idx)} className="text-red-600 font-bold">✕</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <button onClick={declareDefaut} className="w-full bg-red-600 text-white px-6 py-4 rounded-lg font-black text-lg hover:bg-red-700">🚨 DÉCLARER DÉFAUT</button>
+              </div>
+            </div>
+            <div className="space-y-4">
+              <h2 className="text-2xl font-black text-gray-800">📋 DÉFAUTS À TRAITER</h2>
+              {defautsCritiques.length > 0 && (
+                <div className="bg-red-50 border-4 border-red-600 p-4 rounded-lg">
+                  <h3 className="text-xl font-black text-red-700 mb-3">🔴 CRITIQUES ({defautsCritiques.length})</h3>
+                  <div className="space-y-3">
+                    {defautsCritiques.map(d => {
+                      const eq = equipements.find(e => e.id === d.equipementId);
+                      const acc = d.accessoireId ? Object.values(accessoiresEquipement).flat().find(a => a.id === d.accessoireId) : null;
+                      return (
+                        <div key={d.id} className="bg-white rounded-lg p-4 border-2 border-red-300">
+                          <div className="flex justify-between items-start mb-2">
+                            <div className="flex-1"><h4 className="font-black text-lg text-red-700">{d.type}</h4><p className="text-sm text-gray-600">{eq?.immat} {acc ? `- ${acc.nom}` : ''}</p></div>
+                            <button onClick={() => setDefautSelectionne(d)} className="bg-blue-600 text-white px-3 py-1 rounded font-bold text-sm">👁️ Détails</button>
+                          </div>
+                          <p className="text-sm mb-3">{d.description}</p>
+                          <p className="text-xs text-gray-500 mb-2">Signalé par <strong>{d.operateur}</strong> le {d.dateConstatation}</p>
+                          <div className="flex gap-2">
+                            <button onClick={() => creerInterventionDepuisDefaut(d)} className="flex-1 bg-orange-600 text-white px-3 py-2 rounded font-bold text-sm">🔧 Créer intervention</button>
+                            <button onClick={() => resoudreDefaut(d.id)} className="flex-1 bg-green-600 text-white px-3 py-2 rounded font-bold text-sm">✓ Résolu</button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+              {defautsAtention.length > 0 && (
+                <div className="bg-orange-50 border-4 border-orange-500 p-4 rounded-lg">
+                  <h3 className="text-xl font-black text-orange-700 mb-3">🟠 MOYENS ({defautsAtention.length})</h3>
+                  <div className="space-y-3">
+                    {defautsAtention.map(d => {
+                      const eq = equipements.find(e => e.id === d.equipementId);
+                      const acc = d.accessoireId ? Object.values(accessoiresEquipement).flat().find(a => a.id === d.accessoireId) : null;
+                      return (
+                        <div key={d.id} className="bg-white rounded-lg p-4 border-2 border-orange-300">
+                          <div className="flex justify-between items-start mb-2">
+                            <div className="flex-1"><h4 className="font-black text-lg text-orange-700">{d.type}</h4><p className="text-sm text-gray-600">{eq?.immat} {acc ? `- ${acc.nom}` : ''}</p></div>
+                            <button onClick={() => setDefautSelectionne(d)} className="bg-blue-600 text-white px-3 py-1 rounded font-bold text-sm">👁️ Détails</button>
+                          </div>
+                          <p className="text-sm mb-3">{d.description}</p>
+                          <p className="text-xs text-gray-500 mb-2">Signalé par <strong>{d.operateur}</strong> le {d.dateConstatation}</p>
+                          <div className="flex gap-2">
+                            <button onClick={() => creerInterventionDepuisDefaut(d)} className="flex-1 bg-orange-600 text-white px-3 py-2 rounded font-bold text-sm">🔧 Créer intervention</button>
+                            <button onClick={() => resoudreDefaut(d.id)} className="flex-1 bg-green-600 text-white px-3 py-2 rounded font-bold text-sm">✓ Résolu</button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+              {defautsMineur.length > 0 && (
+                <div className="bg-yellow-50 border-4 border-yellow-500 p-4 rounded-lg">
+                  <h3 className="text-xl font-black text-yellow-700 mb-3">🟡 MINEURS ({defautsMineur.length})</h3>
+                  <div className="space-y-3">
+                    {defautsMineur.map(d => {
+                      const eq = equipements.find(e => e.id === d.equipementId);
+                      const acc = d.accessoireId ? Object.values(accessoiresEquipement).flat().find(a => a.id === d.accessoireId) : null;
+                      return (
+                        <div key={d.id} className="bg-white rounded-lg p-4 border-2 border-yellow-300">
+                          <div className="flex justify-between items-start mb-2">
+                            <div className="flex-1"><h4 className="font-black text-lg text-yellow-700">{d.type}</h4><p className="text-sm text-gray-600">{eq?.immat} {acc ? `- ${acc.nom}` : ''}</p></div>
+                            <button onClick={() => setDefautSelectionne(d)} className="bg-blue-600 text-white px-3 py-1 rounded font-bold text-sm">👁️ Détails</button>
+                          </div>
+                          <p className="text-sm mb-3">{d.description}</p>
+                          <p className="text-xs text-gray-500 mb-2">Signalé par <strong>{d.operateur}</strong> le {d.dateConstatation}</p>
+                          <div className="flex gap-2">
+                            <button onClick={() => creerInterventionDepuisDefaut(d)} className="flex-1 bg-orange-600 text-white px-3 py-2 rounded font-bold text-sm">🔧 Créer intervention</button>
+                            <button onClick={() => resoudreDefaut(d.id)} className="flex-1 bg-green-600 text-white px-3 py-2 rounded font-bold text-sm">✓ Résolu</button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+              {defautsATraiter.length === 0 && (
+                <div className="bg-green-50 border-4 border-green-500 p-6 rounded-lg text-center">
+                  <p className="text-2xl font-black text-green-700">✅ AUCUN DÉFAUT À TRAITER</p>
+                </div>
+              )}
+            </div>
+            {defautsArchives.length > 0 && (
+              <div className="bg-green-50 border-2 border-green-300 p-4 rounded-lg">
+                <h3 className="text-xl font-black text-green-700 mb-3">✅ DÉFAUTS RÉSOLUS ({defautsArchives.length})</h3>
+                <div className="space-y-2">
+                  {defautsArchives.map(d => {
+                    const eq = equipements.find(e => e.id === d.equipementId);
+                    return (
+                      <div key={d.id} className="bg-white rounded p-3 border-l-4 border-green-500 flex justify-between items-center">
+                        <div><p className="font-semibold">{d.type} - {eq?.immat}</p><p className="text-xs text-gray-500">Résolu le {d.dateArchivage}</p></div>
+                        <button onClick={() => setDefautSelectionne(d)} className="bg-gray-600 text-white px-3 py-1 rounded font-bold text-sm">👁️ Voir</button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+          </div>
+        )}
+        {ongletActif === 'inventaire' && (
+          <div className="space-y-4">
+            {articleEnEdition && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div className="bg-white p-6 rounded-xl shadow-xl max-w-md w-full mx-4">
+                  <h3 className="text-lg font-black text-gray-800 mb-4">✏️ Modifier Stock Minimum</h3>
+                  <div className="space-y-3">
+                    <div><label className="block text-sm font-bold text-gray-700 mb-1">Code</label><input type="text" value={articleEnEdition.code} disabled className="w-full border rounded px-3 py-2 bg-gray-100"/></div>
+                    <div><label className="block text-sm font-bold text-gray-700 mb-1">Description</label><input type="text" value={articleEnEdition.description} disabled className="w-full border rounded px-3 py-2 bg-gray-100"/></div>
+                    <div><label className="block text-sm font-bold text-gray-700 mb-1">Stock total</label><input type="text" value={getStockTotal(articleEnEdition)} disabled className="w-full border rounded px-3 py-2 bg-gray-100"/></div>
+                    <div className="border-t pt-3"><label className="block text-sm font-bold text-orange-600 mb-1">Stock Minimum *</label><input type="number" min="0" value={articleEnEdition.stockMinTemp} onChange={(e) => setArticleEnEdition({...articleEnEdition,stockMinTemp:e.target.value})} className="w-full border-2 border-orange-300 rounded px-3 py-2 outline-none text-lg font-bold"/></div>
+                  </div>
+                  <div className="flex gap-2 mt-6">
+                    <button onClick={sauvegarderStockMin} className="flex-1 bg-green-600 text-white px-4 py-2 rounded font-bold">✓ Sauvegarder</button>
+                    <button onClick={annulerEditionStockMin} className="flex-1 bg-gray-400 text-white px-4 py-2 rounded font-bold">✕ Annuler</button>
+                  </div>
+                </div>
+              </div>
+            )}
+            {panierCommande.length > 0 && (
+              <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-6 rounded-xl shadow-lg">
+                <h3 className="text-2xl font-black mb-4">🛒 Panier ({panierCommande.length})</h3>
+                <div className="space-y-3 mb-4">{Object.entries(regrouperParFournisseur()).map(([fournisseur,items]) => (
+                  <div key={fournisseur} className="bg-white bg-opacity-95 text-gray-800 rounded-lg p-4">
+                    <h4 className="font-black text-lg text-blue-600 mb-2">📦 {fournisseur}</h4>
+                    <div className="space-y-2">{items.map(item => (
+                      <div key={item.articleId} className="flex justify-between items-center bg-blue-50 p-3 rounded border border-blue-200">
+                        <div className="flex-1"><div className="font-bold text-blue-700">{item.article.code}</div><div className="text-sm">{item.article.description}</div></div>
+                        <div className="flex items-center gap-3">
+                          <input type="number" min="0" value={item.qteEditable} onChange={(e) => mettreAJourQte(item.articleId,e.target.value)} className="w-16 border-2 border-blue-300 rounded px-2 py-1 font-bold text-center"/>
+                          <div className="text-right min-w-20"><div className="font-bold text-blue-600">{item.article.prixUnitaire}€</div><div className="text-sm text-green-600">{(item.qteEditable * item.article.prixUnitaire).toFixed(2)}€</div></div>
+                          <button onClick={() => supprimerDuPanier(item.articleId)} className="bg-red-500 text-white px-3 py-1 rounded text-sm">✕</button>
+                        </div>
+                      </div>
+                    ))}</div>
+                  </div>
+                ))}</div>
+                <div className="flex gap-2">
+                  <button onClick={copierToutCommandes} className="flex-1 bg-green-500 text-white px-6 py-3 rounded font-black hover:bg-green-600">✓ Copier Tout</button>
+                  <button onClick={() => setPanierCommande([])} className="flex-1 bg-red-500 text-white px-6 py-3 rounded font-black hover:bg-red-600">🗑️ Vider</button>
+                </div>
+              </div>
+            )}
+            <div className="bg-white p-4 rounded border overflow-x-auto">
+              <h2 className="font-black text-xl mb-4">📊 INVENTAIRE - Stocks par Dépôt</h2>
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-gradient-to-r from-orange-100 to-yellow-100">
+                    <th className="px-3 py-3 text-left font-bold">Code</th>
+                    <th className="px-3 py-3 text-left font-bold">Description</th>
+                    <th className="px-3 py-3 text-right font-bold">Prix</th>
+                    {depots.map(depot => (<th key={depot} className="px-3 py-3 text-center font-bold bg-white border-l">{depot}</th>))}
+                    <th className="px-3 py-3 text-center font-bold bg-green-50">Total</th>
+                    <th className="px-3 py-3 text-center font-bold">Min</th>
+                    <th className="px-3 py-3 text-right font-bold">Valeur</th>
+                    <th className="px-3 py-3 text-center font-bold">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {articles.map(a => {
+                    const total = getStockTotal(a);
+                    const enAlerte = total < a.stockMin;
+                    return (
+                      <tr key={a.id} className={`border-b ${enAlerte ? 'bg-red-50' : ''}`}>
+                        <td className="px-3 py-3 font-bold text-orange-600">{a.code}</td>
+                        <td className="px-3 py-3 text-sm">{a.description}</td>
+                        <td className="px-3 py-3 text-right">{a.prixUnitaire}€</td>
+                        {depots.map(depot => (<td key={depot} className="px-3 py-3 text-center font-bold border-l"><span className={`px-2 py-1 rounded text-xs ${a.stockParDepot[depot] === 0 ? 'bg-gray-100' : a.stockParDepot[depot] <= 2 ? 'bg-orange-200' : 'bg-green-200'}`}>{a.stockParDepot[depot] || 0}</span></td>))}
+                        <td className="px-3 py-3 text-center font-black bg-green-50 text-green-700">{total}</td>
+                        <td className="px-3 py-3 text-center"><button onClick={() => ouvrirEditionStockMin(a)} className="text-blue-600 hover:underline font-bold">{a.stockMin}</button></td>
+                        <td className="px-3 py-3 text-right font-bold">{(total * a.prixUnitaire).toFixed(2)}€</td>
+                        <td className="px-3 py-3 text-center"><button onClick={() => genererTexteCommande(a)} className="bg-blue-600 text-white px-2 py-1 rounded text-xs font-bold w-full">📧</button></td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+        {ongletActif === 'stock' && (
+          <div className="space-y-6">
+            <div className="bg-indigo-100 border-2 border-indigo-400 p-4 rounded"><h3 className="font-bold mb-3">📱 Scanner QR Code</h3><button onClick={toggleScannerQR} className={`px-4 py-2 rounded font-bold text-white ${afficherScannerQR ? 'bg-red-600 hover:bg-red-700' : 'bg-indigo-600 hover:bg-indigo-700'}`}>{afficherScannerQR ? '❌ Fermer Scanner' : '📷 Activer Scanner'}</button>{afficherScannerQR && !scanResultat && (<div className="mt-4"><div className="bg-gray-900 rounded overflow-hidden" style={{maxWidth:'400px'}}><video ref={videoRef} autoPlay playsInline muted style={{width:'100%',display:'block'}}/><canvas ref={canvasRef} style={{display:'none'}}/></div><div className="mt-3"><input type="text" placeholder="Entrer code article ou scanner QR" onKeyDown={(e) => {if (e.key === 'Enter' && e.target.value) {traiterScanQR(e.target.value); e.target.value = ''}}} className="w-full border-2 border-indigo-300 rounded px-3 py-2 font-bold"/></div><div className="mt-2 text-sm text-indigo-700 font-semibold">🎯 Scanner actif</div></div>)}{scanResultat && (<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"><div className="bg-white rounded-2xl shadow-2xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto"><div className="text-center mb-4">{scanResultat.success ? (<><div className="text-4xl mb-2">✅</div><h3 className="text-xl font-black text-green-600">Article détecté !</h3></>) : (<><div className="text-4xl mb-2">❌</div><h3 className="text-xl font-black text-red-600">Article non trouvé</h3></>)}</div>{scanResultat.success && (<><div className="bg-green-50 p-4 rounded-lg mb-4 border-2 border-green-300"><div className="font-bold text-lg text-green-700">{scanResultat.article.code}</div><div className="text-sm text-gray-700 mt-1">{scanResultat.article.description}</div><div className="text-xs text-gray-600 mt-2">Fournisseur: {scanResultat.article.fournisseur}</div><div className="text-sm font-bold text-green-600 mt-2">Stock: {getStockTotal(scanResultat.article)}</div></div>{!actionScan ? (<><div className="grid grid-cols-3 gap-2 mb-4"><button onClick={() => setActionScan('entree')} className="bg-green-600 text-white px-3 py-3 rounded font-bold text-sm hover:bg-green-700">📥 Entrée</button><button onClick={() => setActionScan('sortie')} className="bg-red-600 text-white px-3 py-3 rounded font-bold text-sm hover:bg-red-700">📤 Sortie</button><button onClick={() => setActionScan('transfert')} className="bg-amber-600 text-white px-3 py-3 rounded font-bold text-sm hover:bg-amber-700">🔄 Transfer</button></div></>) : actionScan === 'entree' ? (<div className="bg-green-50 p-4 rounded-lg mb-4 border-2 border-green-300"><h4 className="font-bold text-green-700 mb-3">📥 Entrée de Stock</h4><div className="space-y-2"><input type="number" placeholder="Quantité *" value={formScanEntree.quantite} onChange={(e) => setFormScanEntree({...formScanEntree,quantite:e.target.value})} className="w-full border rounded px-2 py-1"/><input type="number" step="0.01" placeholder="Prix unitaire *" value={formScanEntree.prixUnitaire} onChange={(e) => setFormScanEntree({...formScanEntree,prixUnitaire:e.target.value})} className="w-full border rounded px-2 py-1"/><input placeholder="Raison" value={formScanEntree.raison} onChange={(e) => setFormScanEntree({...formScanEntree,raison:e.target.value})} className="w-full border rounded px-2 py-1"/><select value={formScanEntree.depot} onChange={(e) => setFormScanEntree({...formScanEntree,depot:e.target.value})} className="w-full border rounded px-2 py-1">{depots.map(d => <option key={d} value={d}>{d}</option>)}</select><input type="date" value={formScanEntree.date} onChange={(e) => setFormScanEntree({...formScanEntree,date:e.target.value})} className="w-full border rounded px-2 py-1"/></div><div className="flex gap-2 mt-3"><button onClick={enregistrerEntreeStockScan} className="flex-1 bg-green-600 text-white px-3 py-2 rounded font-bold">✓ Valider</button><button onClick={() => setActionScan(null)} className="flex-1 bg-gray-400 text-white px-3 py-2 rounded font-bold">↩️ Retour</button></div></div>) : actionScan === 'sortie' ? (<div className="bg-red-50 p-4 rounded-lg mb-4 border-2 border-red-300"><h4 className="font-bold text-red-700 mb-3">📤 Sortie de Stock</h4><div className="space-y-2"><input type="number" placeholder="Quantité *" value={formScanSortie.quantite} onChange={(e) => setFormScanSortie({...formScanSortie,quantite:e.target.value})} className="w-full border rounded px-2 py-1"/><input placeholder="Raison" value={formScanSortie.raison} onChange={(e) => setFormScanSortie({...formScanSortie,raison:e.target.value})} className="w-full border rounded px-2 py-1"/><select value={formScanSortie.depot} onChange={(e) => setFormScanSortie({...formScanSortie,depot:e.target.value})} className="w-full border rounded px-2 py-1">{depots.map(d => <option key={d} value={d}>{d}</option>)}</select><input type="date" value={formScanSortie.date} onChange={(e) => setFormScanSortie({...formScanSortie,date:e.target.value})} className="w-full border rounded px-2 py-1"/></div><div className="flex gap-2 mt-3"><button onClick={enregistrerSortieStockScan} className="flex-1 bg-red-600 text-white px-3 py-2 rounded font-bold">✓ Valider</button><button onClick={() => setActionScan(null)} className="flex-1 bg-gray-400 text-white px-3 py-2 rounded font-bold">↩️ Retour</button></div></div>) : (<div className="bg-amber-50 p-4 rounded-lg mb-4 border-2 border-amber-300"><h4 className="font-bold text-amber-700 mb-3">🔄 Transfert</h4><div className="space-y-2"><input type="number" placeholder="Quantité *" value={formScanTransfert.quantite} onChange={(e) => setFormScanTransfert({...formScanTransfert,quantite:e.target.value})} className="w-full border rounded px-2 py-1"/><select value={formScanTransfert.depotSource} onChange={(e) => setFormScanTransfert({...formScanTransfert,depotSource:e.target.value})} className="w-full border rounded px-2 py-1">{depots.map(d => <option key={d} value={d}>{d}</option>)}</select><select value={formScanTransfert.depotDestination} onChange={(e) => setFormScanTransfert({...formScanTransfert,depotDestination:e.target.value})} className="w-full border rounded px-2 py-1">{depots.map(d => <option key={d} value={d}>{d}</option>)}</select></div><div className="flex gap-2 mt-3"><button onClick={enregistrerTransfertStockScan} className="flex-1 bg-amber-600 text-white px-3 py-2 rounded font-bold">✓ Valider</button><button onClick={() => setActionScan(null)} className="flex-1 bg-gray-400 text-white px-3 py-2 rounded font-bold">↩️ Retour</button></div></div>)}</>)}{!scanResultat.success && (<div className="flex gap-2"><button onClick={() => setScanResultat(null)} className="flex-1 bg-blue-600 text-white px-4 py-2 rounded font-bold">🔄 Rescanner</button><button onClick={() => {setAfficherScannerQR(false);setScanResultat(null);}} className="flex-1 bg-gray-400 text-white px-4 py-2 rounded font-bold">✕ Fermer</button></div>)}</div></div>)}</div>
+            <div className="bg-green-50 border-2 border-green-300 p-4 rounded"><h3 className="font-bold mb-3">📥 Entrée</h3><div className="grid grid-cols-1 md:grid-cols-5 gap-2"><select value={nouvelleEntreeStock.articleId} onChange={(e) => setNouvelleEntreeStock({...nouvelleEntreeStock,articleId:e.target.value})} className="border rounded px-2 py-1"><option value="">Article</option>{articles.map(a => <option key={a.id} value={a.id}>{a.code}</option>)}</select><input type="number" placeholder="Qté" value={nouvelleEntreeStock.quantite} onChange={(e) => setNouvelleEntreeStock({...nouvelleEntreeStock,quantite:e.target.value})} className="border rounded px-2 py-1"/><input type="number" step="0.01" placeholder="Prix" value={nouvelleEntreeStock.prixUnitaire} onChange={(e) => setNouvelleEntreeStock({...nouvelleEntreeStock,prixUnitaire:e.target.value})} className="border rounded px-2 py-1"/><input placeholder="Raison" value={nouvelleEntreeStock.raison} onChange={(e) => setNouvelleEntreeStock({...nouvelleEntreeStock,raison:e.target.value})} className="border rounded px-2 py-1"/><button onClick={enregistrerEntreeStock} className="bg-green-600 text-white px-3 py-1 rounded font-bold">Entrer</button></div></div>
+            <div className="bg-red-50 border-2 border-red-300 p-4 rounded"><h3 className="font-bold mb-3">📤 Sortie</h3><div className="grid grid-cols-1 md:grid-cols-5 gap-2"><select value={nouveauMouvementSortie.articleId} onChange={(e) => setNouveauMouvementSortie({...nouveauMouvementSortie,articleId:e.target.value})} className="border rounded px-2 py-1"><option value="">Article</option>{articles.map(a => <option key={a.id} value={a.id}>{a.code}</option>)}</select><input type="number" placeholder="Qté" value={nouveauMouvementSortie.quantite} onChange={(e) => setNouveauMouvementSortie({...nouveauMouvementSortie,quantite:e.target.value})} className="border rounded px-2 py-1"/><input placeholder="Raison" value={nouveauMouvementSortie.raison} onChange={(e) => setNouveauMouvementSortie({...nouveauMouvementSortie,raison:e.target.value})} className="border rounded px-2 py-1"/><input type="date" value={nouveauMouvementSortie.date} onChange={(e) => setNouveauMouvementSortie({...nouveauMouvementSortie,date:e.target.value})} className="border rounded px-2 py-1"/><button onClick={enregistrerSortieStock} className="bg-red-600 text-white px-3 py-1 rounded font-bold">Sortir</button></div></div>
+            <div className="bg-amber-50 border-2 border-amber-400 p-4 rounded"><h3 className="font-bold mb-3">🔄 Transfert</h3><div className="grid grid-cols-1 md:grid-cols-6 gap-2"><select value={nouveauTransfert.articleId} onChange={(e) => setNouveauTransfert({...nouveauTransfert,articleId:e.target.value})} className="border rounded px-2 py-1"><option value="">Article</option>{articles.map(a => <option key={a.id} value={a.id}>{a.code}</option>)}</select><select value={nouveauTransfert.depotSource} onChange={(e) => setNouveauTransfert({...nouveauTransfert,depotSource:e.target.value})} className="border rounded px-2 py-1">{depots.map(d => <option key={d} value={d}>{d}</option>)}</select><select value={nouveauTransfert.depotDestination} onChange={(e) => setNouveauTransfert({...nouveauTransfert,depotDestination:e.target.value})} className="border rounded px-2 py-1">{depots.map(d => <option key={d} value={d}>{d}</option>)}</select><input type="number" placeholder="Qté" value={nouveauTransfert.quantite} onChange={(e) => setNouveauTransfert({...nouveauTransfert,quantite:e.target.value})} className="border rounded px-2 py-1"/><input placeholder="Note" value={nouveauTransfert.raison} onChange={(e) => setNouveauTransfert({...nouveauTransfert,raison:e.target.value})} className="border rounded px-2 py-1"/><button onClick={enregistrerTransfertStock} className="bg-amber-600 text-white px-3 py-1 rounded font-bold">Transférer</button></div></div>
+            <div className="bg-white p-4 rounded border">
+              <h3 className="font-bold text-lg mb-3">🎯 Affecter articles aux équipements</h3>
+              <div className="space-y-2">
+                {articles.map(a => {
+                  const equipAffectes = equipements.filter(e => a.equipementsAffectes.includes(e.id));
+                  const isAffecte = a.equipementsAffectes.length > 0;
+                  return (
+                    <div key={a.id} className={`flex justify-between items-center p-3 rounded border-2 ${isAffecte ? 'bg-blue-100 border-blue-400' : 'bg-gray-50 border-gray-200'}`}>
+                      <div className="flex-1">
+                        <div className="font-semibold">{a.code} - {a.description}</div>
+                        <div className="text-xs text-gray-600">Stock total: {getStockTotal(a)} × {isAffecte ? `✓ Affecté à: ${equipAffectes.map(e => e.immat).join(', ')}` : 'Non affecté'}</div>
+                      </div>
+                      <div className="flex gap-1 ml-2 flex-wrap">
+                        {equipements.map(e => (
+                          <button key={e.id} onClick={() => affecterArticleEquipement(a.id,e.id)} className={`px-3 py-1 rounded text-xs font-bold whitespace-nowrap transition ${a.equipementsAffectes.includes(e.id) ? 'bg-blue-600 text-white shadow-md' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}>
+                            {e.immat}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div> setNouveauTransfert({...nouveauTransfert,articleId:e.target.value})} className="border rounded px-2 py-1"><option value="">Article</option>{articles.map(a => <option key={a.id} value={a.id}>{a.code}</option>)}</select><select value={nouveauTransfert.depotSource} onChange={(e) => setNouveauTransfert({...nouveauTransfert,depotSource:e.target.value})} className="border rounded px-2 py-1">{depots.map(d => <option key={d} value={d}>{d}</option>)}</select><select value={nouveauTransfert.depotDestination} onChange={(e) => setNouveauTransfert({...nouveauTransfert,depotDestination:e.target.value})} className="border rounded px-2 py-1">{depots.map(d => <option key={d} value={d}>{d}</option>)}</select><input type="number" placeholder="Qté" value={nouveauTransfert.quantite} onChange={(e) => setNouveauTransfert({...nouveauTransfert,quantite:e.target.value})} className="border rounded px-2 py-1"/><input placeholder="Note" value={nouveauTransfert.raison} onChange={(e) => setNouveauTransfert({...nouveauTransfert,raison:e.target.value})} className="border rounded px-2 py-1"/><button onClick={enregistrerTransfertStock} className="bg-amber-600 text-white px-3 py-1 rounded font-bold">Transférer</button></div></div>
+            <div className="bg-white p-4 rounded border">
+              <h3 className="font-bold text-lg mb-3">🎯 Affecter articles aux équipements</h3>
+              <div className="space-y-2">
+                {articles.map(a => {
+                  const equipAffectes = equipements.filter(e => a.equipementsAffectes.includes(e.id));
+                  const isAffecte = a.equipementsAffectes.length > 0;
+                  return (
+                    <div key={a.id} className={`flex justify-between items-center p-3 rounded border-2 ${isAffecte ? 'bg-blue-100 border-blue-400' : 'bg-gray-50 border-gray-200'}`}>
+                      <div className="flex-1">
+                        <div className="font-semibold">{a.code} - {a.description}</div>
+                        <div className="text-xs text-gray-600">Stock total: {getStockTotal(a)} × {isAffecte ? `✓ Affecté à: ${equipAffectes.map(e => e.immat).join(', ')}` : 'Non affecté'}</div>
+                      </div>
+                      <div className="flex gap-1 ml-2 flex-wrap">
+                        {equipements.map(e => (
+                          <button key={e.id} onClick={() => affecterArticleEquipement(a.id,e.id)} className={`px-3 py-1 rounded text-xs font-bold whitespace-nowrap transition ${a.equipementsAffectes.includes(e.id) ? 'bg-blue-600 text-white shadow-md' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}>
+                            {e.immat}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
