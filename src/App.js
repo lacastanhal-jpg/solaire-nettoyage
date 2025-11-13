@@ -35,31 +35,6 @@ async function syncMouvements(mouvements) {
   return mouvements;
 }
 
-// AJOUTE CES FONCTIONS DE SYNC
-async function syncArticles(articles) {
-  await supabase.from('articles').upsert(articles.map(a => ({
-    ...a,
-    stock_par_depot: a.stockParDepot,
-    equipements_affectes: a.equipementsAffectes
-  })));
-  return articles;
-}
-
-async function syncEquipements(equipements) {
-  await supabase.from('equipements').upsert(equipements);
-  return equipements;
-}
-
-async function syncInterventions(interventions) {
-  await supabase.from('interventions').upsert(interventions);
-  return interventions;
-}
-
-async function syncDefauts(defauts) {
-  await supabase.from('defauts').upsert(defauts);
-  return defauts;
-}
-
 async function syncMouvements(mouvements) {
   await supabase.from('mouvements_stock').upsert(mouvements);
   return mouvements;
