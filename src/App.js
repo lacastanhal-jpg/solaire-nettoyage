@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Camera, Package, Wrench, Home, FileText, Settings, AlertTriangle, Plus, Edit2, Trash2, ChevronDown, ChevronRight, Search, Filter, Calendar, Save, X, Upload, ShoppingCart, Fuel, ClipboardList, BarChart3, Bell, TrendingUp, Users, MapPin, Clock, CheckCircle, XCircle, AlertCircle, Image, Star, DollarSign, Percent, Activity, Hammer, Truck, Cpu, Droplet, Bot, Package2 } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
 
-// Configuration Supabase
+// Configuration Supabase 
 const supabaseUrl = 'https://nnxqphqoavkqjqyovdpl.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5ueHFwaHFvYXZrcWpxeW92ZHBsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzYzNjU4MjQsImV4cCI6MjA1MTk0MTgyNH0.HBqnle6yusr0edHFp3vYQBXe1t7nVZVW-fXLW2N2xPc';
 const supabase = createClient(supabaseUrl, supabaseKey);
