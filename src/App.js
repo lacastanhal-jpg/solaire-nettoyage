@@ -91,7 +91,6 @@ syncArticles(nouvellesArticles);articlesData.map(a => ({
       } else {
         // Données par défaut si vide
         setArticles(nouvellesArticles);
-syncArticles(nouvellesArticles);nouvellesArticles);
 syncArticles(nouvellesArticles);[
           {id:1,code:'BAC5X5',description:'Barre pour clavette en acier 5x5',fournisseur:'LE BON ROULEMENT',prixUnitaire:5.05,stockParDepot:{'Atelier':3,'Porteur 26 T':0,'Porteur 32 T':0,'Semi Remorque':0},stockMin:2,equipementsAffectes:[]},
           {id:2,code:'BAC8X7',description:'Barre pour clavette en acier 8x7',fournisseur:'LE BON ROULEMENT',prixUnitaire:9.07,stockParDepot:{'Atelier':3,'Porteur 26 T':0,'Porteur 32 T':0,'Semi Remorque':0},stockMin:2,equipementsAffectes:[]},
