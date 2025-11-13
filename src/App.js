@@ -924,19 +924,7 @@ syncArticles(nouvellesArticles);updated);
     const quantite = parseInt(formScanEntree.quantite);
     const coutTotal = parseFloat(formScanEntree.prixUnitaire) * quantite;
     const updated = articles.map(a => a.id === scanResultat.article.id ? {...a,stockParDepot:{...a.stockParDepot,[formScanEntree.depot]:(a.stockParDepot[formScanEntree.depot] || 0) + quantite}} : a);
-    setArticles(nouvellesArticles);
-syncArticles(nouvellesArticles);updated);
-    await sauverArticle(updated.find(a => a.id === scanResultat.article.id));
-    const mouvement = {id:mouvementsStock.length + 1,articleId:scanResultat.article.id,type:'entree',quantite,date:formScanEntree.date,raison:formScanEntree.raison,coutTotal,depot:formScanEntree.depot};
-    setMouvementsStock(nouveauxMouvements);
-syncMouvements(nouveauxMouvements);[...mouvementsStock,mouvement]);
-    await sauverMouvement(mouvement);
-    alert(`✅ +${quantite} ${scanResultat.article.code}`);
-    setScanResultat(null);
-    setActionScan(null);
-    setFormScanEntree({quantite:'',prixUnitaire:'',raison:'',date:new Date().toISOString().split('T')[0],depot:'Atelier'});
-  };
-
+    
   const enregistrerSortieStockScan = async () => {
     if (!formScanSortie.quantite) {alert('Quantité requise');return;}
     const quantite = parseInt(formScanSortie.quantite);
