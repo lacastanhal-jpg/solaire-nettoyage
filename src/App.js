@@ -1,6 +1,69 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { createClient } from '@supabase/supabase-js';
-const supabase = createClient('https://dxzzwxjgsifivlqqlwuz.supabase.co','eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR4enp3eGpnc2lmaXZscXFsd3V6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI3MDE5NjksImV4cCI6MjA3ODI3Nzk2OX0.UFER1C0Hud0JUuBfBLRHzIj-C2UHE0_o3ES3-D8L-XE');
+const supabase = createClient(
+  'https://dxzzwxjgsifivlqqlwuz.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR4enp3eGpnc2lmaXZscXFsd3V6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI3MDE5NjksImV4cCI6MjA3ODI3Nzk2OX0.UFER1C0Hud0JUuBfBLRHzIj-C2UHE0_o3ES3-D8L-XE'
+);
+
+// AJOUTE CES FONCTIONS DE SYNC
+async function syncArticles(articles) {
+  await supabase.from('articles').upsert(articles.map(a => ({
+    ...a,
+    stock_par_depot: a.stockParDepot,
+    equipements_affectes: a.equipementsAffectes
+  })));
+  return articles;
+}
+
+async function syncEquipements(equipements) {
+  await supabase.from('equipements').upsert(equipements);
+  return equipements;
+}
+
+async function syncInterventions(interventions) {
+  await supabase.from('interventions').upsert(interventions);
+  return interventions;
+}
+
+async function syncDefauts(defauts) {
+  await supabase.from('defauts').upsert(defauts);
+  return defauts;
+}
+
+async function syncMouvements(mouvements) {
+  await supabase.from('mouvements_stock').upsert(mouvements);
+  return mouvements;
+}
+
+// AJOUTE CES FONCTIONS DE SYNC
+async function syncArticles(articles) {
+  await supabase.from('articles').upsert(articles.map(a => ({
+    ...a,
+    stock_par_depot: a.stockParDepot,
+    equipements_affectes: a.equipementsAffectes
+  })));
+  return articles;
+}
+
+async function syncEquipements(equipements) {
+  await supabase.from('equipements').upsert(equipements);
+  return equipements;
+}
+
+async function syncInterventions(interventions) {
+  await supabase.from('interventions').upsert(interventions);
+  return interventions;
+}
+
+async function syncDefauts(defauts) {
+  await supabase.from('defauts').upsert(defauts);
+  return defauts;
+}
+
+async function syncMouvements(mouvements) {
+  await supabase.from('mouvements_stock').upsert(mouvements);
+  return mouvements;
+}
 
 export default function SolaireNettoyageFlotte() {
   const [ongletActif, setOngletActif] = useState('accueil');
@@ -39,7 +102,8 @@ export default function SolaireNettoyageFlotte() {
       // Charger articles
       const { data: articlesData } = await supabase.from('articles').select('*');
       if (articlesData && articlesData.length > 0) {
-        setArticles(articlesData.map(a => ({
+        setArticles(nouvellesArticles);
+syncArticles(nouvellesArticles);articlesData.map(a => ({
           id: a.id,
           code: a.code,
           description: a.description,
@@ -51,7 +115,9 @@ export default function SolaireNettoyageFlotte() {
         })));
       } else {
         // Données par défaut si vide
-        setArticles([
+        setArticles(nouvellesArticles);
+syncArticles(nouvellesArticles);nouvellesArticles);
+syncArticles(nouvellesArticles);[
           {id:1,code:'BAC5X5',description:'Barre pour clavette en acier 5x5',fournisseur:'LE BON ROULEMENT',prixUnitaire:5.05,stockParDepot:{'Atelier':3,'Porteur 26 T':0,'Porteur 32 T':0,'Semi Remorque':0},stockMin:2,equipementsAffectes:[]},
           {id:2,code:'BAC8X7',description:'Barre pour clavette en acier 8x7',fournisseur:'LE BON ROULEMENT',prixUnitaire:9.07,stockParDepot:{'Atelier':3,'Porteur 26 T':0,'Porteur 32 T':0,'Semi Remorque':0},stockMin:2,equipementsAffectes:[]},
           {id:3,code:'388518',description:'Bague support pont avant',fournisseur:'RURAL MASTER',prixUnitaire:12.41,stockParDepot:{'Atelier':1,'Porteur 26 T':0,'Porteur 32 T':0,'Semi Remorque':0},stockMin:1,equipementsAffectes:[]},
@@ -77,9 +143,12 @@ export default function SolaireNettoyageFlotte() {
       // Charger équipements
       const { data: equipementsData } = await supabase.from('equipements').select('*');
       if (equipementsData && equipementsData.length > 0) {
-        setEquipements(equipementsData);
+        setEquipements(nouveauxEquipements);
+syncEquipements(nouveauxEquipements);equipementsData);
       } else {
-        setEquipements([
+        setEquipements(nouveauxEquipements);
+syncEquipements(nouveauxEquipements);nouveauxEquipements);
+syncEquipements(nouveauxEquipements);[
           {id:1,immat:'GT-316-FG',type:'Camion Citerne',marque:'IVECO',modele:'S-WAY',annee:2023,km:0,heures:0,carburant:'Diesel',vin:'ZCFCE62RU00C519482',ptac:26000,poids:13190,proprietaire:'SOLAIRE NETTOYAGE',valeurAchat:0,valeurActuelle:133500,typeFinancement:'Location',coutMensuel:2104,dateDebut:'2023-12-22',dateFin:'2029-12-22',assurance:80.10,dateContracteTechnique:'2024-12-22',notes:'Contrat de location A1M75094 001'},
           {id:2,immat:'DX-780-QN',type:'Tracteur Routier',marque:'IVECO',modele:'STRALIS 560',annee:2015,km:293992,heures:0,carburant:'Diesel',vin:'WJMS2NWH60C329019',ptac:26000,poids:8518,proprietaire:'SOLAIRE NETTOYAGE',valeurAchat:45000,valeurActuelle:42000,typeFinancement:'Achat',coutMensuel:0,dateDebut:'2020-09-18',dateFin:'',assurance:85.00,dateContracteTechnique:'2020-10-17',notes:'STRALIS 560 • Type 6x2'},
           {id:3,immat:'CZ-022-DP',type:'Semi-Remorque',marque:'NICOLAS',modele:'B3207C',annee:2002,km:0,heures:0,carburant:'N/A',vin:'VF9B3207C02058032',ptac:34000,poids:12550,proprietaire:'SOLAIRE NETTOYAGE',valeurAchat:15000,valeurActuelle:14000,typeFinancement:'Achat',coutMensuel:0,dateDebut:'2018-06-29',dateFin:'',assurance:120.00,dateContracteTechnique:'2019-08-22',notes:'Semi-Remorque NICOLAS B3207C'},
@@ -91,15 +160,18 @@ export default function SolaireNettoyageFlotte() {
 
       // Charger interventions
       const { data: interventionsData } = await supabase.from('interventions').select('*');
-      if (interventionsData) setInterventions(interventionsData);
+      if (interventionsData) setInterventions(nouvellesInterventions);
+syncInterventions(nouvellesInterventions);interventionsData);
 
       // Charger défauts
       const { data: defautsData } = await supabase.from('defauts').select('*');
-      if (defautsData) setDefauts(defautsData);
+      if (defautsData) setDefauts(nouveauxDefauts);
+syncDefauts(nouveauxDefauts);defautsData);
 
       // Charger mouvements
       const { data: mouvementsData } = await supabase.from('mouvements_stock').select('*');
-      if (mouvementsData) setMouvementsStock(mouvementsData);
+      if (mouvementsData) setMouvementsStock(nouveauxMouvements);
+syncMouvements(nouveauxMouvements);mouvementsData);
 
       // Charger accessoires
       const { data: accessoiresData } = await supabase.from('accessoires').select('*');
@@ -139,7 +211,8 @@ export default function SolaireNettoyageFlotte() {
 
   const chargerArticles = async () => {
     const { data } = await supabase.from('articles').select('*');
-    if (data) setArticles(data.map(a => ({
+    if (data) setArticles(nouvellesArticles);
+syncArticles(nouvellesArticles);data.map(a => ({
       id: a.id,
       code: a.code,
       description: a.description,
@@ -153,7 +226,8 @@ export default function SolaireNettoyageFlotte() {
 
   const chargerEquipements = async () => {
     const { data } = await supabase.from('equipements').select('*');
-    if (data) setEquipements(data);
+    if (data) setEquipements(nouveauxEquipements);
+syncEquipements(nouveauxEquipements);data);
   };
 
   const sauverArticle = async (article) => {
@@ -280,7 +354,8 @@ export default function SolaireNettoyageFlotte() {
           notes: nouvelEquipement.notes || ''
         } : e
       );
-      setEquipements(updated);
+      setEquipements(nouveauxEquipements);
+syncEquipements(nouveauxEquipements);updated);
       await sauverEquipement(updated.find(e => e.id === equipementEnEdition.id));
       alert('✅ Équipement modifié avec succès!');
     } else {
@@ -310,7 +385,8 @@ export default function SolaireNettoyageFlotte() {
         notes: nouvelEquipement.notes || ''
       };
       const newEquipements = [...equipements, equipement];
-      setEquipements(newEquipements);
+      setEquipements(nouveauxEquipements);
+syncEquipements(nouveauxEquipements);newEquipements);
       setAccessoiresEquipement({...accessoiresEquipement, [nouvelId]: []});
       await sauverEquipement(equipement);
       alert('✅ Équipement créé avec succès!');
@@ -377,7 +453,8 @@ export default function SolaireNettoyageFlotte() {
           equipementsAffectes: a.equipementsAffectes
         } : a
       );
-      setArticles(updated);
+      setArticles(nouvellesArticles);
+syncArticles(nouvellesArticles);updated);
       await sauverArticle(updated.find(a => a.id === articleFormEnEdition.id));
       alert('✅ Article modifié avec succès!');
     } else {
@@ -393,7 +470,8 @@ export default function SolaireNettoyageFlotte() {
         equipementsAffectes: []
       };
       const newArticles = [...articles, article];
-      setArticles(newArticles);
+      setArticles(nouvellesArticles);
+syncArticles(nouvellesArticles);newArticles);
       await sauverArticle(article);
       alert('✅ Article créé avec succès!');
     }
@@ -468,7 +546,8 @@ export default function SolaireNettoyageFlotte() {
       dateArchivage: null
     };
     const newDefauts = [...defauts, newDefaut];
-    setDefauts(newDefauts);
+    setDefauts(nouveauxDefauts);
+syncDefauts(nouveauxDefauts);newDefauts);
     await sauverDefaut(newDefaut);
     setNouveauDefaut({equipementId:'',accessoireId:'',type:'Fuite',severite:'moyen',description:'',localisation:'',dateConstatation:new Date().toISOString().split('T')[0],operateur:'Axel',remarques:'',photosNoms:[]});
     setPhotosSelectionnees([]);
@@ -477,7 +556,8 @@ export default function SolaireNettoyageFlotte() {
 
   const resoudreDefaut = async (defautId) => {
     const updated = defauts.map(d => d.id === defautId ? {...d,statut:'resolu',dateArchivage:new Date().toISOString().split('T')[0]} : d);
-    setDefauts(updated);
+    setDefauts(nouveauxDefauts);
+syncDefauts(nouveauxDefauts);updated);
     await sauverDefaut(updated.find(d => d.id === defautId));
   };
 
@@ -676,10 +756,12 @@ export default function SolaireNettoyageFlotte() {
       return;
     }
     const updated = articles.map(a => a.id === articleEnTransfertAlerte.id ? {...a,stockParDepot:{...a.stockParDepot,[transfertRapideData.depotSource]:(a.stockParDepot[transfertRapideData.depotSource] || 0) - quantite,[transfertRapideData.depotDestination]:(a.stockParDepot[transfertRapideData.depotDestination] || 0) + quantite}} : a);
-    setArticles(updated);
+    setArticles(nouvellesArticles);
+syncArticles(nouvellesArticles);updated);
     await sauverArticle(updated.find(a => a.id === articleEnTransfertAlerte.id));
     const mouvement = {id:mouvementsStock.length + 1,articleId:articleEnTransfertAlerte.id,type:'transfer',quantite,date:new Date().toISOString().split('T')[0],raison:`Transfert rapide alerte`,coutTotal:0,depotSource:transfertRapideData.depotSource,depotDestination:transfertRapideData.depotDestination};
-    setMouvementsStock([...mouvementsStock,mouvement]);
+    setMouvementsStock(nouveauxMouvements);
+syncMouvements(nouveauxMouvements);[...mouvementsStock,mouvement]);
     await sauverMouvement(mouvement);
     alert(`✅ ${quantite} ${articleEnTransfertAlerte.code} transférés!`);
     setArticleEnTransfertAlerte(null);
@@ -699,7 +781,8 @@ export default function SolaireNettoyageFlotte() {
       return;
     }
     const updated = articles.map(a => a.id === article.id ? {...a,stockParDepot:{...a.stockParDepot,[nouvelleIntervention.depotPrelevement]:stockDispo - quantite}} : a);
-    setArticles(updated);
+    setArticles(nouvellesArticles);
+syncArticles(nouvellesArticles);updated);
     await sauverArticle(updated.find(a => a.id === article.id));
     setNouvelleIntervention({
       ...nouvelleIntervention,
@@ -822,7 +905,8 @@ export default function SolaireNettoyageFlotte() {
       const updated = articles.map(a => 
         a.id === articleEnEdition.id ? {...a,stockMin:parseInt(articleEnEdition.stockMinTemp)} : a
       );
-      setArticles(updated);
+      setArticles(nouvellesArticles);
+syncArticles(nouvellesArticles);updated);
       await sauverArticle(updated.find(a => a.id === articleEnEdition.id));
       setArticleEnEdition(null);
     }
@@ -866,10 +950,12 @@ export default function SolaireNettoyageFlotte() {
     const quantite = parseInt(formScanEntree.quantite);
     const coutTotal = parseFloat(formScanEntree.prixUnitaire) * quantite;
     const updated = articles.map(a => a.id === scanResultat.article.id ? {...a,stockParDepot:{...a.stockParDepot,[formScanEntree.depot]:(a.stockParDepot[formScanEntree.depot] || 0) + quantite}} : a);
-    setArticles(updated);
+    setArticles(nouvellesArticles);
+syncArticles(nouvellesArticles);updated);
     await sauverArticle(updated.find(a => a.id === scanResultat.article.id));
     const mouvement = {id:mouvementsStock.length + 1,articleId:scanResultat.article.id,type:'entree',quantite,date:formScanEntree.date,raison:formScanEntree.raison,coutTotal,depot:formScanEntree.depot};
-    setMouvementsStock([...mouvementsStock,mouvement]);
+    setMouvementsStock(nouveauxMouvements);
+syncMouvements(nouveauxMouvements);[...mouvementsStock,mouvement]);
     await sauverMouvement(mouvement);
     alert(`✅ +${quantite} ${scanResultat.article.code}`);
     setScanResultat(null);
@@ -882,10 +968,12 @@ export default function SolaireNettoyageFlotte() {
     const quantite = parseInt(formScanSortie.quantite);
     if ((scanResultat.article.stockParDepot[formScanSortie.depot] || 0) < quantite) {alert('Stock insuffisant!');return;}
     const updated = articles.map(a => a.id === scanResultat.article.id ? {...a,stockParDepot:{...a.stockParDepot,[formScanSortie.depot]:(a.stockParDepot[formScanSortie.depot] || 0) - quantite}} : a);
-    setArticles(updated);
+    setArticles(nouvellesArticles);
+syncArticles(nouvellesArticles);updated);
     await sauverArticle(updated.find(a => a.id === scanResultat.article.id));
     const mouvement = {id:mouvementsStock.length + 1,articleId:scanResultat.article.id,type:'sortie',quantite,date:formScanSortie.date,raison:formScanSortie.raison,coutTotal:0,depot:formScanSortie.depot};
-    setMouvementsStock([...mouvementsStock,mouvement]);
+    setMouvementsStock(nouveauxMouvements);
+syncMouvements(nouveauxMouvements);[...mouvementsStock,mouvement]);
     await sauverMouvement(mouvement);
     alert(`✅ -${quantite} ${scanResultat.article.code}`);
     setScanResultat(null);
@@ -898,10 +986,12 @@ export default function SolaireNettoyageFlotte() {
     const quantite = parseInt(formScanTransfert.quantite);
     if ((scanResultat.article.stockParDepot[formScanTransfert.depotSource] || 0) < quantite) {alert('Stock insuffisant!');return;}
     const updated = articles.map(a => a.id === scanResultat.article.id ? {...a,stockParDepot:{...a.stockParDepot,[formScanTransfert.depotSource]:(a.stockParDepot[formScanTransfert.depotSource] || 0) - quantite,[formScanTransfert.depotDestination]:(a.stockParDepot[formScanTransfert.depotDestination] || 0) + quantite}} : a);
-    setArticles(updated);
+    setArticles(nouvellesArticles);
+syncArticles(nouvellesArticles);updated);
     await sauverArticle(updated.find(a => a.id === scanResultat.article.id));
     const mouvement = {id:mouvementsStock.length + 1,articleId:scanResultat.article.id,type:'transfer',quantite,date:new Date().toISOString().split('T')[0],raison:`Transfert`,coutTotal:0,depotSource:formScanTransfert.depotSource,depotDestination:formScanTransfert.depotDestination};
-    setMouvementsStock([...mouvementsStock,mouvement]);
+    setMouvementsStock(nouveauxMouvements);
+syncMouvements(nouveauxMouvements);[...mouvementsStock,mouvement]);
     await sauverMouvement(mouvement);
     alert(`✅ ${quantite} ${scanResultat.article.code}`);
     setScanResultat(null);
@@ -914,10 +1004,12 @@ export default function SolaireNettoyageFlotte() {
       const quantite = parseInt(nouvelleEntreeStock.quantite);
       const coutTotal = parseFloat(nouvelleEntreeStock.prixUnitaire) * quantite;
       const updated = articles.map(a => a.id === parseInt(nouvelleEntreeStock.articleId) ? {...a,stockParDepot:{...a.stockParDepot,[nouvelleEntreeStock.depot]:(a.stockParDepot[nouvelleEntreeStock.depot] || 0) + quantite}} : a);
-      setArticles(updated);
+      setArticles(nouvellesArticles);
+syncArticles(nouvellesArticles);updated);
       await sauverArticle(updated.find(a => a.id === parseInt(nouvelleEntreeStock.articleId)));
       const mouvement = {id:mouvementsStock.length + 1,articleId:parseInt(nouvelleEntreeStock.articleId),type:'entree',quantite,date:nouvelleEntreeStock.date,raison:nouvelleEntreeStock.raison,coutTotal,depot:nouvelleEntreeStock.depot};
-      setMouvementsStock([...mouvementsStock,mouvement]);
+      setMouvementsStock(nouveauxMouvements);
+syncMouvements(nouveauxMouvements);[...mouvementsStock,mouvement]);
       await sauverMouvement(mouvement);
       setNouvelleEntreeStock({articleId:'',quantite:'',prixUnitaire:'',raison:'',date:new Date().toISOString().split('T')[0],depot:'Atelier'});
     }
@@ -929,10 +1021,12 @@ export default function SolaireNettoyageFlotte() {
       const quantite = parseInt(nouveauMouvementSortie.quantite);
       if ((article.stockParDepot[nouveauMouvementSortie.depot] || 0) < quantite) {alert('Stock insuffisant!');return;}
       const updated = articles.map(a => a.id === parseInt(nouveauMouvementSortie.articleId) ? {...a,stockParDepot:{...a.stockParDepot,[nouveauMouvementSortie.depot]:(a.stockParDepot[nouveauMouvementSortie.depot] || 0) - quantite}} : a);
-      setArticles(updated);
+      setArticles(nouvellesArticles);
+syncArticles(nouvellesArticles);updated);
       await sauverArticle(updated.find(a => a.id === parseInt(nouveauMouvementSortie.articleId)));
       const mouvement = {id:mouvementsStock.length + 1,articleId:parseInt(nouveauMouvementSortie.articleId),type:'sortie',quantite,date:nouveauMouvementSortie.date,raison:nouveauMouvementSortie.raison,coutTotal:0,depot:nouveauMouvementSortie.depot};
-      setMouvementsStock([...mouvementsStock,mouvement]);
+      setMouvementsStock(nouveauxMouvements);
+syncMouvements(nouveauxMouvements);[...mouvementsStock,mouvement]);
       await sauverMouvement(mouvement);
       setNouveauMouvementSortie({articleId:'',quantite:'',raison:'',date:new Date().toISOString().split('T')[0],depot:'Atelier'});
     }
@@ -944,10 +1038,12 @@ export default function SolaireNettoyageFlotte() {
       const quantite = parseInt(nouveauTransfert.quantite);
       if ((article.stockParDepot[nouveauTransfert.depotSource] || 0) < quantite) {alert('Stock insuffisant!');return;}
       const updated = articles.map(a => a.id === parseInt(nouveauTransfert.articleId) ? {...a,stockParDepot:{...a.stockParDepot,[nouveauTransfert.depotSource]:(a.stockParDepot[nouveauTransfert.depotSource] || 0) - quantite,[nouveauTransfert.depotDestination]:(a.stockParDepot[nouveauTransfert.depotDestination] || 0) + quantite}} : a);
-      setArticles(updated);
+      setArticles(nouvellesArticles);
+syncArticles(nouvellesArticles);updated);
       await sauverArticle(updated.find(a => a.id === parseInt(nouveauTransfert.articleId)));
       const mouvement = {id:mouvementsStock.length + 1,articleId:parseInt(nouveauTransfert.articleId),type:'transfer',quantite,date:nouveauTransfert.date,raison:`Transfert`,coutTotal:0,depotSource:nouveauTransfert.depotSource,depotDestination:nouveauTransfert.depotDestination};
-      setMouvementsStock([...mouvementsStock,mouvement]);
+      setMouvementsStock(nouveauxMouvements);
+syncMouvements(nouveauxMouvements);[...mouvementsStock,mouvement]);
       await sauverMouvement(mouvement);
       setNouveauTransfert({articleId:'',quantite:'',depotSource:'Atelier',depotDestination:'Porteur 26 T',raison:'',date:new Date().toISOString().split('T')[0]});
     }
@@ -977,20 +1073,23 @@ export default function SolaireNettoyageFlotte() {
         nouvelStock = nouvelStock.map(a => a.id === art.articleId ? {...a,stockParDepot:{...a.stockParDepot,[nouvelleIntervention.depotPrelevement]:(a.stockParDepot[nouvelleIntervention.depotPrelevement] || 0) - art.quantite}} : a);
       }
     });
-    setArticles(nouvelStock);
+    setArticles(nouvellesArticles);
+syncArticles(nouvellesArticles);nouvelStock);
     for (const a of nouvelStock) {
       await sauverArticle(a);
     }
     const intervention = {id:interventionId,equipementId:parseInt(nouvelleIntervention.equipementId),type:nouvelleIntervention.type,date:nouvelleIntervention.date,km:parseInt(nouvelleIntervention.km) || 0,heures:parseInt(nouvelleIntervention.heures) || 0,description:nouvelleIntervention.description,articles:nouvelleIntervention.articlesPrevu,statut:'en_cours',coutTotal,depotPrelevement:nouvelleIntervention.depotPrelevement};
     const newInterventions = [...interventions,intervention];
-    setInterventions(newInterventions);
+    setInterventions(nouvellesInterventions);
+syncInterventions(nouvellesInterventions);newInterventions);
     await sauverIntervention(intervention);
     setNouvelleIntervention({equipementId:'',type:'',date:new Date().toISOString().split('T')[0],km:'',heures:'',description:'',articlesPrevu:[],depotPrelevement:'Atelier'});
   };
 
   const cloturerIntervention = async (interventionId) => {
     const updated = interventions.map(i => i.id === interventionId ? {...i,statut:'effectue'} : i);
-    setInterventions(updated);
+    setInterventions(nouvellesInterventions);
+syncInterventions(nouvellesInterventions);updated);
     await sauverIntervention(updated.find(i => i.id === interventionId));
   };
 
@@ -1020,7 +1119,8 @@ export default function SolaireNettoyageFlotte() {
       }
       return a;
     });
-    setArticles(updated);
+    setArticles(nouvellesArticles);
+syncArticles(nouvellesArticles);updated);
     await sauverArticle(updated.find(a => a.id === articleId));
   };
 
