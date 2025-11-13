@@ -35,11 +35,6 @@ async function syncMouvements(mouvements) {
   return mouvements;
 }
 
-async function syncMouvements(mouvements) {
-  await supabase.from('mouvements_stock').upsert(mouvements);
-  return mouvements;
-}
-
 export default function SolaireNettoyageFlotte() {
   const [ongletActif, setOngletActif] = useState('accueil');
   const [equipementSelectionne, setEquipementSelectionne] = useState(1);
