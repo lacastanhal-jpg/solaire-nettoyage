@@ -1,179 +1,53 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { initializeApp } from 'firebase/app';
-import { getDatabase, ref, onValue, set } from 'firebase/database';
-
-// Configuration Firebase
-const firebaseConfig = {
-  apiKey: "AIzaSyCAH_1ql-9ckn_egrj1AjteNpAs2Vo5KNY",
-  authDomain: "gestion-flotte-et-stoks.firebaseapp.com",
-  databaseURL: "https://gestion-flotte-et-stoks-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "gestion-flotte-et-stoks",
-  storageBucket: "gestion-flotte-et-stoks.firebasestorage.app",
-  messagingSenderId: "824916805616",
-  appId: "1:824916805616:web:8afc8c80285cb3fda43f35"
-};
-
-// Initialiser Firebase
-const app = initializeApp(firebaseConfig);
-const database = getDatabase(app);
-
-// Fonctions de mise à jour Firebase
-const updateArticles = async (data) => {
-  try {
-    if (Array.isArray(data)) {
-      for (const item of data) {
-        if (item.id) {
-          await set(ref(database, 'articles/' + item.id), item);
-        }
-      }
-    }
-  } catch (error) {
-    console.error('Erreur sync articles:', error);
-  }
-};
-
-const updateEquipements = async (data) => {
-  try {
-    if (Array.isArray(data)) {
-      for (const item of data) {
-        if (item.id) {
-          await set(ref(database, 'equipements/' + item.id), item);
-        }
-      }
-    }
-  } catch (error) {
-    console.error('Erreur sync équipements:', error);
-  }
-};
-
-const updateDefauts = async (data) => {
-  try {
-    if (Array.isArray(data)) {
-      for (const item of data) {
-        if (item.id) {
-          await set(ref(database, 'defauts/' + item.id), item);
-        }
-      }
-    }
-  } catch (error) {
-    console.error('Erreur sync défauts:', error);
-  }
-};
-
-const updateInterventions = async (data) => {
-  try {
-    if (Array.isArray(data)) {
-      for (const item of data) {
-        if (item.id) {
-          await set(ref(database, 'interventions/' + item.id), item);
-        }
-      }
-    }
-  } catch (error) {
-    console.error('Erreur sync interventions:', error);
-  }
-};
-
-const updateMouvements = async (data) => {
-  try {
-    if (Array.isArray(data)) {
-      for (const item of data) {
-        if (item.id) {
-          await set(ref(database, 'mouvements/' + item.id), item);
-        }
-      }
-    }
-  } catch (error) {
-    console.error('Erreur sync mouvements:', error);
-  }
-};
+// ✅ AJOUTER CES LIGNES
+import { createClient } from '@supabase/supabase-js';
+const supabase = createClient(
+  'https://dxzzwxjgsifivlqqlwuz.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR4enp3eGpnc2lmaXZscXFsd3V6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI3MDE5NjksImV4cCI6MjA3ODI3Nzk2OX0.UFER1C0Hud0JUuBfBLRHzIj-C2UHE0_o3ES3-D8L-XE'
+);
 
 export default function SolaireNettoyageFlotte() {
   const [ongletActif, setOngletActif] = useState('accueil');
-   const [equipementSelectionne, setEquipementSelectionne] = useState(1);
-   const canvasRef = useRef(null);
-   const videoRef = useRef(null);
-   const scanningRef = useRef(false);
-   const jsQRRef = useRef(null);
-   const videoIntervention = useRef(null);
-   const canvasIntervention = useRef(null);
-   const scanningIntervention = useRef(false);
-   const fileInputRef = useRef(null);
-   
-   const [filtreAlerteSeverite, setFiltreAlerteSeverite] = useState('');
-   const [filtreAlerteFournisseur, setFiltreAlerteFournisseur] = useState('');
-   const [filtreAlerteDepot, setFiltreAlerteDepot] = useState('');
-   const [triAlertes, setTriAlertes] = useState('severite');
-   const [articleEnDetailsAlerte, setArticleEnDetailsAlerte] = useState(null);
-   const [articleEnTransfertAlerte, setArticleEnTransfertAlerte] = useState(null);
-   const [articleEnHistoriqueAlerte, setArticleEnHistoriqueAlerte] = useState(null);
-   const [transfertRapideData, setTransfertRapideData] = useState({ depotSource: 'Atelier', depotDestination: 'Porteur 26 T', quantite: '' });
-   
-   const operateurs = ['Axel', 'Jérôme', 'Sébastien', 'Joffrey', 'Fabien', 'Angelo'];
-  // ... le reste de ton code continue normalement
-// CHARGEMENT INITIAL DEPUIS FIREBASE
-useEffect(() => {
-  // Écoute temps réel des articles
-  const articlesRef = ref(database, 'articles');
-  onValue(articlesRef, (snapshot) => {
-  const data = snapshot.val();
-  if (data) {
-    const articlesArray = Object.entries(data).map(([key, value]) => ({
-  ...value,
-  id: isNaN(parseInt(key)) ? key : parseInt(key),
-  equipementsAffectes: value.equipementsAffectes || [],
-  stockParDepot: value.stockParDepot || {}
-}));
-      setArticles(articlesArray);
-      console.log('✅ Articles synchronisés:', articlesArray.length);
-    }
-  });
+  const [equipementSelectionne, setEquipementSelectionne] = useState(1);
+  const canvasRef = useRef(null);
+  const videoRef = useRef(null);
+  const scanningRef = useRef(false);
+  const jsQRRef = useRef(null);
+  const videoIntervention = useRef(null);
+  const canvasIntervention = useRef(null);
+  const scanningIntervention = useRef(false);
+  const fileInputRef = useRef(null);
+  
+  const [filtreAlerteSeverite, setFiltreAlerteSeverite] = useState('');
+  const [filtreAlerteFournisseur, setFiltreAlerteFournisseur] = useState('');
+  const [filtreAlerteDepot, setFiltreAlerteDepot] = useState('');
+  const [triAlertes, setTriAlertes] = useState('severite');
+  const [articleEnDetailsAlerte, setArticleEnDetailsAlerte] = useState(null);
+  const [articleEnTransfertAlerte, setArticleEnTransfertAlerte] = useState(null);
+  const [articleEnHistoriqueAlerte, setArticleEnHistoriqueAlerte] = useState(null);
+  const [transfertRapideData, setTransfertRapideData] = useState({ depotSource: 'Atelier', depotDestination: 'Porteur 26 T', quantite: '' });
 
-  // Écoute temps réel des équipements
-  const equipementsRef = ref(database, 'equipements');
-  onValue(equipementsRef, (snapshot) => {
-    const data = snapshot.val();
-    if (data) {
-      const equipementsArray = Object.entries(data).map(([key, value]) => ({
-        ...value,
-        id: parseInt(key)
-      }));
-      setEquipements(equipementsArray);
-      console.log('✅ Équipements synchronisés:', equipementsArray.length);
-    }
-  });
-
-  // Écoute temps réel des défauts
-  const defautsRef = ref(database, 'defauts');
-  onValue(defautsRef, (snapshot) => {
-    const data = snapshot.val();
-    if (data) {
-      const defautsArray = Object.values(data);
-      setDefauts(defautsArray);
-    }
-  });
-
-  // Écoute temps réel des interventions
-  const interventionsRef = ref(database, 'interventions');
-  onValue(interventionsRef, (snapshot) => {
-    const data = snapshot.val();
-    if (data) {
-      const interventionsArray = Object.values(data);
-      setInterventions(interventionsArray);
-    }
-  });
-
-  // Écoute temps réel des mouvements
-  const mouvementsRef = ref(database, 'mouvements');
-  onValue(mouvementsRef, (snapshot) => {
-    const data = snapshot.val();
-    if (data) {
-      const mouvementsArray = Object.values(data);
-      setMouvementsStock(mouvementsArray);
-    }
-  });
-}, []);
-
+  const operateurs = ['Axel', 'Jérôme', 'Sébastien', 'Joffrey', 'Fabien', 'Angelo'];
+// ✅ CHARGER LES ARTICLES DEPUIS SUPABASE AU DÉMARRAGE
+  useEffect(() => {
+    const chargerArticles = async () => {
+      const { data } = await supabase.from('articles').select('*');
+      if (data && data.length > 0) {
+        const articlesFormatés = data.map(a => ({
+          id: a.id,
+          code: a.code,
+          description: a.description,
+          fournisseur: a.fournisseur || '',
+          prixUnitaire: parseFloat(a.prix_unitaire) || 0,
+          stockParDepot: { 'Atelier': 0, 'Porteur 26 T': 0, 'Porteur 32 T': 0, 'Semi Remorque': 0 },
+          stockMin: a.stock_min || 1,
+          equipementsAffectes: []
+        }));
+        setArticles(articlesFormatés);
+      }
+    };
+    chargerArticles();
+  }, []);
   const depots = ['Atelier', 'Porteur 26 T', 'Porteur 32 T', 'Semi Remorque'];
   
   const [articles, setArticles] = useState([
@@ -197,10 +71,6 @@ useEffect(() => {
     { id: 18, code: '44524020', description: 'Filtre HYDRAU PRESSION', fournisseur: 'CLAAS LAGARRIGUE', prixUnitaire: 62.71, stockParDepot: { 'Atelier': 1, 'Porteur 26 T': 0, 'Porteur 32 T': 0, 'Semi Remorque': 0 }, stockMin: 1, equipementsAffectes: [6] },
     { id: 19, code: 'BF16', description: 'Huile BF16 (20L)', fournisseur: 'SARL QUIERS', prixUnitaire: 5.07, stockParDepot: { 'Atelier': 40, 'Porteur 26 T': 0, 'Porteur 32 T': 0, 'Semi Remorque': 0 }, stockMin: 10, equipementsAffectes: [6] },
   ]);
-
-  const [operateurActif, setOperateurActif] = useState(
-  localStorage.getItem('operateurActif') || null
-);
 
   const [mouvementsStock, setMouvementsStock] = useState([
     { id: 1, articleId: 1, type: 'entree', quantite: 3, date: '2025-09-29', raison: 'Facture 233440 - LE BON ROULEMENT', coutTotal: 15.15, depot: 'Atelier' },
@@ -317,139 +187,115 @@ useEffect(() => {
   }, []);
 
   // ✅ FONCTION CRÉER/MODIFIER ÉQUIPEMENT
-  const creerOuModifierEquipement = async () => {
-  if (!nouvelEquipement.immat || !nouvelEquipement.type) {
-    alert('⚠️ Immatriculation et Type sont obligatoires!');
-    return;
-  }
+  const creerOuModifierEquipement = () => {
+    if (!nouvelEquipement.immat || !nouvelEquipement.type) {
+      alert('⚠️ Immatriculation et Type sont obligatoires!');
+      return;
+    }
 
-  const immatExiste = equipements.some(e => 
-    e.immat === nouvelEquipement.immat && 
-    (!modeEdition || e.id !== equipementEnEdition.id)
-  );
-  
-  if (immatExiste) {
-    alert('⚠️ Cette immatriculation existe déjà!');
-    return;
-  }
+    // Vérifier unicité immatriculation (sauf si c'est l'équipement en édition)
+    const immatExiste = equipements.some(e => 
+      e.immat === nouvelEquipement.immat && 
+      (!modeEdition || e.id !== equipementEnEdition.id)
+    );
+    
+    if (immatExiste) {
+      alert('⚠️ Cette immatriculation existe déjà!');
+      return;
+    }
 
-  if (modeEdition) {
-    // MODE ÉDITION
-    const equipementsModifies = equipements.map(e => 
-      e.id === equipementEnEdition.id ? {
-        id: e.id,
+    if (modeEdition) {
+      // MODE ÉDITION: Mettre à jour l'équipement
+      setEquipements(equipements.map(e => 
+        e.id === equipementEnEdition.id ? {
+          id: e.id, // ID inchangé
+          immat: nouvelEquipement.immat,
+          type: nouvelEquipement.type,
+          marque: nouvelEquipement.marque || '',
+          modele: nouvelEquipement.modele || '',
+          annee: nouvelEquipement.annee ? parseInt(nouvelEquipement.annee) : 0,
+          km: nouvelEquipement.km ? parseInt(nouvelEquipement.km) : 0,
+          heures: nouvelEquipement.heures ? parseInt(nouvelEquipement.heures) : 0,
+          carburant: nouvelEquipement.carburant || '',
+          vin: nouvelEquipement.vin || '',
+          ptac: nouvelEquipement.ptac ? parseInt(nouvelEquipement.ptac) : 0,
+          poids: nouvelEquipement.poids ? parseInt(nouvelEquipement.poids) : 0,
+          proprietaire: nouvelEquipement.proprietaire || 'SOLAIRE NETTOYAGE',
+          valeurAchat: nouvelEquipement.valeurAchat ? parseFloat(nouvelEquipement.valeurAchat) : 0,
+          valeurActuelle: nouvelEquipement.valeurActuelle ? parseFloat(nouvelEquipement.valeurActuelle) : 0,
+          typeFinancement: nouvelEquipement.typeFinancement || '',
+          coutMensuel: nouvelEquipement.coutMensuel ? parseFloat(nouvelEquipement.coutMensuel) : 0,
+          dateDebut: nouvelEquipement.dateDebut || new Date().toISOString().split('T')[0],
+          dateFin: nouvelEquipement.dateFin || '',
+          assurance: nouvelEquipement.assurance ? parseFloat(nouvelEquipement.assurance) : 0,
+          dateContracteTechnique: nouvelEquipement.dateContracteTechnique || '',
+          notes: nouvelEquipement.notes || ''
+        } : e
+      ));
+      alert('✅ Équipement modifié avec succès!');
+    } else {
+      // MODE CRÉATION: Ajouter nouvel équipement
+      const nouvelId = equipements.length > 0 ? Math.max(...equipements.map(e => e.id)) + 1 : 1;
+      
+      const equipement = {
+        id: nouvelId,
         immat: nouvelEquipement.immat,
         type: nouvelEquipement.type,
         marque: nouvelEquipement.marque || '',
         modele: nouvelEquipement.modele || '',
-        annee: parseInt(nouvelEquipement.annee) || 0,
-        km: parseInt(nouvelEquipement.km) || 0,
-        heures: parseInt(nouvelEquipement.heures) || 0,
+        annee: nouvelEquipement.annee ? parseInt(nouvelEquipement.annee) : 0,
+        km: nouvelEquipement.km ? parseInt(nouvelEquipement.km) : 0,
+        heures: nouvelEquipement.heures ? parseInt(nouvelEquipement.heures) : 0,
         carburant: nouvelEquipement.carburant || '',
         vin: nouvelEquipement.vin || '',
-        ptac: parseInt(nouvelEquipement.ptac) || 0,
-        poids: parseInt(nouvelEquipement.poids) || 0,
+        ptac: nouvelEquipement.ptac ? parseInt(nouvelEquipement.ptac) : 0,
+        poids: nouvelEquipement.poids ? parseInt(nouvelEquipement.poids) : 0,
         proprietaire: nouvelEquipement.proprietaire || 'SOLAIRE NETTOYAGE',
-        valeurAchat: parseFloat(nouvelEquipement.valeurAchat) || 0,
-        valeurActuelle: parseFloat(nouvelEquipement.valeurActuelle) || 0,
+        valeurAchat: nouvelEquipement.valeurAchat ? parseFloat(nouvelEquipement.valeurAchat) : 0,
+        valeurActuelle: nouvelEquipement.valeurActuelle ? parseFloat(nouvelEquipement.valeurActuelle) : 0,
         typeFinancement: nouvelEquipement.typeFinancement || '',
-        coutMensuel: parseFloat(nouvelEquipement.coutMensuel) || 0,
+        coutMensuel: nouvelEquipement.coutMensuel ? parseFloat(nouvelEquipement.coutMensuel) : 0,
         dateDebut: nouvelEquipement.dateDebut || new Date().toISOString().split('T')[0],
         dateFin: nouvelEquipement.dateFin || '',
-        assurance: parseFloat(nouvelEquipement.assurance) || 0,
+        assurance: nouvelEquipement.assurance ? parseFloat(nouvelEquipement.assurance) : 0,
         dateContracteTechnique: nouvelEquipement.dateContracteTechnique || '',
         notes: nouvelEquipement.notes || ''
-      } : e
-    );
-    
-    // Sauvegarder dans Firebase
-    for (const equipement of equipementsModifies) {
-      await set(ref(database, 'equipements/' + equipement.id), equipement);
-    }
-    alert('✅ Équipement modifié avec succès!');
-    
-  } else {
-    // MODE CRÉATION - CORRECTION DU PROBLÈME NaN
-    let nouvelId = 1;
-    
-    // Trouver le plus grand ID existant
-    if (equipements && equipements.length > 0) {
-      const maxId = Math.max(...equipements.map(e => {
-        const id = parseInt(e.id);
-        return isNaN(id) ? 0 : id;
-      }));
-      nouvelId = maxId + 1;
-    }
-    
-    // S'assurer que l'ID est valide
-    if (isNaN(nouvelId)) {
-      nouvelId = Date.now(); // Utiliser timestamp comme fallback
-    }
-    
-    const nouvelEquip = {
-      id: nouvelId,
-      immat: nouvelEquipement.immat,
-      type: nouvelEquipement.type,
-      marque: nouvelEquipement.marque || '',
-      modele: nouvelEquipement.modele || '',
-      annee: parseInt(nouvelEquipement.annee) || 0,
-      km: parseInt(nouvelEquipement.km) || 0,
-      heures: parseInt(nouvelEquipement.heures) || 0,
-      carburant: nouvelEquipement.carburant || '',
-      vin: nouvelEquipement.vin || '',
-      ptac: parseInt(nouvelEquipement.ptac) || 0,
-      poids: parseInt(nouvelEquipement.poids) || 0,
-      proprietaire: nouvelEquipement.proprietaire || 'SOLAIRE NETTOYAGE',
-      valeurAchat: parseFloat(nouvelEquipement.valeurAchat) || 0,
-      valeurActuelle: parseFloat(nouvelEquipement.valeurActuelle) || 0,
-      typeFinancement: nouvelEquipement.typeFinancement || '',
-      coutMensuel: parseFloat(nouvelEquipement.coutMensuel) || 0,
-      dateDebut: nouvelEquipement.dateDebut || new Date().toISOString().split('T')[0],
-      dateFin: nouvelEquipement.dateFin || '',
-      assurance: parseFloat(nouvelEquipement.assurance) || 0,
-      dateContracteTechnique: nouvelEquipement.dateContracteTechnique || '',
-      notes: nouvelEquipement.notes || ''
-    };
+      };
 
-    // Créer dans Firebase
-    try {
-      await set(ref(database, 'equipements/' + nouvelId), nouvelEquip);
+      setEquipements([...equipements, equipement]);
+      setAccessoiresEquipement({...accessoiresEquipement, [nouvelId]: []});
       alert('✅ Équipement créé avec succès!');
-    } catch (error) {
-      console.error('Erreur création équipement:', error);
-      alert('❌ Erreur lors de la création!');
     }
-  }
 
-  // Réinitialiser formulaire
-  setNouvelEquipement({
-    immat: '',
-    type: '',
-    marque: '',
-    modele: '',
-    annee: '',
-    km: 0,
-    heures: 0,
-    carburant: '',
-    vin: '',
-    ptac: 0,
-    poids: 0,
-    proprietaire: 'SOLAIRE NETTOYAGE',
-    valeurAchat: 0,
-    valeurActuelle: 0,
-    typeFinancement: '',
-    coutMensuel: 0,
-    dateDebut: new Date().toISOString().split('T')[0],
-    dateFin: '',
-    assurance: 0,
-    dateContracteTechnique: '',
-    notes: ''
-  });
+    // Réinitialiser formulaire et fermer
+    setNouvelEquipement({
+      immat: '',
+      type: '',
+      marque: '',
+      modele: '',
+      annee: '',
+      km: 0,
+      heures: 0,
+      carburant: '',
+      vin: '',
+      ptac: 0,
+      poids: 0,
+      proprietaire: 'SOLAIRE NETTOYAGE',
+      valeurAchat: 0,
+      valeurActuelle: 0,
+      typeFinancement: '',
+      coutMensuel: 0,
+      dateDebut: new Date().toISOString().split('T')[0],
+      dateFin: '',
+      assurance: 0,
+      dateContracteTechnique: '',
+      notes: ''
+    });
 
-  setEquipementEnEdition(null);
-  setModeEdition(false);
-  setAfficherFormulaireEquipement(false);
-};
+    setEquipementEnEdition(null);
+    setModeEdition(false);
+    setAfficherFormulaireEquipement(false);
+  };
 
   // ✅ FONCTION OUVRIR ÉDITION
   const ouvrirEditionEquipement = (equipement) => {
@@ -512,100 +358,70 @@ useEffect(() => {
   };
 
   // ✅ FONCTION CRÉER/MODIFIER ARTICLE
-  const creerOuModifierArticle = async () => {
-  if (!nouvelArticleForm.code || !nouvelArticleForm.description) {
-    alert('⚠️ Code et Description sont obligatoires!');
-    return;
-  }
+  const creerOuModifierArticle = () => {
+    if (!nouvelArticleForm.code || !nouvelArticleForm.description) {
+      alert('⚠️ Code et Description sont obligatoires!');
+      return;
+    }
 
-  const codeExiste = articles.some(a => 
-    a.code === nouvelArticleForm.code && 
-    (!modeEditionArticle || a.id !== articleFormEnEdition.id)
-  );
-  
-  if (codeExiste) {
-    alert('⚠️ Ce code article existe déjà!');
-    return;
-  }
+    // Vérifier unicité code (sauf si c'est l'article en édition)
+    const codeExiste = articles.some(a => 
+      a.code === nouvelArticleForm.code && 
+      (!modeEditionArticle || a.id !== articleFormEnEdition.id)
+    );
+    
+    if (codeExiste) {
+      alert('⚠️ Ce code article existe déjà!');
+      return;
+    }
 
-  if (modeEditionArticle) {
-    // MODE ÉDITION
-    const articlesModifies = articles.map(a => 
-      a.id === articleFormEnEdition.id ? {
-        id: a.id,
+    if (modeEditionArticle) {
+      // MODE ÉDITION: Mettre à jour l'article
+      setArticles(articles.map(a => 
+        a.id === articleFormEnEdition.id ? {
+          id: a.id, // ID inchangé
+          code: nouvelArticleForm.code,
+          description: nouvelArticleForm.description,
+          fournisseur: nouvelArticleForm.fournisseur || '',
+          prixUnitaire: nouvelArticleForm.prixUnitaire ? parseFloat(nouvelArticleForm.prixUnitaire) : 0,
+          stockParDepot: a.stockParDepot, // ← CONSERVÉ
+          stockMin: nouvelArticleForm.stockMin ? parseInt(nouvelArticleForm.stockMin) : 0,
+          equipementsAffectes: a.equipementsAffectes // ← CONSERVÉ
+        } : a
+      ));
+      alert('✅ Article modifié avec succès!');
+    } else {
+      // MODE CRÉATION: Ajouter nouvel article
+      const nouvelId = articles.length > 0 ? Math.max(...articles.map(a => a.id)) + 1 : 1;
+      
+      const article = {
+        id: nouvelId,
         code: nouvelArticleForm.code,
         description: nouvelArticleForm.description,
         fournisseur: nouvelArticleForm.fournisseur || '',
-        prixUnitaire: parseFloat(nouvelArticleForm.prixUnitaire) || 0,
-        stockParDepot: a.stockParDepot,
-        stockMin: parseInt(nouvelArticleForm.stockMin) || 0,
-        equipementsAffectes: a.equipementsAffectes || []
-      } : a
-    );
-    
-    // Sauvegarder dans Firebase
-    for (const article of articlesModifies) {
-      await set(ref(database, 'articles/' + article.id), article);
-    }
-    alert('✅ Article modifié avec succès!');
-    
-  } else {
-    // MODE CRÉATION - CORRIGER ICI !
-    let nouvelId = 1;
-    
-    // Trouver le plus grand ID existant
-    if (articles && articles.length > 0) {
-      const maxId = Math.max(...articles.map(a => {
-        const id = parseInt(a.id);
-        return isNaN(id) ? 0 : id;
-      }));
-      nouvelId = maxId + 1;
-    }
-    
-    // S'assurer que l'ID est valide
-    if (isNaN(nouvelId)) {
-      nouvelId = Date.now(); // Utiliser timestamp comme fallback
-    }
-    
-    const nouvelArticle = {
-      id: nouvelId,
-      code: nouvelArticleForm.code,
-      description: nouvelArticleForm.description,
-      fournisseur: nouvelArticleForm.fournisseur || '',
-      prixUnitaire: parseFloat(nouvelArticleForm.prixUnitaire) || 0,
-      stockParDepot: { 
-        'Atelier': 0, 
-        'Porteur 26 T': 0, 
-        'Porteur 32 T': 0, 
-        'Semi Remorque': 0 
-      },
-      stockMin: parseInt(nouvelArticleForm.stockMin) || 0,
-      equipementsAffectes: []
-    };
+        prixUnitaire: nouvelArticleForm.prixUnitaire ? parseFloat(nouvelArticleForm.prixUnitaire) : 0,
+        stockParDepot: { 'Atelier': 0, 'Véhicule 1': 0, 'Véhicule 2': 0, 'Véhicule 3': 0 },
+        stockMin: nouvelArticleForm.stockMin ? parseInt(nouvelArticleForm.stockMin) : 0,
+        equipementsAffectes: []
+      };
 
-    // Créer dans Firebase
-    try {
-      await set(ref(database, 'articles/' + nouvelId), nouvelArticle);
+      setArticles([...articles, article]);
       alert('✅ Article créé avec succès!');
-    } catch (error) {
-      console.error('Erreur création article:', error);
-      alert('❌ Erreur lors de la création!');
     }
-  }
 
-  // Réinitialiser formulaire
-  setNouvelArticleForm({
-    code: '',
-    description: '',
-    fournisseur: '',
-    prixUnitaire: 0,
-    stockMin: 0
-  });
+    // Réinitialiser formulaire et fermer
+    setNouvelArticleForm({
+      code: '',
+      description: '',
+      fournisseur: '',
+      prixUnitaire: 0,
+      stockMin: 0
+    });
 
-  setArticleFormEnEdition(null);
-  setModeEditionArticle(false);
-  setAfficherFormulaireArticle(false);
-};
+    setArticleFormEnEdition(null);
+    setModeEditionArticle(false);
+    setAfficherFormulaireArticle(false);
+  };
 
   // ✅ FONCTION OUVRIR ÉDITION ARTICLE
   const ouvrirEditionArticle = (article) => {
@@ -684,14 +500,14 @@ useEffect(() => {
       dateArchivage: null
     };
 
-    updateDefauts([...defauts, newDefaut]);
+    setDefauts([...defauts, newDefaut]);
     setNouveauDefaut({ equipementId: '', accessoireId: '', type: 'Fuite', severite: 'moyen', description: '', localisation: '', dateConstatation: new Date().toISOString().split('T')[0], operateur: 'Axel', remarques: '', photosNoms: [] });
     setPhotosSelectionnees([]);
     alert('✅ Défaut signalé!');
   };
 
   const resoudreDefaut = (defautId) => {
-    updateDefauts(defauts.map(d => d.id === defautId ? { ...d, statut: 'resolu', dateArchivage: new Date().toISOString().split('T')[0] } : d));
+    setDefauts(defauts.map(d => d.id === defautId ? { ...d, statut: 'resolu', dateArchivage: new Date().toISOString().split('T')[0] } : d));
   };
 
   const creerInterventionDepuisDefaut = (defaut) => {
@@ -721,15 +537,15 @@ useEffect(() => {
   }, [articles]);
 
   const getArticlesDisponiblesCallback = useCallback(() => {
-  if (afficherArticlesEquipement && nouvelleIntervention.equipementId) {
-    const selectedId = parseInt(nouvelleIntervention.equipementId);
-    if (selectedId === 999) {
-      return articles.filter(a => (a.equipementsAffectes || []).includes(6) || (a.equipementsAffectes || []).includes(999));
+    if (afficherArticlesEquipement && nouvelleIntervention.equipementId) {
+      const selectedId = parseInt(nouvelleIntervention.equipementId);
+      if (selectedId === 999) {
+        return articles.filter(a => a.equipementsAffectes.includes(6) || a.equipementsAffectes.includes(999));
+      }
+      return articles.filter(a => a.equipementsAffectes.includes(selectedId));
     }
-    return articles.filter(a => (a.equipementsAffectes || []).includes(selectedId));
-  }
-  return articles;
-}, [articles, afficherArticlesEquipement, nouvelleIntervention.equipementId]);
+    return articles;
+  }, [articles, afficherArticlesEquipement, nouvelleIntervention.equipementId]);
 
   const traiterScanQRIntervention = useCallback((code) => {
     const article = getArticlesDisponiblesCallback().find(a => a.code === code);
@@ -896,8 +712,8 @@ useEffect(() => {
       alert('Stock insuffisant!');
       return;
     }
-    updateArticles(articles.map(a => a.id === articleEnTransfertAlerte.id ? { ...a, stockParDepot: { ...a.stockParDepot, [transfertRapideData.depotSource]: (a.stockParDepot[transfertRapideData.depotSource] || 0) - quantite, [transfertRapideData.depotDestination]: (a.stockParDepot[transfertRapideData.depotDestination] || 0) + quantite } } : a));
-    updateMouvements([...mouvementsStock, { id: mouvementsStock.length + 1, articleId: articleEnTransfertAlerte.id, type: 'transfer', quantite, date: new Date().toISOString().split('T')[0], raison: `Transfert rapide alerte`, coutTotal: 0, depotSource: transfertRapideData.depotSource, depotDestination: transfertRapideData.depotDestination }]);
+    setArticles(articles.map(a => a.id === articleEnTransfertAlerte.id ? { ...a, stockParDepot: { ...a.stockParDepot, [transfertRapideData.depotSource]: (a.stockParDepot[transfertRapideData.depotSource] || 0) - quantite, [transfertRapideData.depotDestination]: (a.stockParDepot[transfertRapideData.depotDestination] || 0) + quantite } } : a));
+    setMouvementsStock([...mouvementsStock, { id: mouvementsStock.length + 1, articleId: articleEnTransfertAlerte.id, type: 'transfer', quantite, date: new Date().toISOString().split('T')[0], raison: `Transfert rapide alerte`, coutTotal: 0, depotSource: transfertRapideData.depotSource, depotDestination: transfertRapideData.depotDestination }]);
     alert(`✅ ${quantite} ${articleEnTransfertAlerte.code} transférés!`);
     setArticleEnTransfertAlerte(null);
     setTransfertRapideData({ depotSource: 'Atelier', depotDestination: 'Porteur 26 T', quantite: '' });
@@ -917,7 +733,7 @@ useEffect(() => {
       return;
     }
 
-    updateArticles(articles.map(a => a.id === article.id ? { ...a, stockParDepot: { ...a.stockParDepot, [nouvelleIntervention.depotPrelevement]: stockDispo - quantite } } : a));
+    setArticles(articles.map(a => a.id === article.id ? { ...a, stockParDepot: { ...a.stockParDepot, [nouvelleIntervention.depotPrelevement]: stockDispo - quantite } } : a));
 
     setNouvelleIntervention({
       ...nouvelleIntervention, 
@@ -1038,7 +854,7 @@ useEffect(() => {
 
   const sauvegarderStockMin = () => {
     if (articleEnEdition && articleEnEdition.stockMinTemp >= 0) {
-      updateArticles(articles.map(a => 
+      setArticles(articles.map(a => 
         a.id === articleEnEdition.id ? { ...a, stockMin: parseInt(articleEnEdition.stockMinTemp) } : a
       ));
       setArticleEnEdition(null);
@@ -1082,8 +898,8 @@ useEffect(() => {
     if (!formScanEntree.quantite || !formScanEntree.prixUnitaire) { alert('Quantité et prix requis'); return; }
     const quantite = parseInt(formScanEntree.quantite);
     const coutTotal = parseFloat(formScanEntree.prixUnitaire) * quantite;
-    updateArticles(articles.map(a => a.id === scanResultat.article.id ? { ...a, stockParDepot: { ...a.stockParDepot, [formScanEntree.depot]: (a.stockParDepot[formScanEntree.depot] || 0) + quantite } } : a));
-    updateMouvements([...mouvementsStock, { id: mouvementsStock.length + 1, articleId: scanResultat.article.id, type: 'entree', quantite, date: formScanEntree.date, raison: formScanEntree.raison, coutTotal, depot: formScanEntree.depot }]);
+    setArticles(articles.map(a => a.id === scanResultat.article.id ? { ...a, stockParDepot: { ...a.stockParDepot, [formScanEntree.depot]: (a.stockParDepot[formScanEntree.depot] || 0) + quantite } } : a));
+    setMouvementsStock([...mouvementsStock, { id: mouvementsStock.length + 1, articleId: scanResultat.article.id, type: 'entree', quantite, date: formScanEntree.date, raison: formScanEntree.raison, coutTotal, depot: formScanEntree.depot }]);
     alert(`✅ +${quantite} ${scanResultat.article.code}`);
     setScanResultat(null);
     setActionScan(null);
@@ -1094,8 +910,8 @@ useEffect(() => {
     if (!formScanSortie.quantite) { alert('Quantité requise'); return; }
     const quantite = parseInt(formScanSortie.quantite);
     if ((scanResultat.article.stockParDepot[formScanSortie.depot] || 0) < quantite) { alert('Stock insuffisant!'); return; }
-    updateArticles(articles.map(a => a.id === scanResultat.article.id ? { ...a, stockParDepot: { ...a.stockParDepot, [formScanSortie.depot]: (a.stockParDepot[formScanSortie.depot] || 0) - quantite } } : a));
-    updateMouvements([...mouvementsStock, { id: mouvementsStock.length + 1, articleId: scanResultat.article.id, type: 'sortie', quantite, date: formScanSortie.date, raison: formScanSortie.raison, coutTotal: 0, depot: formScanSortie.depot }]);
+    setArticles(articles.map(a => a.id === scanResultat.article.id ? { ...a, stockParDepot: { ...a.stockParDepot, [formScanSortie.depot]: (a.stockParDepot[formScanSortie.depot] || 0) - quantite } } : a));
+    setMouvementsStock([...mouvementsStock, { id: mouvementsStock.length + 1, articleId: scanResultat.article.id, type: 'sortie', quantite, date: formScanSortie.date, raison: formScanSortie.raison, coutTotal: 0, depot: formScanSortie.depot }]);
     alert(`✅ -${quantite} ${scanResultat.article.code}`);
     setScanResultat(null);
     setActionScan(null);
@@ -1106,8 +922,8 @@ useEffect(() => {
     if (!formScanTransfert.quantite || formScanTransfert.depotSource === formScanTransfert.depotDestination) { alert('Quantité et dépôts différents requis'); return; }
     const quantite = parseInt(formScanTransfert.quantite);
     if ((scanResultat.article.stockParDepot[formScanTransfert.depotSource] || 0) < quantite) { alert('Stock insuffisant!'); return; }
-    updateArticles(articles.map(a => a.id === scanResultat.article.id ? { ...a, stockParDepot: { ...a.stockParDepot, [formScanTransfert.depotSource]: (a.stockParDepot[formScanTransfert.depotSource] || 0) - quantite, [formScanTransfert.depotDestination]: (a.stockParDepot[formScanTransfert.depotDestination] || 0) + quantite } } : a));
-    updateMouvements([...mouvementsStock, { id: mouvementsStock.length + 1, articleId: scanResultat.article.id, type: 'transfer', quantite, date: new Date().toISOString().split('T')[0], raison: `Transfert`, coutTotal: 0, depotSource: formScanTransfert.depotSource, depotDestination: formScanTransfert.depotDestination }]);
+    setArticles(articles.map(a => a.id === scanResultat.article.id ? { ...a, stockParDepot: { ...a.stockParDepot, [formScanTransfert.depotSource]: (a.stockParDepot[formScanTransfert.depotSource] || 0) - quantite, [formScanTransfert.depotDestination]: (a.stockParDepot[formScanTransfert.depotDestination] || 0) + quantite } } : a));
+    setMouvementsStock([...mouvementsStock, { id: mouvementsStock.length + 1, articleId: scanResultat.article.id, type: 'transfer', quantite, date: new Date().toISOString().split('T')[0], raison: `Transfert`, coutTotal: 0, depotSource: formScanTransfert.depotSource, depotDestination: formScanTransfert.depotDestination }]);
     alert(`✅ ${quantite} ${scanResultat.article.code}`);
     setScanResultat(null);
     setActionScan(null);
@@ -1118,8 +934,8 @@ useEffect(() => {
     if (nouvelleEntreeStock.articleId && nouvelleEntreeStock.quantite && nouvelleEntreeStock.prixUnitaire) {
       const quantite = parseInt(nouvelleEntreeStock.quantite);
       const coutTotal = parseFloat(nouvelleEntreeStock.prixUnitaire) * quantite;
-      updateArticles(articles.map(a => a.id === parseInt(nouvelleEntreeStock.articleId) ? { ...a, stockParDepot: { ...a.stockParDepot, [nouvelleEntreeStock.depot]: (a.stockParDepot[nouvelleEntreeStock.depot] || 0) + quantite } } : a));
-      updateMouvements([...mouvementsStock, { id: mouvementsStock.length + 1, articleId: parseInt(nouvelleEntreeStock.articleId), type: 'entree', quantite, date: nouvelleEntreeStock.date, raison: nouvelleEntreeStock.raison, coutTotal, depot: nouvelleEntreeStock.depot }]);
+      setArticles(articles.map(a => a.id === parseInt(nouvelleEntreeStock.articleId) ? { ...a, stockParDepot: { ...a.stockParDepot, [nouvelleEntreeStock.depot]: (a.stockParDepot[nouvelleEntreeStock.depot] || 0) + quantite } } : a));
+      setMouvementsStock([...mouvementsStock, { id: mouvementsStock.length + 1, articleId: parseInt(nouvelleEntreeStock.articleId), type: 'entree', quantite, date: nouvelleEntreeStock.date, raison: nouvelleEntreeStock.raison, coutTotal, depot: nouvelleEntreeStock.depot }]);
       setNouvelleEntreeStock({ articleId: '', quantite: '', prixUnitaire: '', raison: '', date: new Date().toISOString().split('T')[0], depot: 'Atelier' });
     }
   };
@@ -1129,8 +945,8 @@ useEffect(() => {
       const article = articles.find(a => a.id === parseInt(nouveauMouvementSortie.articleId));
       const quantite = parseInt(nouveauMouvementSortie.quantite);
       if ((article.stockParDepot[nouveauMouvementSortie.depot] || 0) < quantite) { alert('Stock insuffisant!'); return; }
-      updateArticles(articles.map(a => a.id === parseInt(nouveauMouvementSortie.articleId) ? { ...a, stockParDepot: { ...a.stockParDepot, [nouveauMouvementSortie.depot]: (a.stockParDepot[nouveauMouvementSortie.depot] || 0) - quantite } } : a));
-      updateMouvements([...mouvementsStock, { id: mouvementsStock.length + 1, articleId: parseInt(nouveauMouvementSortie.articleId), type: 'sortie', quantite, date: nouveauMouvementSortie.date, raison: nouveauMouvementSortie.raison, coutTotal: 0, depot: nouveauMouvementSortie.depot }]);
+      setArticles(articles.map(a => a.id === parseInt(nouveauMouvementSortie.articleId) ? { ...a, stockParDepot: { ...a.stockParDepot, [nouveauMouvementSortie.depot]: (a.stockParDepot[nouveauMouvementSortie.depot] || 0) - quantite } } : a));
+      setMouvementsStock([...mouvementsStock, { id: mouvementsStock.length + 1, articleId: parseInt(nouveauMouvementSortie.articleId), type: 'sortie', quantite, date: nouveauMouvementSortie.date, raison: nouveauMouvementSortie.raison, coutTotal: 0, depot: nouveauMouvementSortie.depot }]);
       setNouveauMouvementSortie({ articleId: '', quantite: '', raison: '', date: new Date().toISOString().split('T')[0], depot: 'Atelier' });
     }
   };
@@ -1140,8 +956,8 @@ useEffect(() => {
       const article = articles.find(a => a.id === parseInt(nouveauTransfert.articleId));
       const quantite = parseInt(nouveauTransfert.quantite);
       if ((article.stockParDepot[nouveauTransfert.depotSource] || 0) < quantite) { alert('Stock insuffisant!'); return; }
-      updateArticles(articles.map(a => a.id === parseInt(nouveauTransfert.articleId) ? { ...a, stockParDepot: { ...a.stockParDepot, [nouveauTransfert.depotSource]: (a.stockParDepot[nouveauTransfert.depotSource] || 0) - quantite, [nouveauTransfert.depotDestination]: (a.stockParDepot[nouveauTransfert.depotDestination] || 0) + quantite } } : a));
-      updateMouvements([...mouvementsStock, { id: mouvementsStock.length + 1, articleId: parseInt(nouveauTransfert.articleId), type: 'transfer', quantite, date: nouveauTransfert.date, raison: `Transfert`, coutTotal: 0, depotSource: nouveauTransfert.depotSource, depotDestination: nouveauTransfert.depotDestination }]);
+      setArticles(articles.map(a => a.id === parseInt(nouveauTransfert.articleId) ? { ...a, stockParDepot: { ...a.stockParDepot, [nouveauTransfert.depotSource]: (a.stockParDepot[nouveauTransfert.depotSource] || 0) - quantite, [nouveauTransfert.depotDestination]: (a.stockParDepot[nouveauTransfert.depotDestination] || 0) + quantite } } : a));
+      setMouvementsStock([...mouvementsStock, { id: mouvementsStock.length + 1, articleId: parseInt(nouveauTransfert.articleId), type: 'transfer', quantite, date: nouveauTransfert.date, raison: `Transfert`, coutTotal: 0, depotSource: nouveauTransfert.depotSource, depotDestination: nouveauTransfert.depotDestination }]);
       setNouveauTransfert({ articleId: '', quantite: '', depotSource: 'Atelier', depotDestination: 'Véhicule 1', raison: '', date: new Date().toISOString().split('T')[0] });
     }
   };
@@ -1170,13 +986,13 @@ useEffect(() => {
         nouvelStock = nouvelStock.map(a => a.id === art.articleId ? { ...a, stockParDepot: { ...a.stockParDepot, [nouvelleIntervention.depotPrelevement]: (a.stockParDepot[nouvelleIntervention.depotPrelevement] || 0) - art.quantite } } : a);
       }
     });
-    updateArticles(nouvelStock);
-    updateInterventions([...interventions, { id: interventionId, equipementId: parseInt(nouvelleIntervention.equipementId), type: nouvelleIntervention.type, date: nouvelleIntervention.date, km: parseInt(nouvelleIntervention.km) || 0, heures: parseInt(nouvelleIntervention.heures) || 0, description: nouvelleIntervention.description, articles: nouvelleIntervention.articlesPrevu, statut: 'en_cours', coutTotal, depotPrelevement: nouvelleIntervention.depotPrelevement }]);
+    setArticles(nouvelStock);
+    setInterventions([...interventions, { id: interventionId, equipementId: parseInt(nouvelleIntervention.equipementId), type: nouvelleIntervention.type, date: nouvelleIntervention.date, km: parseInt(nouvelleIntervention.km) || 0, heures: parseInt(nouvelleIntervention.heures) || 0, description: nouvelleIntervention.description, articles: nouvelleIntervention.articlesPrevu, statut: 'en_cours', coutTotal, depotPrelevement: nouvelleIntervention.depotPrelevement }]);
     setNouvelleIntervention({ equipementId: '', type: '', date: new Date().toISOString().split('T')[0], km: '', heures: '', description: '', articlesPrevu: [], depotPrelevement: 'Atelier' });
   };
 
   const cloturerIntervention = (interventionId) => {
-    updateInterventions(interventions.map(i => i.id === interventionId ? { ...i, statut: 'effectue' } : i));
+    setInterventions(interventions.map(i => i.id === interventionId ? { ...i, statut: 'effectue' } : i));
   };
 
   const ajouterAccessoire = (equipementId) => {
@@ -1192,7 +1008,7 @@ useEffect(() => {
   };
 
   const affecterArticleEquipement = (articleId, equipementId) => {
-    updateArticles(articles.map(a => {
+    setArticles(articles.map(a => {
       if (a.id === articleId) {
         const eqId = parseInt(equipementId);
         return a.equipementsAffectes.includes(eqId) 
@@ -1385,7 +1201,7 @@ useEffect(() => {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white p-4">
-        <h1 className="text-2xl font-bold">☀️ SOLAIRE NETTOYAGE - Gestion Flotte et Stoks</h1>
+        <h1 className="text-2xl font-bold">☀️ SOLAIRE NETTOYAGE - V1.4+ Équipements</h1>
         <p className="text-yellow-100 text-sm">Flotte • Stock • Maintenance • Interventions • Fiches matériel</p>
       </div>
 
@@ -1412,273 +1228,15 @@ useEffect(() => {
 
       <div className="p-6 max-w-7xl mx-auto">
         {ongletActif === 'accueil' && (
-  <div className="space-y-6">
-    {/* SÉLECTION OPÉRATEUR SI PAS ENCORE FAIT */}
-    {!operateurActif ? (
-      <div>
-        <h2 className="text-3xl font-black text-gray-800 text-center mb-8">
-          👷 SÉLECTIONNEZ VOTRE PROFIL OPÉRATEUR
-        </h2>
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {operateurs.map((operateur) => {
-            // Calculer les stats par opérateur
-            const interventionsOperateur = interventions.filter(i => 
-              i.operateur === operateur || 
-              (i.date === new Date().toISOString().split('T')[0] && !i.operateur)
-            ).length;
-            
-            const defautsOperateur = defauts.filter(d => 
-              d.operateur === operateur
-            ).length;
-            
-            const defautsCritiquesOperateur = defauts.filter(d => 
-              d.operateur === operateur && 
-              d.severite === 'critique' && 
-              d.statut === 'a_traiter'
-            ).length;
-
-            // Couleur par opérateur
-            const couleurs = {
-              'Axel': 'from-blue-500 to-blue-600',
-              'Jérôme': 'from-green-500 to-green-600',
-              'Sébastien': 'from-purple-500 to-purple-600',
-              'Joffrey': 'from-orange-500 to-orange-600',
-              'Fabien': 'from-red-500 to-red-600',
-              'Angelo': 'from-indigo-500 to-indigo-600'
-            };
-
-            const avatars = {
-              'Axel': '👨‍🔧',
-              'Jérôme': '👨‍💼',
-              'Sébastien': '👨‍🏭',
-              'Joffrey': '👨‍🔧',
-              'Fabien': '👷‍♂️',
-              'Angelo': '👨‍🏭'
-            };
-
-            return (
-              <button
-                key={operateur}
-                onClick={() => {
-                  setOperateurActif(operateur);
-                  localStorage.setItem('operateurActif', operateur);
-                }}
-                className={`bg-gradient-to-br ${couleurs[operateur]} text-white p-8 rounded-2xl shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300`}
-              >
-                <div className="text-6xl mb-4">{avatars[operateur]}</div>
-                <h3 className="text-2xl font-black mb-4">{operateur}</h3>
-                
-                <div className="bg-white bg-opacity-20 rounded-xl p-4 space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm">Interventions:</span>
-                    <span className="font-bold text-lg">{interventionsOperateur}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm">Défauts signalés:</span>
-                    <span className="font-bold text-lg">{defautsOperateur}</span>
-                  </div>
-                  {defautsCritiquesOperateur > 0 && (
-                    <div className="bg-red-600 bg-opacity-80 rounded-lg p-2 mt-2">
-                      <span className="text-xs">⚠️ CRITIQUES: </span>
-                      <span className="font-black">{defautsCritiquesOperateur}</span>
-                    </div>
-                  )}
-                </div>
-
-                <div className="mt-6 text-sm opacity-90">
-                  Dernière connexion: Aujourd'hui
-                </div>
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="mt-8 text-center">
-          <p className="text-gray-500 text-sm">
-            Sélectionnez votre profil pour accéder à votre tableau de bord personnalisé
-          </p>
-        </div>
-      </div>
-    ) : (
-      /* TABLEAU DE BORD PERSONNALISÉ */
-      <div>
-        {/* EN-TÊTE OPÉRATEUR */}
-        <div className="bg-gradient-to-r from-gray-700 to-gray-900 text-white p-6 rounded-xl mb-6 flex justify-between items-center">
-          <div>
-            <h2 className="text-3xl font-black">Bonjour {operateurActif} ! 👋</h2>
-            <p className="text-gray-200 mt-2">
-              {new Date().toLocaleDateString('fr-FR', { 
-                weekday: 'long', 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric' 
-              })}
-            </p>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <div className="bg-blue-50 p-4 rounded border border-blue-200"><div className="text-3xl font-bold text-blue-600">{articles.length}</div><div className="text-sm">Articles</div></div>
+            <div className="bg-green-50 p-4 rounded border border-green-200"><div className="text-3xl font-bold text-green-600">{articles.reduce((s,a)=>s+getStockTotal(a),0)}</div><div className="text-sm">Pièces total</div></div>
+            <div className="bg-indigo-50 p-4 rounded border border-indigo-200"><div className="text-2xl font-bold text-indigo-600">{valeurStockTotal.toFixed(0)}€</div><div className="text-sm">Valeur stock</div></div>
+            <div className="bg-purple-50 p-4 rounded border border-purple-200"><div className="text-3xl font-bold text-purple-600">{equipements.length}</div><div className="text-sm">Équipements</div></div>
+            <div className="bg-orange-50 p-4 rounded border border-orange-200"><div className="text-3xl font-bold text-orange-600">{interventionsEnCours.length}</div><div className="text-sm">Interv. en cours</div></div>
+            <div className="bg-red-50 p-4 rounded border border-red-200"><div className="text-3xl font-bold text-red-600">{defautsCritiques.length}</div><div className="text-sm">🔴 Défauts critiques</div></div>
           </div>
-          <button
-            onClick={() => {
-              setOperateurActif(null);
-              localStorage.removeItem('operateurActif');
-            }}
-            className="bg-red-500 hover:bg-red-600 px-4 py-2 rounded-lg font-bold"
-          >
-            🔄 Changer d'opérateur
-          </button>
-        </div>
-
-        {/* ALERTES PERSONNALISÉES */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          {/* Défauts à traiter assignés */}
-          <div className="bg-red-50 border-2 border-red-300 p-4 rounded-xl">
-            <h3 className="font-bold text-red-700 mb-2">🚨 Mes défauts à traiter</h3>
-            <div className="text-3xl font-black text-red-600">
-              {defauts.filter(d => d.operateur === operateurActif && d.statut === 'a_traiter').length}
-            </div>
-            <button 
-              onClick={() => setOngletActif('maintenance')}
-              className="mt-2 text-sm text-red-600 hover:underline"
-            >
-              Voir les défauts →
-            </button>
-          </div>
-
-          {/* Interventions du jour */}
-          <div className="bg-blue-50 border-2 border-blue-300 p-4 rounded-xl">
-            <h3 className="font-bold text-blue-700 mb-2">📅 Interventions aujourd'hui</h3>
-            <div className="text-3xl font-black text-blue-600">
-              {interventions.filter(i => 
-                i.date === new Date().toISOString().split('T')[0] && 
-                (i.operateur === operateurActif || !i.operateur)
-              ).length}
-            </div>
-            <button 
-              onClick={() => setOngletActif('interventions')}
-              className="mt-2 text-sm text-blue-600 hover:underline"
-            >
-              Gérer interventions →
-            </button>
-          </div>
-
-          {/* Articles en alerte */}
-          <div className="bg-orange-50 border-2 border-orange-300 p-4 rounded-xl">
-            <h3 className="font-bold text-orange-700 mb-2">⚠️ Articles critiques</h3>
-            <div className="text-3xl font-black text-orange-600">
-              {alertesCritiques.length}
-            </div>
-            <button 
-              onClick={() => setOngletActif('alertes')}
-              className="mt-2 text-sm text-orange-600 hover:underline"
-            >
-              Voir les alertes →
-            </button>
-          </div>
-        </div>
-
-        {/* STATISTIQUES PERSONNELLES */}
-        <div className="bg-gradient-to-r from-purple-50 to-indigo-50 border-2 border-purple-300 p-6 rounded-xl mb-6">
-          <h3 className="text-xl font-black text-purple-700 mb-4">📊 MES STATISTIQUES DU MOIS</h3>
-          
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-white p-4 rounded-lg border-2 border-purple-200">
-              <p className="text-xs text-gray-600 font-bold">INTERVENTIONS RÉALISÉES</p>
-              <p className="text-2xl font-black text-purple-600">
-                {interventions.filter(i => 
-                  i.operateur === operateurActif && 
-                  i.statut === 'effectue'
-                ).length}
-              </p>
-            </div>
-            
-            <div className="bg-white p-4 rounded-lg border-2 border-green-200">
-              <p className="text-xs text-gray-600 font-bold">DÉFAUTS SIGNALÉS</p>
-              <p className="text-2xl font-black text-green-600">
-                {defauts.filter(d => d.operateur === operateurActif).length}
-              </p>
-            </div>
-            
-            <div className="bg-white p-4 rounded-lg border-2 border-blue-200">
-              <p className="text-xs text-gray-600 font-bold">DÉFAUTS RÉSOLUS</p>
-              <p className="text-2xl font-black text-blue-600">
-                {defauts.filter(d => 
-                  d.operateur === operateurActif && 
-                  d.statut === 'resolu'
-                ).length}
-              </p>
-            </div>
-            
-            <div className="bg-white p-4 rounded-lg border-2 border-orange-200">
-              <p className="text-xs text-gray-600 font-bold">TAUX RÉSOLUTION</p>
-              <p className="text-2xl font-black text-orange-600">
-                {defauts.filter(d => d.operateur === operateurActif).length > 0
-                  ? Math.round(
-                      (defauts.filter(d => d.operateur === operateurActif && d.statut === 'resolu').length / 
-                       defauts.filter(d => d.operateur === operateurActif).length) * 100
-                    )
-                  : 0}%
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* RACCOURCIS RAPIDES */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <button 
-            onClick={() => {setOngletActif('maintenance'); setNouveauDefaut({...nouveauDefaut, operateur: operateurActif});}}
-            className="bg-red-500 hover:bg-red-600 text-white p-4 rounded-xl font-bold"
-          >
-            🚨 Signaler défaut
-          </button>
-          
-          <button 
-            onClick={() => setOngletActif('interventions')}
-            className="bg-blue-500 hover:bg-blue-600 text-white p-4 rounded-xl font-bold"
-          >
-            🔧 Nouvelle intervention
-          </button>
-          
-          <button 
-            onClick={() => {setOngletActif('stock'); setActionScan('sortie');}}
-            className="bg-green-500 hover:bg-green-600 text-white p-4 rounded-xl font-bold"
-          >
-            📤 Sortie stock
-          </button>
-          
-          <button 
-            onClick={() => setOngletActif('fiche')}
-            className="bg-purple-500 hover:bg-purple-600 text-white p-4 rounded-xl font-bold"
-          >
-            📋 Fiches matériel
-          </button>
-        </div>
-
-        {/* STATS GLOBALES EN BAS */}
-        <div className="mt-6 grid grid-cols-2 md:grid-cols-5 gap-4">
-          <div className="bg-blue-50 p-4 rounded border border-blue-200">
-            <div className="text-3xl font-bold text-blue-600">{articles.length}</div>
-            <div className="text-sm">Articles</div>
-          </div>
-          <div className="bg-green-50 p-4 rounded border border-green-200">
-            <div className="text-3xl font-bold text-green-600">{articles.reduce((s,a)=>s+getStockTotal(a),0)}</div>
-            <div className="text-sm">Pièces total</div>
-          </div>
-          <div className="bg-indigo-50 p-4 rounded border border-indigo-200">
-            <div className="text-2xl font-bold text-indigo-600">{valeurStockTotal.toFixed(0)}€</div>
-            <div className="text-sm">Valeur stock</div>
-          </div>
-          <div className="bg-purple-50 p-4 rounded border border-purple-200">
-            <div className="text-3xl font-bold text-purple-600">{equipements.length}</div>
-            <div className="text-sm">Équipements</div>
-          </div>
-          <div className="bg-orange-50 p-4 rounded border border-orange-200">
-            <div className="text-3xl font-bold text-orange-600">{interventionsEnCours.length}</div>
-            <div className="text-sm">Interv. en cours</div>
-          </div>
-        </div>
-      </div>
-    )}
-  </div>
-)}
+        )}
 
         {ongletActif === 'articles' && (
           <div className="space-y-6">
