@@ -13,114 +13,74 @@ const firebaseConfig = {
   appId: "1:824916805616:web:8afc8c80285cb3fda43f35"
 };
 
-// Initialiser Firebase
-const app = initializeApp(firebaseConfig);
-const database = getDatabase(app);
-// Créer les fonctions de mise à jour
-// Créer les fonctions de mise à jour
-const updateArticles = async (data) => {
+// ✅ FONCTIONS DE SYNCHRONISATION FIREBASE CORRIGÉES
+const updateArticles = async (articlesArray) => {
   try {
-    if (Array.isArray(data)) {
-      for (const item of data) {
-        if (item.id) {
-          await set(ref(database, 'articles/' + item.id), item);
-        }
-      }
-    }
+    // Convertir le tableau en objet avec IDs comme clés
+    const articlesObj = {};
+    articlesArray.forEach(article => {
+      articlesObj[article.id] = article;
+    });
+    // Sauvegarder TOUTE la collection d'un coup
+    await set(ref(database, 'articles'), articlesObj);
+    console.log('✅ Articles synchronisés avec Firebase:', articlesArray.length);
   } catch (error) {
-    console.error('Erreur sync articles:', error);
+    console.error('❌ Erreur sync articles Firebase:', error);
   }
 };
 
-const updateEquipements = async (data) => {
+const updateEquipements = async (equipementsArray) => {
   try {
-    if (Array.isArray(data)) {
-      for (const item of data) {
-        if (item.id) {
-          await set(ref(database, 'equipements/' + item.id), item);
-        }
-      }
-    }
+    const equipementsObj = {};
+    equipementsArray.forEach(equip => {
+      equipementsObj[equip.id] = equip;
+    });
+    await set(ref(database, 'equipements'), equipementsObj);
+    console.log('✅ Équipements synchronisés avec Firebase:', equipementsArray.length);
   } catch (error) {
-    console.error('Erreur sync équipements:', error);
+    console.error('❌ Erreur sync équipements Firebase:', error);
   }
 };
 
-const updateDefauts = async (data) => {
+const updateDefauts = async (defautsArray) => {
   try {
-    if (Array.isArray(data)) {
-      for (const item of data) {
-        if (item.id) {
-          await set(ref(database, 'defauts/' + item.id), item);
-        }
-      }
-    }
+    const defautsObj = {};
+    defautsArray.forEach(defaut => {
+      defautsObj[defaut.id] = defaut;
+    });
+    await set(ref(database, 'defauts'), defautsObj);
+    console.log('✅ Défauts synchronisés avec Firebase');
   } catch (error) {
-    console.error('Erreur sync défauts:', error);
+    console.error('❌ Erreur sync défauts:', error);
   }
 };
 
-const updateInterventions = async (data) => {
+const updateInterventions = async (interventionsArray) => {
   try {
-    if (Array.isArray(data)) {
-      for (const item of data) {
-        if (item.id) {
-          await set(ref(database, 'interventions/' + item.id), item);
-        }
-      }
-    }
+    const interventionsObj = {};
+    interventionsArray.forEach(inter => {
+      interventionsObj[inter.id] = inter;
+    });
+    await set(ref(database, 'interventions'), interventionsObj);
+    console.log('✅ Interventions synchronisées avec Firebase');
   } catch (error) {
-    console.error('Erreur sync interventions:', error);
+    console.error('❌ Erreur sync interventions:', error);
   }
 };
 
-const updateMouvements = async (data) => {
+const updateMouvements = async (mouvementsArray) => {
   try {
-    if (Array.isArray(data)) {
-      for (const item of data) {
-        if (item.id) {
-          await set(ref(database, 'mouvements/' + item.id), item);
-        }
-      }
-    }
+    const mouvementsObj = {};
+    mouvementsArray.forEach(mouv => {
+      mouvementsObj[mouv.id] = mouv;
+    });
+    await set(ref(database, 'mouvements'), mouvementsObj);
+    console.log('✅ Mouvements synchronisés avec Firebase');
   } catch (error) {
-    console.error('Erreur sync mouvements:', error);
+    console.error('❌ Erreur sync mouvements:', error);
   }
 };
 
-// Fonctions de synchronisation
-
-// Fonctions de synchronisation
-
-const syncArticles = async (articles) => {
-  for (const article of articles) {
-    await set(ref(database, 'articles/' + article.id), article);
-  }
-};
-
-const syncEquipements = async (equipements) => {
-  for (const equip of equipements) {
-    await set(ref(database, 'equipements/' + equip.id), equip);
-  }
-};
-
-const syncInterventions = async (interventions) => {
-  for (const inter of interventions) {
-    await set(ref(database, 'interventions/' + inter.id), inter);
-  }
-};
-
-const syncDefauts = async (defauts) => {
-  for (const defaut of defauts) {
-    await set(ref(database, 'defauts/' + defaut.id), defaut);
-  }
-};
-
-const syncMouvements = async (mouvements) => {
-  for (const mouv of mouvements) {
-    await set(ref(database, 'mouvements/' + mouv.id), mouv);
-  }
-};
 
 export default function SolaireNettoyageFlotte() {
   const [ongletActif, setOngletActif] = useState('accueil');
@@ -397,8 +357,29 @@ useEffect(() => {
       // MODE CRÉATION: Ajouter nouvel équipement
       const nouvelId = equipements.length > 0 ? Math.max(...equipements.map(e => e.id)) + 1 : 1;
       
-      const equipement = {
-        id: nouvelId,
+      const creerOuModifierEquipement = () => {
+  if (!nouvelEquipement.immat || !nouvelEquipement.type) {
+    alert('⚠️ Immatriculation et Type sont obligatoires!');
+    return;
+  }
+
+  const immatExiste = equipements.some(e => 
+    e.immat === nouvelEquipement.immat && 
+    (!modeEdition || e.id !== equipementEnEdition.id)
+  );
+  
+  if (immatExiste) {
+    alert('⚠️ Cette immatriculation existe déjà!');
+    return;
+  }
+
+  let equipementsModifies;
+
+  if (modeEdition) {
+    // MODE ÉDITION
+    equipementsModifies = equipements.map(e => 
+      e.id === equipementEnEdition.id ? {
+        id: e.id,
         immat: nouvelEquipement.immat,
         type: nouvelEquipement.type,
         marque: nouvelEquipement.marque || '',
@@ -420,72 +401,76 @@ useEffect(() => {
         assurance: nouvelEquipement.assurance ? parseFloat(nouvelEquipement.assurance) : 0,
         dateContracteTechnique: nouvelEquipement.dateContracteTechnique || '',
         notes: nouvelEquipement.notes || ''
-      };
+      } : e
+    );
+    setEquipements(equipementsModifies);
+    updateEquipements(equipementsModifies); // ← SYNCHRONISER AVEC FIREBASE
+    alert('✅ Équipement modifié avec succès!');
+  } else {
+    // MODE CRÉATION
+    const nouvelId = equipements.length > 0 ? Math.max(...equipements.map(e => e.id)) + 1 : 1;
+    
+    const equipement = {
+      id: nouvelId,
+      immat: nouvelEquipement.immat,
+      type: nouvelEquipement.type,
+      marque: nouvelEquipement.marque || '',
+      modele: nouvelEquipement.modele || '',
+      annee: nouvelEquipement.annee ? parseInt(nouvelEquipement.annee) : 0,
+      km: nouvelEquipement.km ? parseInt(nouvelEquipement.km) : 0,
+      heures: nouvelEquipement.heures ? parseInt(nouvelEquipement.heures) : 0,
+      carburant: nouvelEquipement.carburant || '',
+      vin: nouvelEquipement.vin || '',
+      ptac: nouvelEquipement.ptac ? parseInt(nouvelEquipement.ptac) : 0,
+      poids: nouvelEquipement.poids ? parseInt(nouvelEquipement.poids) : 0,
+      proprietaire: nouvelEquipement.proprietaire || 'SOLAIRE NETTOYAGE',
+      valeurAchat: nouvelEquipement.valeurAchat ? parseFloat(nouvelEquipement.valeurAchat) : 0,
+      valeurActuelle: nouvelEquipement.valeurActuelle ? parseFloat(nouvelEquipement.valeurActuelle) : 0,
+      typeFinancement: nouvelEquipement.typeFinancement || '',
+      coutMensuel: nouvelEquipement.coutMensuel ? parseFloat(nouvelEquipement.coutMensuel) : 0,
+      dateDebut: nouvelEquipement.dateDebut || new Date().toISOString().split('T')[0],
+      dateFin: nouvelEquipement.dateFin || '',
+      assurance: nouvelEquipement.assurance ? parseFloat(nouvelEquipement.assurance) : 0,
+      dateContracteTechnique: nouvelEquipement.dateContracteTechnique || '',
+      notes: nouvelEquipement.notes || ''
+    };
 
-      updateEquipements([...equipements, equipement]);
-      setAccessoiresEquipement({...accessoiresEquipement, [nouvelId]: []});
-      alert('✅ Équipement créé avec succès!');
-    }
+    equipementsModifies = [...equipements, equipement];
+    setEquipements(equipementsModifies);
+    updateEquipements(equipementsModifies); // ← SYNCHRONISER AVEC FIREBASE
+    setAccessoiresEquipement({...accessoiresEquipement, [nouvelId]: []});
+    alert('✅ Équipement créé avec succès!');
+  }
 
-    // Réinitialiser formulaire et fermer
-    setNouvelEquipement({
-      immat: '',
-      type: '',
-      marque: '',
-      modele: '',
-      annee: '',
-      km: 0,
-      heures: 0,
-      carburant: '',
-      vin: '',
-      ptac: 0,
-      poids: 0,
-      proprietaire: 'SOLAIRE NETTOYAGE',
-      valeurAchat: 0,
-      valeurActuelle: 0,
-      typeFinancement: '',
-      coutMensuel: 0,
-      dateDebut: new Date().toISOString().split('T')[0],
-      dateFin: '',
-      assurance: 0,
-      dateContracteTechnique: '',
-      notes: ''
-    });
+  // Réinitialiser formulaire
+  setNouvelEquipement({
+    immat: '',
+    type: '',
+    marque: '',
+    modele: '',
+    annee: '',
+    km: 0,
+    heures: 0,
+    carburant: '',
+    vin: '',
+    ptac: 0,
+    poids: 0,
+    proprietaire: 'SOLAIRE NETTOYAGE',
+    valeurAchat: 0,
+    valeurActuelle: 0,
+    typeFinancement: '',
+    coutMensuel: 0,
+    dateDebut: new Date().toISOString().split('T')[0],
+    dateFin: '',
+    assurance: 0,
+    dateContracteTechnique: '',
+    notes: ''
+  });
 
-    setEquipementEnEdition(null);
-    setModeEdition(false);
-    setAfficherFormulaireEquipement(false);
-  };
-
-  // ✅ FONCTION OUVRIR ÉDITION
-  const ouvrirEditionEquipement = (equipement) => {
-    setEquipementEnEdition(equipement);
-    setModeEdition(true);
-    setNouvelEquipement({
-      immat: equipement.immat,
-      type: equipement.type,
-      marque: equipement.marque,
-      modele: equipement.modele,
-      annee: equipement.annee,
-      km: equipement.km,
-      heures: equipement.heures,
-      carburant: equipement.carburant,
-      vin: equipement.vin,
-      ptac: equipement.ptac,
-      poids: equipement.poids,
-      proprietaire: equipement.proprietaire,
-      valeurAchat: equipement.valeurAchat,
-      valeurActuelle: equipement.valeurActuelle,
-      typeFinancement: equipement.typeFinancement,
-      coutMensuel: equipement.coutMensuel,
-      dateDebut: equipement.dateDebut,
-      dateFin: equipement.dateFin,
-      assurance: equipement.assurance,
-      dateContracteTechnique: equipement.dateContracteTechnique,
-      notes: equipement.notes
-    });
-    setAfficherFormulaireEquipement(true);
-  };
+  setEquipementEnEdition(null);
+  setModeEdition(false);
+  setAfficherFormulaireEquipement(false);
+};
 
   // ✅ FONCTION ANNULER ÉDITION
   const annulerEditionEquipement = () => {
@@ -553,64 +538,80 @@ useEffect(() => {
       alert('✅ Article modifié avec succès!');
     } else {
       // MODE CRÉATION: Ajouter nouvel article
-      const nouvelId = articles.length > 0 ? Math.max(...articles.map(a => a.id)) + 1 : 1;
-      
-      const article = {
-        id: nouvelId,
+    const creerOuModifierArticle = () => {
+  if (!nouvelArticleForm.code || !nouvelArticleForm.description) {
+    alert('⚠️ Code et Description sont obligatoires!');
+    return;
+  }
+
+  const codeExiste = articles.some(a => 
+    a.code === nouvelArticleForm.code && 
+    (!modeEditionArticle || a.id !== articleFormEnEdition.id)
+  );
+  
+  if (codeExiste) {
+    alert('⚠️ Ce code article existe déjà!');
+    return;
+  }
+
+  let articlesModifies;
+
+  if (modeEditionArticle) {
+    // MODE ÉDITION
+    articlesModifies = articles.map(a => 
+      a.id === articleFormEnEdition.id ? {
+        id: a.id,
         code: nouvelArticleForm.code,
         description: nouvelArticleForm.description,
         fournisseur: nouvelArticleForm.fournisseur || '',
         prixUnitaire: nouvelArticleForm.prixUnitaire ? parseFloat(nouvelArticleForm.prixUnitaire) : 0,
-        stockParDepot: { 'Atelier': 0, 'Véhicule 1': 0, 'Véhicule 2': 0, 'Véhicule 3': 0 },
+        stockParDepot: a.stockParDepot, // CONSERVÉ
         stockMin: nouvelArticleForm.stockMin ? parseInt(nouvelArticleForm.stockMin) : 0,
-        equipementsAffectes: []
-      };
+        equipementsAffectes: a.equipementsAffectes // CONSERVÉ
+      } : a
+    );
+    setArticles(articlesModifies);
+    updateArticles(articlesModifies); // ← SYNCHRONISER AVEC FIREBASE
+    alert('✅ Article modifié avec succès!');
+  } else {
+    // MODE CRÉATION
+    const nouvelId = articles.length > 0 ? Math.max(...articles.map(a => a.id)) + 1 : 1;
+    
+    const article = {
+      id: nouvelId,
+      code: nouvelArticleForm.code,
+      description: nouvelArticleForm.description,
+      fournisseur: nouvelArticleForm.fournisseur || '',
+      prixUnitaire: nouvelArticleForm.prixUnitaire ? parseFloat(nouvelArticleForm.prixUnitaire) : 0,
+      stockParDepot: { 
+        'Atelier': 0, 
+        'Porteur 26 T': 0, 
+        'Porteur 32 T': 0, 
+        'Semi Remorque': 0 
+      }, // ← DÉPÔTS CORRECTS
+      stockMin: nouvelArticleForm.stockMin ? parseInt(nouvelArticleForm.stockMin) : 0,
+      equipementsAffectes: []
+    };
 
-      updateArticles([...articles, article]);
-      alert('✅ Article créé avec succès!');
-    }
+    articlesModifies = [...articles, article];
+    setArticles(articlesModifies);
+    updateArticles(articlesModifies); // ← SYNCHRONISER AVEC FIREBASE
+    alert('✅ Article créé avec succès!');
+  }
 
-    // Réinitialiser formulaire et fermer
-    setNouvelArticleForm({
-      code: '',
-      description: '',
-      fournisseur: '',
-      prixUnitaire: 0,
-      stockMin: 0
-    });
+  // Réinitialiser formulaire
+  setNouvelArticleForm({
+    code: '',
+    description: '',
+    fournisseur: '',
+    prixUnitaire: 0,
+    stockMin: 0
+  });
 
-    setArticleFormEnEdition(null);
-    setModeEditionArticle(false);
-    setAfficherFormulaireArticle(false);
-  };
-
-  // ✅ FONCTION OUVRIR ÉDITION ARTICLE
-  const ouvrirEditionArticle = (article) => {
-    setArticleFormEnEdition(article);
-    setModeEditionArticle(true);
-    setNouvelArticleForm({
-      code: article.code,
-      description: article.description,
-      fournisseur: article.fournisseur,
-      prixUnitaire: article.prixUnitaire,
-      stockMin: article.stockMin
-    });
-    setAfficherFormulaireArticle(true);
-  };
-
-  // ✅ FONCTION ANNULER ÉDITION ARTICLE
-  const annulerEditionArticle = () => {
-    setArticleFormEnEdition(null);
-    setModeEditionArticle(false);
-    setNouvelArticleForm({
-      code: '',
-      description: '',
-      fournisseur: '',
-      prixUnitaire: 0,
-      stockMin: 0
-    });
-    setAfficherFormulaireArticle(false);
-  };
+  setArticleFormEnEdition(null);
+  setModeEditionArticle(false);
+  setAfficherFormulaireArticle(false);
+};  
 
   const gererSelectionPhotos = (e) => {
     const files = Array.from(e.target.files || []);
@@ -1362,7 +1363,7 @@ useEffect(() => {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white p-4">
-        <h1 className="text-2xl font-bold">☀️ SOLAIRE NETTOYAGE - Gestion Flotte et Stoks</h1>
+        <h1 className="text-2xl font-bold">☀️ SOLAIRE NETTOYAGE - V1.4+ Équipements</h1>
         <p className="text-yellow-100 text-sm">Flotte • Stock • Maintenance • Interventions • Fiches matériel</p>
       </div>
 
