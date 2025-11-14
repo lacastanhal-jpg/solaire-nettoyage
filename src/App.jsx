@@ -1,213 +1,148 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { initializeApp } from 'firebase/app';
-import { getDatabase, ref, onValue, set, push, update, get } from 'firebase/database';
+// ✅ SUPABASE - SYNCHRONISATION COMPLÈTE V2.2
+import { createClient } from '@supabase/supabase-js';
+const supabase = createClient(
+  'https://dxzzwxjgsifivlqqlwuz.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR4enp3eGpnc2lmaXZscXFsd3V6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI3MDE5NjksImV4cCI6MjA3ODI3Nzk2OX0.UFER1C0Hud0JUuBfBLRHzIj-C2UHE0_o3ES3-D8L-XE'
+);
 
-// Configuration Firebase
-const firebaseConfig = {
-  apiKey: "AIzaSyCAH_1ql-9ckn_egrj1AjteNpAs2Vo5KNY",
-  authDomain: "gestion-flotte-et-stoks.firebaseapp.com",
-  databaseURL: "https://gestion-flotte-et-stoks-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "gestion-flotte-et-stoks",
-  storageBucket: "gestion-flotte-et-stoks.firebasestorage.app",
-  messagingSenderId: "824916805616",
-  appId: "1:824916805616:web:8afc8c80285cb3fda43f35"
-};
-
-// Initialiser Firebase
-const app = initializeApp(firebaseConfig);
-const database = getDatabase(app);
-// Créer les fonctions de mise à jour
-// Créer les fonctions de mise à jour
-const updateArticles = async (data) => {
+// ✅ INITIALISATION DES TABLES SUPABASE SI NÉCESSAIRE
+const initialiserTablesSupabase = async () => {
   try {
-    if (Array.isArray(data)) {
-      for (const item of data) {
-        if (item.id) {
-          await set(ref(database, 'articles/' + item.id), item);
-        }
+    // Vérifier et créer les tables via des insertions de test
+    const tables = [
+      { nom: 'equipements', test: { immat: 'TEST-000', type: 'Test' } },
+      { nom: 'mouvements_stock', test: { article_id: 1, type: 'test', quantite: 0 } },
+      { nom: 'interventions', test: { equipement_id: 1, type: 'test', date: '2025-01-01' } },
+      { nom: 'defauts', test: { equipement_id: 1, type: 'test', severite: 'mineur' } },
+      { nom: 'accessoires', test: { equipement_id: 1, nom: 'test', valeur: 0 } }
+    ];
+
+    for (const table of tables) {
+      const { error } = await supabase.from(table.nom).select('id').limit(1);
+      if (error && error.code === '42P01') {
+        console.log(`Table ${table.nom} n'existe pas, création en cours...`);
+        // La table sera créée automatiquement lors de la première insertion
       }
     }
-  } catch (error) {
-    console.error('Erreur sync articles:', error);
-  }
-};
-
-const updateEquipements = async (data) => {
-  try {
-    if (Array.isArray(data)) {
-      for (const item of data) {
-        if (item.id) {
-          await set(ref(database, 'equipements/' + item.id), item);
-        }
-      }
-    }
-  } catch (error) {
-    console.error('Erreur sync équipements:', error);
-  }
-};
-
-const updateDefauts = async (data) => {
-  try {
-    if (Array.isArray(data)) {
-      for (const item of data) {
-        if (item.id) {
-          await set(ref(database, 'defauts/' + item.id), item);
-        }
-      }
-    }
-  } catch (error) {
-    console.error('Erreur sync défauts:', error);
-  }
-};
-
-const updateInterventions = async (data) => {
-  try {
-    if (Array.isArray(data)) {
-      for (const item of data) {
-        if (item.id) {
-          await set(ref(database, 'interventions/' + item.id), item);
-        }
-      }
-    }
-  } catch (error) {
-    console.error('Erreur sync interventions:', error);
-  }
-};
-
-const updateMouvements = async (data) => {
-  try {
-    if (Array.isArray(data)) {
-      for (const item of data) {
-        if (item.id) {
-          await set(ref(database, 'mouvements/' + item.id), item);
-        }
-      }
-    }
-  } catch (error) {
-    console.error('Erreur sync mouvements:', error);
-  }
-};
-
-// Fonctions de synchronisation
-
-// Fonctions de synchronisation
-
-const syncArticles = async (articles) => {
-  for (const article of articles) {
-    await set(ref(database, 'articles/' + article.id), article);
-  }
-};
-
-const syncEquipements = async (equipements) => {
-  for (const equip of equipements) {
-    await set(ref(database, 'equipements/' + equip.id), equip);
-  }
-};
-
-const syncInterventions = async (interventions) => {
-  for (const inter of interventions) {
-    await set(ref(database, 'interventions/' + inter.id), inter);
-  }
-};
-
-const syncDefauts = async (defauts) => {
-  for (const defaut of defauts) {
-    await set(ref(database, 'defauts/' + defaut.id), defaut);
-  }
-};
-
-const syncMouvements = async (mouvements) => {
-  for (const mouv of mouvements) {
-    await set(ref(database, 'mouvements/' + mouv.id), mouv);
+  } catch (err) {
+    console.log('Initialisation Supabase:', err);
   }
 };
 
 export default function SolaireNettoyageFlotte() {
   const [ongletActif, setOngletActif] = useState('accueil');
-   const [equipementSelectionne, setEquipementSelectionne] = useState(1);
-   const canvasRef = useRef(null);
-   const videoRef = useRef(null);
-   const scanningRef = useRef(false);
-   const jsQRRef = useRef(null);
-   const videoIntervention = useRef(null);
-   const canvasIntervention = useRef(null);
-   const scanningIntervention = useRef(false);
-   const fileInputRef = useRef(null);
-   
-   const [filtreAlerteSeverite, setFiltreAlerteSeverite] = useState('');
-   const [filtreAlerteFournisseur, setFiltreAlerteFournisseur] = useState('');
-   const [filtreAlerteDepot, setFiltreAlerteDepot] = useState('');
-   const [triAlertes, setTriAlertes] = useState('severite');
-   const [articleEnDetailsAlerte, setArticleEnDetailsAlerte] = useState(null);
-   const [articleEnTransfertAlerte, setArticleEnTransfertAlerte] = useState(null);
-   const [articleEnHistoriqueAlerte, setArticleEnHistoriqueAlerte] = useState(null);
-   const [transfertRapideData, setTransfertRapideData] = useState({ depotSource: 'Atelier', depotDestination: 'Porteur 26 T', quantite: '' });
-   
-   const operateurs = ['Axel', 'Jérôme', 'Sébastien', 'Joffrey', 'Fabien', 'Angelo'];
-  // ... le reste de ton code continue normalement
-// CHARGEMENT INITIAL DEPUIS FIREBASE
-useEffect(() => {
-  // Écoute temps réel des articles
-  const articlesRef = ref(database, 'articles');
-  onValue(articlesRef, (snapshot) => {
-  const data = snapshot.val();
-  if (data) {
-    const articlesArray = Object.entries(data).map(([key, value]) => ({
-  ...value,
-  id: isNaN(parseInt(key)) ? key : parseInt(key),
-  equipementsAffectes: value.equipementsAffectes || [],
-  stockParDepot: value.stockParDepot || {}
-}));
-      setArticles(articlesArray);
-      console.log('✅ Articles synchronisés:', articlesArray.length);
-    }
-  });
+  const [equipementSelectionne, setEquipementSelectionne] = useState(1);
+  const canvasRef = useRef(null);
+  const videoRef = useRef(null);
+  const scanningRef = useRef(false);
+  const jsQRRef = useRef(null);
+  const videoIntervention = useRef(null);
+  const canvasIntervention = useRef(null);
+  const scanningIntervention = useRef(false);
+  const fileInputRef = useRef(null);
+  
+  const [filtreAlerteSeverite, setFiltreAlerteSeverite] = useState('');
+  const [filtreAlerteFournisseur, setFiltreAlerteFournisseur] = useState('');
+  const [filtreAlerteDepot, setFiltreAlerteDepot] = useState('');
+  const [triAlertes, setTriAlertes] = useState('severite');
+  const [articleEnDetailsAlerte, setArticleEnDetailsAlerte] = useState(null);
+  const [articleEnTransfertAlerte, setArticleEnTransfertAlerte] = useState(null);
+  const [articleEnHistoriqueAlerte, setArticleEnHistoriqueAlerte] = useState(null);
+  const [transfertRapideData, setTransfertRapideData] = useState({ depotSource: 'Atelier', depotDestination: 'Porteur 26 T', quantite: '' });
 
-  // Écoute temps réel des équipements
-  const equipementsRef = ref(database, 'equipements');
-  onValue(equipementsRef, (snapshot) => {
-    const data = snapshot.val();
-    if (data) {
-      const equipementsArray = Object.entries(data).map(([key, value]) => ({
-        ...value,
-        id: parseInt(key)
-      }));
-      setEquipements(equipementsArray);
-      console.log('✅ Équipements synchronisés:', equipementsArray.length);
-    }
-  });
-
-  // Écoute temps réel des défauts
-  const defautsRef = ref(database, 'defauts');
-  onValue(defautsRef, (snapshot) => {
-    const data = snapshot.val();
-    if (data) {
-      const defautsArray = Object.values(data);
-      setDefauts(defautsArray);
-    }
-  });
-
-  // Écoute temps réel des interventions
-  const interventionsRef = ref(database, 'interventions');
-  onValue(interventionsRef, (snapshot) => {
-    const data = snapshot.val();
-    if (data) {
-      const interventionsArray = Object.values(data);
-      setInterventions(interventionsArray);
-    }
-  });
-
-  // Écoute temps réel des mouvements
-  const mouvementsRef = ref(database, 'mouvements');
-  onValue(mouvementsRef, (snapshot) => {
-    const data = snapshot.val();
-    if (data) {
-      const mouvementsArray = Object.values(data);
-      setMouvementsStock(mouvementsArray);
-    }
-  });
-}, []);
-
+  const operateurs = ['Axel', 'Jérôme', 'Sébastien', 'Joffrey', 'Fabien', 'Angelo'];
+  
+  // ✅ SYNCHRONISATION SUPABASE - CHARGEMENT COMPLET AU DÉMARRAGE
+  useEffect(() => {
+    const chargerDonneesCompletes = async () => {
+      try {
+        await initialiserTablesSupabase();
+        
+        // 1. CHARGER LES ARTICLES
+        const { data: articlesData } = await supabase.from('articles').select('*');
+        if (articlesData && articlesData.length > 0) {
+          const articlesFormatés = articlesData.map(a => ({
+            id: a.id,
+            code: a.code,
+            description: a.description,
+            fournisseur: a.fournisseur || '',
+            prixUnitaire: parseFloat(a.prix_unitaire) || 0,
+            stockParDepot: a.stock_par_depot || { 'Atelier': 0, 'Porteur 26 T': 0, 'Porteur 32 T': 0, 'Semi Remorque': 0 },
+            stockMin: a.stock_min || 1,
+            equipementsAffectes: a.equipements_affectes || []
+          }));
+          setArticles(articlesFormatés);
+        }
+        
+        // 2. CHARGER LES ÉQUIPEMENTS
+        const { data: equipementsData } = await supabase.from('equipements').select('*');
+        if (equipementsData && equipementsData.length > 0) {
+          setEquipements(equipementsData);
+        }
+        
+        // 3. CHARGER LES MOUVEMENTS STOCK
+        const { data: mouvementsData } = await supabase.from('mouvements_stock').select('*');
+        if (mouvementsData && mouvementsData.length > 0) {
+          setMouvementsStock(mouvementsData.map(m => ({
+            ...m,
+            articleId: m.article_id,
+            coutTotal: m.cout_total,
+            depotSource: m.depot_source,
+            depotDestination: m.depot_destination
+          })));
+        }
+        
+        // 4. CHARGER LES INTERVENTIONS
+        const { data: interventionsData } = await supabase.from('interventions').select('*');
+        if (interventionsData && interventionsData.length > 0) {
+          setInterventions(interventionsData.map(i => ({
+            ...i,
+            equipementId: i.equipement_id,
+            articlesPrevu: i.articles_prevu || [],
+            coutTotal: i.cout_total,
+            depotPrelevement: i.depot_prelevement || 'Atelier'
+          })));
+        }
+        
+        // 5. CHARGER LES DÉFAUTS
+        const { data: defautsData } = await supabase.from('defauts').select('*');
+        if (defautsData && defautsData.length > 0) {
+          setDefauts(defautsData.map(d => ({
+            ...d,
+            equipementId: d.equipement_id,
+            accessoireId: d.accessoire_id,
+            dateConstatation: d.date_constatation,
+            interventionLieeId: d.intervention_liee_id,
+            dateArchivage: d.date_archivage
+          })));
+        }
+        
+        // 6. CHARGER LES ACCESSOIRES
+        const { data: accessoiresData } = await supabase.from('accessoires').select('*');
+        if (accessoiresData && accessoiresData.length > 0) {
+          const accessoiresParEquipement = {};
+          accessoiresData.forEach(acc => {
+            if (!accessoiresParEquipement[acc.equipement_id]) {
+              accessoiresParEquipement[acc.equipement_id] = [];
+            }
+            accessoiresParEquipement[acc.equipement_id].push({
+              ...acc,
+              dateAjout: acc.date_ajout
+            });
+          });
+          setAccessoiresEquipement(accessoiresParEquipement);
+        }
+        
+        console.log('✅ Données Supabase chargées avec succès');
+      } catch (error) {
+        console.error('Erreur chargement Supabase:', error);
+        // En cas d'erreur, utiliser les données locales
+      }
+    };
+    
+    chargerDonneesCompletes();
+  }, []);
   const depots = ['Atelier', 'Porteur 26 T', 'Porteur 32 T', 'Semi Remorque'];
   
   const [articles, setArticles] = useState([
@@ -346,8 +281,8 @@ useEffect(() => {
     document.head.appendChild(script);
   }, []);
 
-  // ✅ FONCTION CRÉER/MODIFIER ÉQUIPEMENT
-  const creerOuModifierEquipement = () => {
+  // ✅ FONCTION CRÉER/MODIFIER ÉQUIPEMENT AVEC SYNCHRONISATION SUPABASE
+  const creerOuModifierEquipement = async () => {
     if (!nouvelEquipement.immat || !nouvelEquipement.type) {
       alert('⚠️ Immatriculation et Type sont obligatoires!');
       return;
@@ -366,30 +301,49 @@ useEffect(() => {
 
     if (modeEdition) {
       // MODE ÉDITION: Mettre à jour l'équipement
-      updateEquipements(equipements.map(e => 
+      const equipementMisAJour = {
+        id: equipementEnEdition.id,
+        immat: nouvelEquipement.immat,
+        type: nouvelEquipement.type,
+        marque: nouvelEquipement.marque || '',
+        modele: nouvelEquipement.modele || '',
+        annee: nouvelEquipement.annee ? parseInt(nouvelEquipement.annee) : 0,
+        km: nouvelEquipement.km ? parseInt(nouvelEquipement.km) : 0,
+        heures: nouvelEquipement.heures ? parseInt(nouvelEquipement.heures) : 0,
+        carburant: nouvelEquipement.carburant || '',
+        vin: nouvelEquipement.vin || '',
+        ptac: nouvelEquipement.ptac ? parseInt(nouvelEquipement.ptac) : 0,
+        poids: nouvelEquipement.poids ? parseInt(nouvelEquipement.poids) : 0,
+        proprietaire: nouvelEquipement.proprietaire || 'SOLAIRE NETTOYAGE',
+        valeur_achat: nouvelEquipement.valeurAchat ? parseFloat(nouvelEquipement.valeurAchat) : 0,
+        valeur_actuelle: nouvelEquipement.valeurActuelle ? parseFloat(nouvelEquipement.valeurActuelle) : 0,
+        type_financement: nouvelEquipement.typeFinancement || '',
+        cout_mensuel: nouvelEquipement.coutMensuel ? parseFloat(nouvelEquipement.coutMensuel) : 0,
+        date_debut: nouvelEquipement.dateDebut || new Date().toISOString().split('T')[0],
+        date_fin: nouvelEquipement.dateFin || '',
+        assurance: nouvelEquipement.assurance ? parseFloat(nouvelEquipement.assurance) : 0,
+        date_contracte_technique: nouvelEquipement.dateContracteTechnique || '',
+        notes: nouvelEquipement.notes || ''
+      };
+      
+      // Synchroniser avec Supabase
+      try {
+        await supabase.from('equipements').update(equipementMisAJour).eq('id', equipementEnEdition.id);
+      } catch (error) {
+        console.error('Erreur sync Supabase:', error);
+      }
+      
+      // Mettre à jour localement (format avec clés camelCase pour l'interface)
+      setEquipements(equipements.map(e => 
         e.id === equipementEnEdition.id ? {
-          id: e.id, // ID inchangé
-          immat: nouvelEquipement.immat,
-          type: nouvelEquipement.type,
-          marque: nouvelEquipement.marque || '',
-          modele: nouvelEquipement.modele || '',
-          annee: nouvelEquipement.annee ? parseInt(nouvelEquipement.annee) : 0,
-          km: nouvelEquipement.km ? parseInt(nouvelEquipement.km) : 0,
-          heures: nouvelEquipement.heures ? parseInt(nouvelEquipement.heures) : 0,
-          carburant: nouvelEquipement.carburant || '',
-          vin: nouvelEquipement.vin || '',
-          ptac: nouvelEquipement.ptac ? parseInt(nouvelEquipement.ptac) : 0,
-          poids: nouvelEquipement.poids ? parseInt(nouvelEquipement.poids) : 0,
-          proprietaire: nouvelEquipement.proprietaire || 'SOLAIRE NETTOYAGE',
-          valeurAchat: nouvelEquipement.valeurAchat ? parseFloat(nouvelEquipement.valeurAchat) : 0,
-          valeurActuelle: nouvelEquipement.valeurActuelle ? parseFloat(nouvelEquipement.valeurActuelle) : 0,
-          typeFinancement: nouvelEquipement.typeFinancement || '',
-          coutMensuel: nouvelEquipement.coutMensuel ? parseFloat(nouvelEquipement.coutMensuel) : 0,
-          dateDebut: nouvelEquipement.dateDebut || new Date().toISOString().split('T')[0],
-          dateFin: nouvelEquipement.dateFin || '',
-          assurance: nouvelEquipement.assurance ? parseFloat(nouvelEquipement.assurance) : 0,
-          dateContracteTechnique: nouvelEquipement.dateContracteTechnique || '',
-          notes: nouvelEquipement.notes || ''
+          ...equipementMisAJour,
+          valeurAchat: equipementMisAJour.valeur_achat,
+          valeurActuelle: equipementMisAJour.valeur_actuelle,
+          typeFinancement: equipementMisAJour.type_financement,
+          coutMensuel: equipementMisAJour.cout_mensuel,
+          dateDebut: equipementMisAJour.date_debut,
+          dateFin: equipementMisAJour.date_fin,
+          dateContracteTechnique: equipementMisAJour.date_contracte_technique
         } : e
       ));
       alert('✅ Équipement modifié avec succès!');
@@ -411,18 +365,36 @@ useEffect(() => {
         ptac: nouvelEquipement.ptac ? parseInt(nouvelEquipement.ptac) : 0,
         poids: nouvelEquipement.poids ? parseInt(nouvelEquipement.poids) : 0,
         proprietaire: nouvelEquipement.proprietaire || 'SOLAIRE NETTOYAGE',
-        valeurAchat: nouvelEquipement.valeurAchat ? parseFloat(nouvelEquipement.valeurAchat) : 0,
-        valeurActuelle: nouvelEquipement.valeurActuelle ? parseFloat(nouvelEquipement.valeurActuelle) : 0,
-        typeFinancement: nouvelEquipement.typeFinancement || '',
-        coutMensuel: nouvelEquipement.coutMensuel ? parseFloat(nouvelEquipement.coutMensuel) : 0,
-        dateDebut: nouvelEquipement.dateDebut || new Date().toISOString().split('T')[0],
-        dateFin: nouvelEquipement.dateFin || '',
+        valeur_achat: nouvelEquipement.valeurAchat ? parseFloat(nouvelEquipement.valeurAchat) : 0,
+        valeur_actuelle: nouvelEquipement.valeurActuelle ? parseFloat(nouvelEquipement.valeurActuelle) : 0,
+        type_financement: nouvelEquipement.typeFinancement || '',
+        cout_mensuel: nouvelEquipement.coutMensuel ? parseFloat(nouvelEquipement.coutMensuel) : 0,
+        date_debut: nouvelEquipement.dateDebut || new Date().toISOString().split('T')[0],
+        date_fin: nouvelEquipement.dateFin || '',
         assurance: nouvelEquipement.assurance ? parseFloat(nouvelEquipement.assurance) : 0,
-        dateContracteTechnique: nouvelEquipement.dateContracteTechnique || '',
+        date_contracte_technique: nouvelEquipement.dateContracteTechnique || '',
         notes: nouvelEquipement.notes || ''
       };
 
-      updateEquipements([...equipements, equipement]);
+      // Synchroniser avec Supabase
+      try {
+        await supabase.from('equipements').insert([equipement]);
+      } catch (error) {
+        console.error('Erreur sync Supabase:', error);
+      }
+
+      // Ajouter localement (format avec clés camelCase pour l'interface)
+      const equipementLocal = {
+        ...equipement,
+        valeurAchat: equipement.valeur_achat,
+        valeurActuelle: equipement.valeur_actuelle,
+        typeFinancement: equipement.type_financement,
+        coutMensuel: equipement.cout_mensuel,
+        dateDebut: equipement.date_debut,
+        dateFin: equipement.date_fin,
+        dateContracteTechnique: equipement.date_contracte_technique
+      };
+      setEquipements([...equipements, equipementLocal]);
       setAccessoiresEquipement({...accessoiresEquipement, [nouvelId]: []});
       alert('✅ Équipement créé avec succès!');
     }
@@ -517,8 +489,8 @@ useEffect(() => {
     setAfficherFormulaireEquipement(false);
   };
 
-  // ✅ FONCTION CRÉER/MODIFIER ARTICLE
-  const creerOuModifierArticle = () => {
+  // ✅ FONCTION CRÉER/MODIFIER ARTICLE AVEC SYNCHRONISATION SUPABASE
+  const creerOuModifierArticle = async () => {
     if (!nouvelArticleForm.code || !nouvelArticleForm.description) {
       alert('⚠️ Code et Description sont obligatoires!');
       return;
@@ -537,17 +509,33 @@ useEffect(() => {
 
     if (modeEditionArticle) {
       // MODE ÉDITION: Mettre à jour l'article
-      updateArticles(articles.map(a => 
-    
+      const articleMisAJour = {
+        id: articleFormEnEdition.id,
+        code: nouvelArticleForm.code,
+        description: nouvelArticleForm.description,
+        fournisseur: nouvelArticleForm.fournisseur || '',
+        prix_unitaire: nouvelArticleForm.prixUnitaire ? parseFloat(nouvelArticleForm.prixUnitaire) : 0,
+        stock_par_depot: articleFormEnEdition.stockParDepot,
+        stock_min: nouvelArticleForm.stockMin ? parseInt(nouvelArticleForm.stockMin) : 0,
+        equipements_affectes: articleFormEnEdition.equipementsAffectes
+      };
+      
+      // Synchroniser avec Supabase
+      try {
+        await supabase.from('articles').update(articleMisAJour).eq('id', articleFormEnEdition.id);
+      } catch (error) {
+        console.error('Erreur sync Supabase:', error);
+      }
+      
+      // Mettre à jour localement
+      setArticles(articles.map(a => 
         a.id === articleFormEnEdition.id ? {
-          id: a.id, // ID inchangé
+          ...a,
           code: nouvelArticleForm.code,
           description: nouvelArticleForm.description,
           fournisseur: nouvelArticleForm.fournisseur || '',
           prixUnitaire: nouvelArticleForm.prixUnitaire ? parseFloat(nouvelArticleForm.prixUnitaire) : 0,
-          stockParDepot: a.stockParDepot, // ← CONSERVÉ
-          stockMin: nouvelArticleForm.stockMin ? parseInt(nouvelArticleForm.stockMin) : 0,
-          equipementsAffectes: a.equipementsAffectes // ← CONSERVÉ
+          stockMin: nouvelArticleForm.stockMin ? parseInt(nouvelArticleForm.stockMin) : 0
         } : a
       ));
       alert('✅ Article modifié avec succès!');
@@ -560,13 +548,27 @@ useEffect(() => {
         code: nouvelArticleForm.code,
         description: nouvelArticleForm.description,
         fournisseur: nouvelArticleForm.fournisseur || '',
-        prixUnitaire: nouvelArticleForm.prixUnitaire ? parseFloat(nouvelArticleForm.prixUnitaire) : 0,
-        stockParDepot: { 'Atelier': 0, 'Véhicule 1': 0, 'Véhicule 2': 0, 'Véhicule 3': 0 },
-        stockMin: nouvelArticleForm.stockMin ? parseInt(nouvelArticleForm.stockMin) : 0,
-        equipementsAffectes: []
+        prix_unitaire: nouvelArticleForm.prixUnitaire ? parseFloat(nouvelArticleForm.prixUnitaire) : 0,
+        stock_par_depot: { 'Atelier': 0, 'Porteur 26 T': 0, 'Porteur 32 T': 0, 'Semi Remorque': 0 },
+        stock_min: nouvelArticleForm.stockMin ? parseInt(nouvelArticleForm.stockMin) : 0,
+        equipements_affectes: []
       };
+      
+      // Synchroniser avec Supabase
+      try {
+        await supabase.from('articles').insert([article]);
+      } catch (error) {
+        console.error('Erreur sync Supabase:', error);
+      }
 
-      updateArticles([...articles, article]);
+      // Ajouter localement
+      setArticles([...articles, {
+        ...article,
+        prixUnitaire: article.prix_unitaire,
+        stockParDepot: article.stock_par_depot,
+        stockMin: article.stock_min,
+        equipementsAffectes: article.equipements_affectes
+      }]);
       alert('✅ Article créé avec succès!');
     }
 
@@ -638,7 +640,7 @@ useEffect(() => {
     return depots.reduce((sum, depot) => sum + (article.stockParDepot[depot] || 0), 0);
   };
 
-  const declareDefaut = () => {
+  const declareDefaut = async () => {
     if (!nouveauDefaut.equipementId || !nouveauDefaut.type || !nouveauDefaut.description) {
       alert('Équipement, type et description requis');
       return;
@@ -646,29 +648,54 @@ useEffect(() => {
 
     const newDefaut = {
       id: defauts.length > 0 ? Math.max(...defauts.map(d => d.id)) + 1 : 1,
-      equipementId: parseInt(nouveauDefaut.equipementId),
-      accessoireId: nouveauDefaut.accessoireId ? parseInt(nouveauDefaut.accessoireId) : null,
+      equipement_id: parseInt(nouveauDefaut.equipementId),
+      accessoire_id: nouveauDefaut.accessoireId ? parseInt(nouveauDefaut.accessoireId) : null,
       type: nouveauDefaut.type,
       severite: nouveauDefaut.severite,
       description: nouveauDefaut.description,
       localisation: nouveauDefaut.localisation,
-      dateConstatation: nouveauDefaut.dateConstatation,
+      date_constatation: nouveauDefaut.dateConstatation,
       operateur: nouveauDefaut.operateur,
       remarques: nouveauDefaut.remarques,
       photos: photosSelectionnees,
       statut: 'a_traiter',
-      interventionLieeId: null,
-      dateArchivage: null
+      intervention_liee_id: null,
+      date_archivage: null
     };
 
-    updateDefauts([...defauts, newDefaut]);
+    // Synchroniser avec Supabase
+    try {
+      await supabase.from('defauts').insert([newDefaut]);
+    } catch (error) {
+      console.error('Erreur sync Supabase:', error);
+    }
+
+    setDefauts([...defauts, {
+      ...newDefaut,
+      equipementId: newDefaut.equipement_id,
+      accessoireId: newDefaut.accessoire_id,
+      dateConstatation: newDefaut.date_constatation,
+      interventionLieeId: newDefaut.intervention_liee_id,
+      dateArchivage: newDefaut.date_archivage
+    }]);
     setNouveauDefaut({ equipementId: '', accessoireId: '', type: 'Fuite', severite: 'moyen', description: '', localisation: '', dateConstatation: new Date().toISOString().split('T')[0], operateur: 'Axel', remarques: '', photosNoms: [] });
     setPhotosSelectionnees([]);
     alert('✅ Défaut signalé!');
   };
 
-  const resoudreDefaut = (defautId) => {
-    updateDefauts(defauts.map(d => d.id === defautId ? { ...d, statut: 'resolu', dateArchivage: new Date().toISOString().split('T')[0] } : d));
+  const resoudreDefaut = async (defautId) => {
+    const dateArchivage = new Date().toISOString().split('T')[0];
+    
+    // Synchroniser avec Supabase
+    try {
+      await supabase.from('defauts')
+        .update({ statut: 'resolu', date_archivage: dateArchivage })
+        .eq('id', defautId);
+    } catch (error) {
+      console.error('Erreur sync Supabase:', error);
+    }
+    
+    setDefauts(defauts.map(d => d.id === defautId ? { ...d, statut: 'resolu', dateArchivage } : d));
   };
 
   const creerInterventionDepuisDefaut = (defaut) => {
@@ -698,15 +725,15 @@ useEffect(() => {
   }, [articles]);
 
   const getArticlesDisponiblesCallback = useCallback(() => {
-  if (afficherArticlesEquipement && nouvelleIntervention.equipementId) {
-    const selectedId = parseInt(nouvelleIntervention.equipementId);
-    if (selectedId === 999) {
-      return articles.filter(a => (a.equipementsAffectes || []).includes(6) || (a.equipementsAffectes || []).includes(999));
+    if (afficherArticlesEquipement && nouvelleIntervention.equipementId) {
+      const selectedId = parseInt(nouvelleIntervention.equipementId);
+      if (selectedId === 999) {
+        return articles.filter(a => a.equipementsAffectes.includes(6) || a.equipementsAffectes.includes(999));
+      }
+      return articles.filter(a => a.equipementsAffectes.includes(selectedId));
     }
-    return articles.filter(a => (a.equipementsAffectes || []).includes(selectedId));
-  }
-  return articles;
-}, [articles, afficherArticlesEquipement, nouvelleIntervention.equipementId]);
+    return articles;
+  }, [articles, afficherArticlesEquipement, nouvelleIntervention.equipementId]);
 
   const traiterScanQRIntervention = useCallback((code) => {
     const article = getArticlesDisponiblesCallback().find(a => a.code === code);
@@ -863,7 +890,7 @@ useEffect(() => {
   const alertesVigilance = alertesTotales.filter(a => a.severite === 'vigilance');
   const alertesFiltrees = appliquerFiltresAlertes(alertesTotales);
 
-  const effectuerTransfertRapide = () => {
+  const effectuerTransfertRapide = async () => {
     if (!transfertRapideData.quantite || transfertRapideData.depotSource === transfertRapideData.depotDestination) {
       alert('Quantité et dépôts différents requis');
       return;
@@ -873,8 +900,41 @@ useEffect(() => {
       alert('Stock insuffisant!');
       return;
     }
-    updateArticles(articles.map(a => a.id === articleEnTransfertAlerte.id ? { ...a, stockParDepot: { ...a.stockParDepot, [transfertRapideData.depotSource]: (a.stockParDepot[transfertRapideData.depotSource] || 0) - quantite, [transfertRapideData.depotDestination]: (a.stockParDepot[transfertRapideData.depotDestination] || 0) + quantite } } : a));
-    updateMouvements([...mouvementsStock, { id: mouvementsStock.length + 1, articleId: articleEnTransfertAlerte.id, type: 'transfer', quantite, date: new Date().toISOString().split('T')[0], raison: `Transfert rapide alerte`, coutTotal: 0, depotSource: transfertRapideData.depotSource, depotDestination: transfertRapideData.depotDestination }]);
+    
+    const nouveauStock = {
+      ...articleEnTransfertAlerte.stockParDepot,
+      [transfertRapideData.depotSource]: (articleEnTransfertAlerte.stockParDepot[transfertRapideData.depotSource] || 0) - quantite,
+      [transfertRapideData.depotDestination]: (articleEnTransfertAlerte.stockParDepot[transfertRapideData.depotDestination] || 0) + quantite
+    };
+    
+    const nouveauMouvement = {
+      id: mouvementsStock.length + 1,
+      article_id: articleEnTransfertAlerte.id,
+      type: 'transfer',
+      quantite,
+      date: new Date().toISOString().split('T')[0],
+      raison: `Transfert rapide alerte`,
+      cout_total: 0,
+      depot_source: transfertRapideData.depotSource,
+      depot_destination: transfertRapideData.depotDestination
+    };
+    
+    // Synchroniser avec Supabase
+    try {
+      await supabase.from('mouvements_stock').insert([nouveauMouvement]);
+      await supabase.from('articles').update({ stock_par_depot: nouveauStock }).eq('id', articleEnTransfertAlerte.id);
+    } catch (error) {
+      console.error('Erreur sync Supabase:', error);
+    }
+    
+    setArticles(articles.map(a => a.id === articleEnTransfertAlerte.id ? { ...a, stockParDepot: nouveauStock } : a));
+    setMouvementsStock([...mouvementsStock, { 
+      ...nouveauMouvement,
+      articleId: nouveauMouvement.article_id,
+      coutTotal: 0,
+      depotSource: nouveauMouvement.depot_source,
+      depotDestination: nouveauMouvement.depot_destination
+    }]);
     alert(`✅ ${quantite} ${articleEnTransfertAlerte.code} transférés!`);
     setArticleEnTransfertAlerte(null);
     setTransfertRapideData({ depotSource: 'Atelier', depotDestination: 'Porteur 26 T', quantite: '' });
@@ -894,7 +954,7 @@ useEffect(() => {
       return;
     }
 
-    updateArticles(articles.map(a => a.id === article.id ? { ...a, stockParDepot: { ...a.stockParDepot, [nouvelleIntervention.depotPrelevement]: stockDispo - quantite } } : a));
+    setArticles(articles.map(a => a.id === article.id ? { ...a, stockParDepot: { ...a.stockParDepot, [nouvelleIntervention.depotPrelevement]: stockDispo - quantite } } : a));
 
     setNouvelleIntervention({
       ...nouvelleIntervention, 
@@ -1013,10 +1073,19 @@ useEffect(() => {
     setArticleEnEdition({ ...article, stockMinTemp: article.stockMin });
   };
 
-  const sauvegarderStockMin = () => {
+  const sauvegarderStockMin = async () => {
     if (articleEnEdition && articleEnEdition.stockMinTemp >= 0) {
-      updateArticles(articles.map(a => 
-        a.id === articleEnEdition.id ? { ...a, stockMin: parseInt(articleEnEdition.stockMinTemp) } : a
+      const nouveauStockMin = parseInt(articleEnEdition.stockMinTemp);
+      
+      // Synchroniser avec Supabase
+      try {
+        await supabase.from('articles').update({ stock_min: nouveauStockMin }).eq('id', articleEnEdition.id);
+      } catch (error) {
+        console.error('Erreur sync Supabase:', error);
+      }
+      
+      setArticles(articles.map(a => 
+        a.id === articleEnEdition.id ? { ...a, stockMin: nouveauStockMin } : a
       ));
       setArticleEnEdition(null);
     }
@@ -1055,71 +1124,261 @@ useEffect(() => {
     }
   };
 
-  const enregistrerEntreeStockScan = () => {
+  const enregistrerEntreeStockScan = async () => {
     if (!formScanEntree.quantite || !formScanEntree.prixUnitaire) { alert('Quantité et prix requis'); return; }
     const quantite = parseInt(formScanEntree.quantite);
     const coutTotal = parseFloat(formScanEntree.prixUnitaire) * quantite;
-    updateArticles(articles.map(a => a.id === scanResultat.article.id ? { ...a, stockParDepot: { ...a.stockParDepot, [formScanEntree.depot]: (a.stockParDepot[formScanEntree.depot] || 0) + quantite } } : a));
-    updateMouvements([...mouvementsStock, { id: mouvementsStock.length + 1, articleId: scanResultat.article.id, type: 'entree', quantite, date: formScanEntree.date, raison: formScanEntree.raison, coutTotal, depot: formScanEntree.depot }]);
+    const article = scanResultat.article;
+    
+    const nouveauStock = {
+      ...article.stockParDepot,
+      [formScanEntree.depot]: (article.stockParDepot[formScanEntree.depot] || 0) + quantite
+    };
+    
+    const nouveauMouvement = {
+      id: mouvementsStock.length + 1,
+      article_id: article.id,
+      type: 'entree',
+      quantite,
+      date: formScanEntree.date,
+      raison: formScanEntree.raison,
+      cout_total: coutTotal,
+      depot: formScanEntree.depot
+    };
+    
+    // Synchroniser avec Supabase
+    try {
+      await supabase.from('mouvements_stock').insert([nouveauMouvement]);
+      await supabase.from('articles').update({ stock_par_depot: nouveauStock }).eq('id', article.id);
+    } catch (error) {
+      console.error('Erreur sync Supabase:', error);
+    }
+    
+    setArticles(articles.map(a => a.id === article.id ? { ...a, stockParDepot: nouveauStock } : a));
+    setMouvementsStock([...mouvementsStock, { 
+      ...nouveauMouvement,
+      articleId: nouveauMouvement.article_id,
+      coutTotal: nouveauMouvement.cout_total
+    }]);
     alert(`✅ +${quantite} ${scanResultat.article.code}`);
     setScanResultat(null);
     setActionScan(null);
     setFormScanEntree({ quantite: '', prixUnitaire: '', raison: '', date: new Date().toISOString().split('T')[0], depot: 'Atelier' });
   };
 
-  const enregistrerSortieStockScan = () => {
+  const enregistrerSortieStockScan = async () => {
     if (!formScanSortie.quantite) { alert('Quantité requise'); return; }
     const quantite = parseInt(formScanSortie.quantite);
-    if ((scanResultat.article.stockParDepot[formScanSortie.depot] || 0) < quantite) { alert('Stock insuffisant!'); return; }
-    updateArticles(articles.map(a => a.id === scanResultat.article.id ? { ...a, stockParDepot: { ...a.stockParDepot, [formScanSortie.depot]: (a.stockParDepot[formScanSortie.depot] || 0) - quantite } } : a));
-    updateMouvements([...mouvementsStock, { id: mouvementsStock.length + 1, articleId: scanResultat.article.id, type: 'sortie', quantite, date: formScanSortie.date, raison: formScanSortie.raison, coutTotal: 0, depot: formScanSortie.depot }]);
+    const article = scanResultat.article;
+    if ((article.stockParDepot[formScanSortie.depot] || 0) < quantite) { alert('Stock insuffisant!'); return; }
+    
+    const nouveauStock = {
+      ...article.stockParDepot,
+      [formScanSortie.depot]: (article.stockParDepot[formScanSortie.depot] || 0) - quantite
+    };
+    
+    const nouveauMouvement = {
+      id: mouvementsStock.length + 1,
+      article_id: article.id,
+      type: 'sortie',
+      quantite,
+      date: formScanSortie.date,
+      raison: formScanSortie.raison,
+      cout_total: 0,
+      depot: formScanSortie.depot
+    };
+    
+    // Synchroniser avec Supabase
+    try {
+      await supabase.from('mouvements_stock').insert([nouveauMouvement]);
+      await supabase.from('articles').update({ stock_par_depot: nouveauStock }).eq('id', article.id);
+    } catch (error) {
+      console.error('Erreur sync Supabase:', error);
+    }
+    
+    setArticles(articles.map(a => a.id === article.id ? { ...a, stockParDepot: nouveauStock } : a));
+    setMouvementsStock([...mouvementsStock, { 
+      ...nouveauMouvement,
+      articleId: nouveauMouvement.article_id,
+      coutTotal: 0
+    }]);
     alert(`✅ -${quantite} ${scanResultat.article.code}`);
     setScanResultat(null);
     setActionScan(null);
     setFormScanSortie({ quantite: '', raison: '', date: new Date().toISOString().split('T')[0], depot: 'Atelier' });
   };
 
-  const enregistrerTransfertStockScan = () => {
+  const enregistrerTransfertStockScan = async () => {
     if (!formScanTransfert.quantite || formScanTransfert.depotSource === formScanTransfert.depotDestination) { alert('Quantité et dépôts différents requis'); return; }
     const quantite = parseInt(formScanTransfert.quantite);
-    if ((scanResultat.article.stockParDepot[formScanTransfert.depotSource] || 0) < quantite) { alert('Stock insuffisant!'); return; }
-    updateArticles(articles.map(a => a.id === scanResultat.article.id ? { ...a, stockParDepot: { ...a.stockParDepot, [formScanTransfert.depotSource]: (a.stockParDepot[formScanTransfert.depotSource] || 0) - quantite, [formScanTransfert.depotDestination]: (a.stockParDepot[formScanTransfert.depotDestination] || 0) + quantite } } : a));
-    updateMouvements([...mouvementsStock, { id: mouvementsStock.length + 1, articleId: scanResultat.article.id, type: 'transfer', quantite, date: new Date().toISOString().split('T')[0], raison: `Transfert`, coutTotal: 0, depotSource: formScanTransfert.depotSource, depotDestination: formScanTransfert.depotDestination }]);
+    const article = scanResultat.article;
+    if ((article.stockParDepot[formScanTransfert.depotSource] || 0) < quantite) { alert('Stock insuffisant!'); return; }
+    
+    const nouveauStock = {
+      ...article.stockParDepot,
+      [formScanTransfert.depotSource]: (article.stockParDepot[formScanTransfert.depotSource] || 0) - quantite,
+      [formScanTransfert.depotDestination]: (article.stockParDepot[formScanTransfert.depotDestination] || 0) + quantite
+    };
+    
+    const nouveauMouvement = {
+      id: mouvementsStock.length + 1,
+      article_id: article.id,
+      type: 'transfer',
+      quantite,
+      date: new Date().toISOString().split('T')[0],
+      raison: `Transfert`,
+      cout_total: 0,
+      depot_source: formScanTransfert.depotSource,
+      depot_destination: formScanTransfert.depotDestination
+    };
+    
+    // Synchroniser avec Supabase
+    try {
+      await supabase.from('mouvements_stock').insert([nouveauMouvement]);
+      await supabase.from('articles').update({ stock_par_depot: nouveauStock }).eq('id', article.id);
+    } catch (error) {
+      console.error('Erreur sync Supabase:', error);
+    }
+    
+    setArticles(articles.map(a => a.id === article.id ? { ...a, stockParDepot: nouveauStock } : a));
+    setMouvementsStock([...mouvementsStock, { 
+      ...nouveauMouvement,
+      articleId: nouveauMouvement.article_id,
+      coutTotal: 0,
+      depotSource: nouveauMouvement.depot_source,
+      depotDestination: nouveauMouvement.depot_destination
+    }]);
     alert(`✅ ${quantite} ${scanResultat.article.code}`);
     setScanResultat(null);
     setActionScan(null);
-    setFormScanTransfert({ quantite: '', depotSource: 'Atelier', depotDestination: 'Véhicule 1' });
+    setFormScanTransfert({ quantite: '', depotSource: 'Atelier', depotDestination: 'Porteur 26 T' });
   };
 
-  const enregistrerEntreeStock = () => {
+  const enregistrerEntreeStock = async () => {
     if (nouvelleEntreeStock.articleId && nouvelleEntreeStock.quantite && nouvelleEntreeStock.prixUnitaire) {
       const quantite = parseInt(nouvelleEntreeStock.quantite);
       const coutTotal = parseFloat(nouvelleEntreeStock.prixUnitaire) * quantite;
-      updateArticles(articles.map(a => a.id === parseInt(nouvelleEntreeStock.articleId) ? { ...a, stockParDepot: { ...a.stockParDepot, [nouvelleEntreeStock.depot]: (a.stockParDepot[nouvelleEntreeStock.depot] || 0) + quantite } } : a));
-      updateMouvements([...mouvementsStock, { id: mouvementsStock.length + 1, articleId: parseInt(nouvelleEntreeStock.articleId), type: 'entree', quantite, date: nouvelleEntreeStock.date, raison: nouvelleEntreeStock.raison, coutTotal, depot: nouvelleEntreeStock.depot }]);
+      const articleId = parseInt(nouvelleEntreeStock.articleId);
+      
+      // Mise à jour locale
+      const articleMisAJour = articles.find(a => a.id === articleId);
+      const nouveauStock = {
+        ...articleMisAJour.stockParDepot,
+        [nouvelleEntreeStock.depot]: (articleMisAJour.stockParDepot[nouvelleEntreeStock.depot] || 0) + quantite
+      };
+      
+      setArticles(articles.map(a => a.id === articleId ? { ...a, stockParDepot: nouveauStock } : a));
+      
+      // Créer le mouvement
+      const nouveauMouvement = {
+        id: mouvementsStock.length + 1,
+        article_id: articleId,
+        type: 'entree',
+        quantite,
+        date: nouvelleEntreeStock.date,
+        raison: nouvelleEntreeStock.raison,
+        cout_total: coutTotal,
+        depot: nouvelleEntreeStock.depot
+      };
+      
+      // Synchroniser avec Supabase
+      try {
+        await supabase.from('mouvements_stock').insert([nouveauMouvement]);
+        await supabase.from('articles').update({ stock_par_depot: nouveauStock }).eq('id', articleId);
+      } catch (error) {
+        console.error('Erreur sync Supabase:', error);
+      }
+      
+      setMouvementsStock([...mouvementsStock, { 
+        ...nouveauMouvement, 
+        articleId: nouveauMouvement.article_id, 
+        coutTotal: nouveauMouvement.cout_total 
+      }]);
       setNouvelleEntreeStock({ articleId: '', quantite: '', prixUnitaire: '', raison: '', date: new Date().toISOString().split('T')[0], depot: 'Atelier' });
     }
   };
 
-  const enregistrerSortieStock = () => {
+  const enregistrerSortieStock = async () => {
     if (nouveauMouvementSortie.articleId && nouveauMouvementSortie.quantite) {
       const article = articles.find(a => a.id === parseInt(nouveauMouvementSortie.articleId));
       const quantite = parseInt(nouveauMouvementSortie.quantite);
       if ((article.stockParDepot[nouveauMouvementSortie.depot] || 0) < quantite) { alert('Stock insuffisant!'); return; }
-      updateArticles(articles.map(a => a.id === parseInt(nouveauMouvementSortie.articleId) ? { ...a, stockParDepot: { ...a.stockParDepot, [nouveauMouvementSortie.depot]: (a.stockParDepot[nouveauMouvementSortie.depot] || 0) - quantite } } : a));
-      updateMouvements([...mouvementsStock, { id: mouvementsStock.length + 1, articleId: parseInt(nouveauMouvementSortie.articleId), type: 'sortie', quantite, date: nouveauMouvementSortie.date, raison: nouveauMouvementSortie.raison, coutTotal: 0, depot: nouveauMouvementSortie.depot }]);
+      
+      const nouveauStock = {
+        ...article.stockParDepot,
+        [nouveauMouvementSortie.depot]: (article.stockParDepot[nouveauMouvementSortie.depot] || 0) - quantite
+      };
+      
+      const nouveauMouvement = {
+        id: mouvementsStock.length + 1,
+        article_id: parseInt(nouveauMouvementSortie.articleId),
+        type: 'sortie',
+        quantite,
+        date: nouveauMouvementSortie.date,
+        raison: nouveauMouvementSortie.raison,
+        cout_total: 0,
+        depot: nouveauMouvementSortie.depot
+      };
+      
+      // Synchroniser avec Supabase
+      try {
+        await supabase.from('mouvements_stock').insert([nouveauMouvement]);
+        await supabase.from('articles').update({ stock_par_depot: nouveauStock }).eq('id', article.id);
+      } catch (error) {
+        console.error('Erreur sync Supabase:', error);
+      }
+      
+      setArticles(articles.map(a => a.id === article.id ? { ...a, stockParDepot: nouveauStock } : a));
+      setMouvementsStock([...mouvementsStock, { 
+        ...nouveauMouvement, 
+        articleId: nouveauMouvement.article_id, 
+        coutTotal: 0 
+      }]);
       setNouveauMouvementSortie({ articleId: '', quantite: '', raison: '', date: new Date().toISOString().split('T')[0], depot: 'Atelier' });
     }
   };
 
-  const enregistrerTransfertStock = () => {
+  const enregistrerTransfertStock = async () => {
     if (nouveauTransfert.articleId && nouveauTransfert.quantite && nouveauTransfert.depotSource !== nouveauTransfert.depotDestination) {
       const article = articles.find(a => a.id === parseInt(nouveauTransfert.articleId));
       const quantite = parseInt(nouveauTransfert.quantite);
       if ((article.stockParDepot[nouveauTransfert.depotSource] || 0) < quantite) { alert('Stock insuffisant!'); return; }
-      updateArticles(articles.map(a => a.id === parseInt(nouveauTransfert.articleId) ? { ...a, stockParDepot: { ...a.stockParDepot, [nouveauTransfert.depotSource]: (a.stockParDepot[nouveauTransfert.depotSource] || 0) - quantite, [nouveauTransfert.depotDestination]: (a.stockParDepot[nouveauTransfert.depotDestination] || 0) + quantite } } : a));
-      updateMouvements([...mouvementsStock, { id: mouvementsStock.length + 1, articleId: parseInt(nouveauTransfert.articleId), type: 'transfer', quantite, date: nouveauTransfert.date, raison: `Transfert`, coutTotal: 0, depotSource: nouveauTransfert.depotSource, depotDestination: nouveauTransfert.depotDestination }]);
-      setNouveauTransfert({ articleId: '', quantite: '', depotSource: 'Atelier', depotDestination: 'Véhicule 1', raison: '', date: new Date().toISOString().split('T')[0] });
+      
+      const nouveauStock = {
+        ...article.stockParDepot,
+        [nouveauTransfert.depotSource]: (article.stockParDepot[nouveauTransfert.depotSource] || 0) - quantite,
+        [nouveauTransfert.depotDestination]: (article.stockParDepot[nouveauTransfert.depotDestination] || 0) + quantite
+      };
+      
+      const nouveauMouvement = {
+        id: mouvementsStock.length + 1,
+        article_id: parseInt(nouveauTransfert.articleId),
+        type: 'transfer',
+        quantite,
+        date: nouveauTransfert.date,
+        raison: `Transfert`,
+        cout_total: 0,
+        depot_source: nouveauTransfert.depotSource,
+        depot_destination: nouveauTransfert.depotDestination
+      };
+      
+      // Synchroniser avec Supabase
+      try {
+        await supabase.from('mouvements_stock').insert([nouveauMouvement]);
+        await supabase.from('articles').update({ stock_par_depot: nouveauStock }).eq('id', article.id);
+      } catch (error) {
+        console.error('Erreur sync Supabase:', error);
+      }
+      
+      setArticles(articles.map(a => a.id === article.id ? { ...a, stockParDepot: nouveauStock } : a));
+      setMouvementsStock([...mouvementsStock, { 
+        ...nouveauMouvement,
+        articleId: nouveauMouvement.article_id,
+        coutTotal: 0,
+        depotSource: nouveauMouvement.depot_source,
+        depotDestination: nouveauMouvement.depot_destination
+      }]);
+      setNouveauTransfert({ articleId: '', quantite: '', depotSource: 'Atelier', depotDestination: 'Porteur 26 T', raison: '', date: new Date().toISOString().split('T')[0] });
     }
   };
 
@@ -1137,44 +1396,142 @@ useEffect(() => {
     setNouvelleIntervention({...nouvelleIntervention, articlesPrevu: nouvelleIntervention.articlesPrevu.filter((_, i) => i !== index)});
   };
 
-  const creerIntervention = () => {
+  const creerIntervention = async () => {
     if (!nouvelleIntervention.equipementId || !nouvelleIntervention.type) { alert('Veuillez sélectionner un équipement et un type'); return; }
     const interventionId = interventions.length > 0 ? Math.max(...interventions.map(i => i.id)) + 1 : 1;
     const coutTotal = nouvelleIntervention.articlesPrevu.reduce((sum, art) => sum + (art.quantite * art.prixUnitaire), 0);
+    
+    // Mise à jour des stocks
     let nouvelStock = articles;
     nouvelleIntervention.articlesPrevu.forEach(art => {
       if (!art.articleScanned) {
-        nouvelStock = nouvelStock.map(a => a.id === art.articleId ? { ...a, stockParDepot: { ...a.stockParDepot, [nouvelleIntervention.depotPrelevement]: (a.stockParDepot[nouvelleIntervention.depotPrelevement] || 0) - art.quantite } } : a);
+        nouvelStock = nouvelStock.map(a => a.id === art.articleId ? { 
+          ...a, 
+          stockParDepot: { 
+            ...a.stockParDepot, 
+            [nouvelleIntervention.depotPrelevement]: (a.stockParDepot[nouvelleIntervention.depotPrelevement] || 0) - art.quantite 
+          } 
+        } : a);
       }
     });
-    updateArticles(nouvelStock);
-    updateInterventions([...interventions, { id: interventionId, equipementId: parseInt(nouvelleIntervention.equipementId), type: nouvelleIntervention.type, date: nouvelleIntervention.date, km: parseInt(nouvelleIntervention.km) || 0, heures: parseInt(nouvelleIntervention.heures) || 0, description: nouvelleIntervention.description, articles: nouvelleIntervention.articlesPrevu, statut: 'en_cours', coutTotal, depotPrelevement: nouvelleIntervention.depotPrelevement }]);
+    setArticles(nouvelStock);
+    
+    // Créer l'intervention
+    const nouvelleInterv = {
+      id: interventionId,
+      equipement_id: parseInt(nouvelleIntervention.equipementId),
+      type: nouvelleIntervention.type,
+      date: nouvelleIntervention.date,
+      km: parseInt(nouvelleIntervention.km) || 0,
+      heures: parseInt(nouvelleIntervention.heures) || 0,
+      description: nouvelleIntervention.description,
+      articles_prevu: nouvelleIntervention.articlesPrevu,
+      statut: 'en_cours',
+      cout_total: coutTotal,
+      depot_prelevement: nouvelleIntervention.depotPrelevement
+    };
+    
+    // Synchroniser avec Supabase
+    try {
+      await supabase.from('interventions').insert([nouvelleInterv]);
+      // Mettre à jour les stocks dans Supabase
+      for (const art of nouvelleIntervention.articlesPrevu) {
+        if (!art.articleScanned) {
+          const article = nouvelStock.find(a => a.id === art.articleId);
+          if (article) {
+            await supabase.from('articles').update({ stock_par_depot: article.stockParDepot }).eq('id', art.articleId);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Erreur sync Supabase:', error);
+    }
+    
+    setInterventions([...interventions, { 
+      ...nouvelleInterv,
+      equipementId: nouvelleInterv.equipement_id,
+      articlesPrevu: nouvelleInterv.articles_prevu,
+      coutTotal: nouvelleInterv.cout_total,
+      depotPrelevement: nouvelleInterv.depot_prelevement
+    }]);
     setNouvelleIntervention({ equipementId: '', type: '', date: new Date().toISOString().split('T')[0], km: '', heures: '', description: '', articlesPrevu: [], depotPrelevement: 'Atelier' });
   };
 
-  const cloturerIntervention = (interventionId) => {
-    updateInterventions(interventions.map(i => i.id === interventionId ? { ...i, statut: 'effectue' } : i));
+  const cloturerIntervention = async (interventionId) => {
+    // Synchroniser avec Supabase
+    try {
+      await supabase.from('interventions')
+        .update({ statut: 'effectue' })
+        .eq('id', interventionId);
+    } catch (error) {
+      console.error('Erreur sync Supabase:', error);
+    }
+    
+    setInterventions(interventions.map(i => i.id === interventionId ? { ...i, statut: 'effectue' } : i));
   };
 
-  const ajouterAccessoire = (equipementId) => {
+  const ajouterAccessoire = async (equipementId) => {
     if (nouvelAccessoire.nom && nouvelAccessoire.valeur) {
-      const nouveauxAccessoires = [...(accessoiresEquipement[equipementId] || []), { id: Date.now(), ...nouvelAccessoire, valeur: parseFloat(nouvelAccessoire.valeur) }];
+      const newAccessoire = {
+        id: Date.now(),
+        equipement_id: equipementId,
+        nom: nouvelAccessoire.nom,
+        valeur: parseFloat(nouvelAccessoire.valeur),
+        description: nouvelAccessoire.description,
+        date_ajout: nouvelAccessoire.dateAjout,
+        actif: false
+      };
+      
+      // Synchroniser avec Supabase
+      try {
+        await supabase.from('accessoires').insert([newAccessoire]);
+      } catch (error) {
+        console.error('Erreur sync Supabase:', error);
+      }
+      
+      const nouveauxAccessoires = [...(accessoiresEquipement[equipementId] || []), {
+        ...newAccessoire,
+        dateAjout: newAccessoire.date_ajout
+      }];
       setAccessoiresEquipement({ ...accessoiresEquipement, [equipementId]: nouveauxAccessoires });
       setNouvelAccessoire({ nom: '', valeur: '', description: '', dateAjout: new Date().toISOString().split('T')[0] });
     }
   };
 
-  const supprimerAccessoire = (equipementId, accessoireId) => {
-    setAccessoiresEquipement({ ...accessoiresEquipement, [equipementId]: (accessoiresEquipement[equipementId] || []).filter(a => a.id !== accessoireId) });
+  const supprimerAccessoire = async (equipementId, accessoireId) => {
+    // Synchroniser avec Supabase
+    try {
+      await supabase.from('accessoires').delete().eq('id', accessoireId);
+    } catch (error) {
+      console.error('Erreur sync Supabase:', error);
+    }
+    
+    setAccessoiresEquipement({ 
+      ...accessoiresEquipement, 
+      [equipementId]: (accessoiresEquipement[equipementId] || []).filter(a => a.id !== accessoireId) 
+    });
   };
 
-  const affecterArticleEquipement = (articleId, equipementId) => {
-    updateArticles(articles.map(a => {
+  const affecterArticleEquipement = async (articleId, equipementId) => {
+    const article = articles.find(a => a.id === articleId);
+    const eqId = parseInt(equipementId);
+    
+    const nouveauxEquipements = article.equipementsAffectes.includes(eqId) 
+      ? article.equipementsAffectes.filter(e => e !== eqId)
+      : [...article.equipementsAffectes, eqId];
+    
+    // Synchroniser avec Supabase
+    try {
+      await supabase.from('articles')
+        .update({ equipements_affectes: nouveauxEquipements })
+        .eq('id', articleId);
+    } catch (error) {
+      console.error('Erreur sync Supabase:', error);
+    }
+    
+    setArticles(articles.map(a => {
       if (a.id === articleId) {
-        const eqId = parseInt(equipementId);
-        return a.equipementsAffectes.includes(eqId) 
-          ? { ...a, equipementsAffectes: a.equipementsAffectes.filter(e => e !== eqId) }
-          : { ...a, equipementsAffectes: [...a.equipementsAffectes, eqId] };
+        return { ...a, equipementsAffectes: nouveauxEquipements };
       }
       return a;
     }));

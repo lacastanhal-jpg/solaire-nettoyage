@@ -1,12 +1,11 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { initializeApp } from 'firebase/app';
-import { getDatabase, ref, onValue, set, push, update, get } from 'firebase/database';
+import { getFirestore, collection, doc, setDoc, getDocs, onSnapshot } from 'firebase/firestore';
 
 // Configuration Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyCAH_1ql-9ckn_egrj1AjteNpAs2Vo5KNY",
   authDomain: "gestion-flotte-et-stoks.firebaseapp.com",
-  databaseURL: "https://gestion-flotte-et-stoks-default-rtdb.europe-west1.firebasedatabase.app",
   projectId: "gestion-flotte-et-stoks",
   storageBucket: "gestion-flotte-et-stoks.firebasestorage.app",
   messagingSenderId: "824916805616",
@@ -15,199 +14,86 @@ const firebaseConfig = {
 
 // Initialiser Firebase
 const app = initializeApp(firebaseConfig);
-const database = getDatabase(app);
-// Créer les fonctions de mise à jour
-// Créer les fonctions de mise à jour
-const updateArticles = async (data) => {
-  try {
-    if (Array.isArray(data)) {
-      for (const item of data) {
-        if (item.id) {
-          await set(ref(database, 'articles/' + item.id), item);
-        }
-      }
-    }
-  } catch (error) {
-    console.error('Erreur sync articles:', error);
-  }
-};
-
-const updateEquipements = async (data) => {
-  try {
-    if (Array.isArray(data)) {
-      for (const item of data) {
-        if (item.id) {
-          await set(ref(database, 'equipements/' + item.id), item);
-        }
-      }
-    }
-  } catch (error) {
-    console.error('Erreur sync équipements:', error);
-  }
-};
-
-const updateDefauts = async (data) => {
-  try {
-    if (Array.isArray(data)) {
-      for (const item of data) {
-        if (item.id) {
-          await set(ref(database, 'defauts/' + item.id), item);
-        }
-      }
-    }
-  } catch (error) {
-    console.error('Erreur sync défauts:', error);
-  }
-};
-
-const updateInterventions = async (data) => {
-  try {
-    if (Array.isArray(data)) {
-      for (const item of data) {
-        if (item.id) {
-          await set(ref(database, 'interventions/' + item.id), item);
-        }
-      }
-    }
-  } catch (error) {
-    console.error('Erreur sync interventions:', error);
-  }
-};
-
-const updateMouvements = async (data) => {
-  try {
-    if (Array.isArray(data)) {
-      for (const item of data) {
-        if (item.id) {
-          await set(ref(database, 'mouvements/' + item.id), item);
-        }
-      }
-    }
-  } catch (error) {
-    console.error('Erreur sync mouvements:', error);
-  }
-};
+const db = getFirestore(app);
 
 // Fonctions de synchronisation
-
-// Fonctions de synchronisation
-
 const syncArticles = async (articles) => {
   for (const article of articles) {
-    await set(ref(database, 'articles/' + article.id), article);
+    await setDoc(doc(db, 'articles', article.id.toString()), article);
   }
 };
 
 const syncEquipements = async (equipements) => {
   for (const equip of equipements) {
-    await set(ref(database, 'equipements/' + equip.id), equip);
+    await setDoc(doc(db, 'equipements', equip.id.toString()), equip);
   }
 };
 
 const syncInterventions = async (interventions) => {
   for (const inter of interventions) {
-    await set(ref(database, 'interventions/' + inter.id), inter);
+    await setDoc(doc(db, 'interventions', inter.id.toString()), inter);
   }
 };
 
 const syncDefauts = async (defauts) => {
   for (const defaut of defauts) {
-    await set(ref(database, 'defauts/' + defaut.id), defaut);
+    await setDoc(doc(db, 'defauts', defaut.id.toString()), defaut);
   }
 };
 
 const syncMouvements = async (mouvements) => {
   for (const mouv of mouvements) {
-    await set(ref(database, 'mouvements/' + mouv.id), mouv);
+    await setDoc(doc(db, 'mouvements', mouv.id.toString()), mouv);
   }
 };
 
 export default function SolaireNettoyageFlotte() {
-  const [ongletActif, setOngletActif] = useState('accueil');
-   const [equipementSelectionne, setEquipementSelectionne] = useState(1);
-   const canvasRef = useRef(null);
-   const videoRef = useRef(null);
-   const scanningRef = useRef(false);
-   const jsQRRef = useRef(null);
-   const videoIntervention = useRef(null);
-   const canvasIntervention = useRef(null);
-   const scanningIntervention = useRef(false);
-   const fileInputRef = useRef(null);
-   
-   const [filtreAlerteSeverite, setFiltreAlerteSeverite] = useState('');
-   const [filtreAlerteFournisseur, setFiltreAlerteFournisseur] = useState('');
-   const [filtreAlerteDepot, setFiltreAlerteDepot] = useState('');
-   const [triAlertes, setTriAlertes] = useState('severite');
-   const [articleEnDetailsAlerte, setArticleEnDetailsAlerte] = useState(null);
-   const [articleEnTransfertAlerte, setArticleEnTransfertAlerte] = useState(null);
-   const [articleEnHistoriqueAlerte, setArticleEnHistoriqueAlerte] = useState(null);
-   const [transfertRapideData, setTransfertRapideData] = useState({ depotSource: 'Atelier', depotDestination: 'Porteur 26 T', quantite: '' });
-   
-   const operateurs = ['Axel', 'Jérôme', 'Sébastien', 'Joffrey', 'Fabien', 'Angelo'];
   // ... le reste de ton code continue normalement
 // CHARGEMENT INITIAL DEPUIS FIREBASE
 useEffect(() => {
-  // Écoute temps réel des articles
-  const articlesRef = ref(database, 'articles');
-  onValue(articlesRef, (snapshot) => {
-  const data = snapshot.val();
-  if (data) {
-    const articlesArray = Object.entries(data).map(([key, value]) => ({
-  ...value,
-  id: isNaN(parseInt(key)) ? key : parseInt(key),
-  equipementsAffectes: value.equipementsAffectes || [],
-  stockParDepot: value.stockParDepot || {}
-}));
-      setArticles(articlesArray);
-      console.log('✅ Articles synchronisés:', articlesArray.length);
+  const chargerDonnees = async () => {
+    // Charger Articles
+    const articlesSnapshot = await getDocs(collection(db, 'articles'));
+    if (!articlesSnapshot.empty) {
+      const articlesData = [];
+      articlesSnapshot.forEach((doc) => {
+        articlesData.push(doc.data());
+      });
+      updateArticles(articlesData);
+    } else {
+      // Utilise les articles par défaut des lignes 74-90
+      updateArticles(articles);
+      syncArticles(articles);
     }
+
+    // Charger Équipements
+    const equipementsSnapshot = await getDocs(collection(db, 'equipements'));
+    if (!equipementsSnapshot.empty) {
+      const equipementsData = [];
+      equipementsSnapshot.forEach((doc) => {
+        equipementsData.push(doc.data());
+      });
+      updateEquipements(equipementsData);
+    } else {
+      // Si pas d'équipements, utilise ceux par défaut
+      updateEquipements(equipements);
+      syncEquipements(equipements);
+    }
+  };
+
+  chargerDonnees();
+
+  // Écoute temps réel
+  const unsubscribeArticles = onSnapshot(collection(db, 'articles'), (snapshot) => {
+    const data = [];
+    snapshot.forEach((doc) => data.push(doc.data()));
+    if (data.length > 0) updateArticles(data);
   });
 
-  // Écoute temps réel des équipements
-  const equipementsRef = ref(database, 'equipements');
-  onValue(equipementsRef, (snapshot) => {
-    const data = snapshot.val();
-    if (data) {
-      const equipementsArray = Object.entries(data).map(([key, value]) => ({
-        ...value,
-        id: parseInt(key)
-      }));
-      setEquipements(equipementsArray);
-      console.log('✅ Équipements synchronisés:', equipementsArray.length);
-    }
-  });
-
-  // Écoute temps réel des défauts
-  const defautsRef = ref(database, 'defauts');
-  onValue(defautsRef, (snapshot) => {
-    const data = snapshot.val();
-    if (data) {
-      const defautsArray = Object.values(data);
-      setDefauts(defautsArray);
-    }
-  });
-
-  // Écoute temps réel des interventions
-  const interventionsRef = ref(database, 'interventions');
-  onValue(interventionsRef, (snapshot) => {
-    const data = snapshot.val();
-    if (data) {
-      const interventionsArray = Object.values(data);
-      setInterventions(interventionsArray);
-    }
-  });
-
-  // Écoute temps réel des mouvements
-  const mouvementsRef = ref(database, 'mouvements');
-  onValue(mouvementsRef, (snapshot) => {
-    const data = snapshot.val();
-    if (data) {
-      const mouvementsArray = Object.values(data);
-      setMouvementsStock(mouvementsArray);
-    }
-  });
+  return () => {
+    unsubscribeArticles();
+  };
 }, []);
-
   const depots = ['Atelier', 'Porteur 26 T', 'Porteur 32 T', 'Semi Remorque'];
   
   const [articles, setArticles] = useState([
@@ -698,15 +584,15 @@ useEffect(() => {
   }, [articles]);
 
   const getArticlesDisponiblesCallback = useCallback(() => {
-  if (afficherArticlesEquipement && nouvelleIntervention.equipementId) {
-    const selectedId = parseInt(nouvelleIntervention.equipementId);
-    if (selectedId === 999) {
-      return articles.filter(a => (a.equipementsAffectes || []).includes(6) || (a.equipementsAffectes || []).includes(999));
+    if (afficherArticlesEquipement && nouvelleIntervention.equipementId) {
+      const selectedId = parseInt(nouvelleIntervention.equipementId);
+      if (selectedId === 999) {
+        return articles.filter(a => a.equipementsAffectes.includes(6) || a.equipementsAffectes.includes(999));
+      }
+      return articles.filter(a => a.equipementsAffectes.includes(selectedId));
     }
-    return articles.filter(a => (a.equipementsAffectes || []).includes(selectedId));
-  }
-  return articles;
-}, [articles, afficherArticlesEquipement, nouvelleIntervention.equipementId]);
+    return articles;
+  }, [articles, afficherArticlesEquipement, nouvelleIntervention.equipementId]);
 
   const traiterScanQRIntervention = useCallback((code) => {
     const article = getArticlesDisponiblesCallback().find(a => a.code === code);
